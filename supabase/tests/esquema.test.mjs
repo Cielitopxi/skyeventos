@@ -3,7 +3,7 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 import fs from "node:fs";
 
 const db = new PGlite({ extensions: { pgcrypto } });
-const sql = fs.readFileSync(process.argv[2], "utf8");
+const migraciones = process.argv.slice(2).map((f) => fs.readFileSync(f, "utf8"));
 
 // Simulación mínima de Supabase
 await db.exec(`
@@ -20,9 +20,9 @@ create function storage.foldername(name text) returns text[] language sql immuta
 create publication supabase_realtime;
 grant usage on schema public, auth, storage to authenticated, anon;
 `);
-await db.exec(sql);
+for (const sql of migraciones) await db.exec(sql);
 await db.exec(`grant all on all tables in schema public to authenticated, anon; grant all on storage.objects to authenticated;`);
-console.log("✓ migración aplicada");
+console.log("✓ migraciones aplicadas:", migraciones.length);
 
 const host = "11111111-1111-1111-1111-111111111111";
 const g1 = "22222222-2222-2222-2222-222222222222";
@@ -104,4 +104,17 @@ for (let n = 0; n < 78; n++) {
 const u = crypto.randomUUID();
 await db.exec(`insert into auth.users values ('${u}',null,true)`);
 await espera_error(como(u, true, `select unirse_evento('${ev.codigo}','Excedente')`), "invitado 81 en plan Básico");
+
+// Sin sesión (rol anon): solo planes y evento_por_codigo
+const sinSesion = async (q) => {
+  await db.exec(`reset role; select set_config('t.uid','',false), set_config('t.anon','false',false), set_config('t.role','anon',false); set role anon;`);
+  try { return await db.query(q); } finally { await db.exec("reset role"); }
+};
+console.log("✓ anon ve planes:", (await sinSesion(`select count(*)::int n from planes`)).rows[0].n);
+console.log("✓ anon usa evento_por_codigo:", (await sinSesion(`select nombre from evento_por_codigo('${ev.codigo}')`)).rows[0]?.nombre);
+console.log("✓ anon no ve fotos:", (await sinSesion(`select count(*)::int n from fotos`)).rows[0].n, "(debe ser 0)");
+await espera_error(sinSesion(`select activar_evento('${ev.id}')`), "anon no ejecuta activar_evento");
+await espera_error(sinSesion(`select crear_evento('X','boda','elegante','fiesta',null)`), "anon no ejecuta crear_evento");
+await espera_error(sinSesion(`select ranking('${ev.id}')`), "anon no ejecuta ranking");
+await espera_error(como(g1, true, `select tg_fotos_antes()`), "nadie llama triggers por RPC");
 console.log("FIN");
