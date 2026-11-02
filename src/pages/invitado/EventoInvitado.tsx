@@ -306,7 +306,7 @@ function Galeria({ evento, invitado, soloMias = false }: { evento: EventoPublico
 }
 
 function Misiones({ evento, invitado, onCumplir }: { evento: EventoPublico; invitado: Invitado; onCumplir: (m: Mision) => void }) {
-  const [misiones, setMisiones] = useState<Mision[]>([]);
+  const [misiones, setMisiones] = useState<Mision[] | null>(null);
   const [mias, setMias] = useState<Foto[]>([]);
   const [, setTick] = useState(0);
 
@@ -319,6 +319,7 @@ function Misiones({ evento, invitado, onCumplir }: { evento: EventoPublico; invi
     const canal = supabase
       .channel(`inv-mis-${evento.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "misiones", filter: `evento_id=eq.${evento.id}` }, cargar)
+      .on("postgres_changes", { event: "*", schema: "public", table: "fotos", filter: `invitado_id=eq.${invitado.id}` }, cargar)
       .subscribe();
     const t = setInterval(() => setTick((x) => x + 1), 15_000);
     return () => {
@@ -335,6 +336,8 @@ function Misiones({ evento, invitado, onCumplir }: { evento: EventoPublico; invi
     return null;
   };
   const disponible = (m: Mision) => (!m.inicio || new Date(m.inicio).getTime() <= ahora) && (!m.fin || new Date(m.fin).getTime() > ahora);
+
+  if (!misiones) return <Cargando />;
   const visibles = misiones.filter((m) => disponible(m) || estadoDe(m));
   const cumplidas = misiones.filter((m) => estadoDe(m) === "cumplida").length;
 
