@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Aviso, Campo, Logo } from "../../components/ui";
+import { Aviso, Campo, Icono, Logo } from "../../components/ui";
 import { VistaPrevia } from "../../components/VistaPrevia";
 import { pesos, TIPOS_EVENTO } from "../../lib/formato";
 import { mensajeError, supabase } from "../../lib/supabase";
@@ -64,18 +64,32 @@ export default function Contratar() {
   const puedeSeguir = paso === 1 ? nombre.trim().length >= 2 : true;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b bg-white">
+    <div className="marca min-h-screen bg-marfil">
+      <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-marfil/85 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <Logo />
           <Link to="/panel" className="text-sm font-medium text-slate-600">Mis eventos</Link>
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-8">
-        <ol className="mb-8 flex gap-2 text-xs font-semibold">
+        <ol className="mb-10 flex items-center">
           {["Tu evento", "Temática", "Plan", "Pago"].map((t, i) => (
-            <li key={t} className={`flex-1 rounded-full py-2 text-center ${paso > i ? "bg-sky-500 text-white" : "bg-slate-200 text-slate-500"}`}>
-              {i + 1}. {t}
+            <li key={t} className="flex flex-1 items-center gap-3 last:flex-none">
+              <span className="flex items-center gap-2.5">
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-display text-sm transition ${
+                    paso > i + 1
+                      ? "bg-sky-500 text-white"
+                      : paso === i + 1
+                        ? "bg-noche text-[#f3e3bf] ring-4 ring-sky-200"
+                        : "border border-slate-300 text-slate-400"
+                  }`}
+                >
+                  {paso > i + 1 ? <Icono nombre="check" className="h-4 w-4" /> : i + 1}
+                </span>
+                <span className={`hidden text-xs font-semibold uppercase tracking-[.14em] sm:inline ${paso >= i + 1 ? "text-noche" : "text-slate-400"}`}>{t}</span>
+              </span>
+              {i < 3 && <span className={`mx-1 h-px flex-1 ${paso > i + 1 ? "bg-sky-400" : "bg-slate-300"}`} />}
             </li>
           ))}
         </ol>
@@ -84,7 +98,7 @@ export default function Contratar() {
           <div className="tarjeta space-y-5">
             {paso === 1 && (
               <>
-                <h1 className="text-xl font-bold">Contanos de tu evento</h1>
+                <h1 className="text-[1.75rem] leading-tight">Contanos de tu evento</h1>
                 <Campo label="Tipo de evento">
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {TIPOS_EVENTO.map((t) => (
@@ -110,7 +124,7 @@ export default function Contratar() {
 
             {paso === 2 && (
               <>
-                <h1 className="text-xl font-bold">Elegí la temática</h1>
+                <h1 className="text-[1.75rem] leading-tight">Elegí la temática</h1>
                 <p className="text-sm text-slate-600">Después podés cambiar colores, textos y portada desde tu panel.</p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {TEMATICAS.map((t) => (
@@ -135,7 +149,7 @@ export default function Contratar() {
 
             {paso === 3 && (
               <>
-                <h1 className="text-xl font-bold">Elegí tu plan</h1>
+                <h1 className="text-[1.75rem] leading-tight">Elegí tu plan</h1>
                 <div className="space-y-3">
                   {planes.map((p) => (
                     <button
@@ -161,7 +175,7 @@ export default function Contratar() {
 
             {paso === 4 && (
               <>
-                <h1 className="text-xl font-bold">Confirmá y pagá</h1>
+                <h1 className="text-[1.75rem] leading-tight">Confirmá y pagá</h1>
                 <dl className="divide-y rounded-xl border text-sm">
                   {[
                     ["Evento", nombre],

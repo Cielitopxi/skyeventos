@@ -23,12 +23,16 @@ export default function Ingresar() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-900 px-4 text-white">
+    <div className="marca cielo relative flex min-h-screen flex-col items-center justify-center px-5 text-white">
+      <div className="hilo-oro absolute inset-x-0 top-0" />
       <Logo claro />
-      <form onSubmit={entrar} className="mt-8 w-full max-w-xs space-y-4 text-center">
-        <h1 className="text-xl font-bold">Ingresá el código del evento</h1>
+      <form onSubmit={entrar} className="mt-12 w-full max-w-sm space-y-6 text-center">
+        <div>
+          <p className="rotulo justify-center text-oro">Invitados</p>
+          <h1 className="mt-4 text-3xl leading-tight">Ingresá el código <em className="texto-oro">del evento</em></h1>
+        </div>
         <input
-          className="w-full rounded-2xl border-0 bg-white/10 px-4 py-4 text-center text-3xl font-bold uppercase tracking-[.3em] text-white outline-none ring-2 ring-white/20 placeholder:text-white/30 focus:ring-sky-400"
+          className="w-full rounded-2xl border border-oro/30 bg-white/[.06] px-4 py-5 text-center font-display text-4xl uppercase tracking-[.35em] text-[#f3e3bf] outline-none transition placeholder:text-white/20 focus:border-oro focus:bg-white/[.09] focus:ring-4 focus:ring-oro/15"
           maxLength={8}
           autoFocus
           placeholder="ABC123"
@@ -36,10 +40,13 @@ export default function Ingresar() {
           onChange={(e) => setCodigo(e.target.value.replace(/[^a-z0-9]/gi, ""))}
         />
         {error && <Aviso tipo="error">{error}</Aviso>}
-        <button className="w-full rounded-2xl bg-sky-500 py-3.5 font-semibold disabled:opacity-50" disabled={buscando || codigo.length < 4}>
-          {buscando ? "Buscando…" : "Entrar"}
+        <button
+          className="w-full rounded-full bg-gradient-to-b from-[#e9d3a3] to-[#c09a5c] py-4 font-semibold text-noche shadow-[0_10px_30px_-10px_rgba(201,169,110,.8)] transition hover:brightness-105 disabled:opacity-40 disabled:shadow-none"
+          disabled={buscando || codigo.length < 4}
+        >
+          {buscando ? "Buscando…" : "Entrar al evento"}
         </button>
-        <p className="text-xs text-white/50">El código está en el QR de tu mesa o te lo pasaron los anfitriones.</p>
+        <p className="text-xs leading-relaxed text-white/45">El código está en el QR de tu mesa o te lo pasaron los anfitriones.</p>
       </form>
     </div>
   );

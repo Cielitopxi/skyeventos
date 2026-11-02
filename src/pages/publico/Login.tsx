@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { Aviso, Logo } from "../../components/ui";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Aviso, Campo, Icono, Logo } from "../../components/ui";
 import { useUsuario } from "../../components/useUsuario";
 import { APP_URL, mensajeError, supabase } from "../../lib/supabase";
 
@@ -33,33 +33,44 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <div className="marca cielo relative flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="hilo-oro absolute inset-x-0 top-0" />
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex justify-center">
-          <Logo />
+        <div className="mb-8 flex justify-center">
+          <Logo claro />
         </div>
-        <div className="tarjeta">
+        <div className="rounded-3xl bg-marfil p-8 shadow-[0_40px_80px_-30px_rgba(0,0,0,.7)] ring-1 ring-oro/30">
           {enviado ? (
             <div className="text-center">
-              <div className="text-4xl">📬</div>
-              <h1 className="mt-2 text-lg font-bold">Revisá tu correo</h1>
-              <p className="mt-1 text-sm text-slate-600">
-                Te enviamos un enlace a <b>{email}</b>. Abrilo desde este dispositivo para ingresar.
+              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-sky-300 text-sky-500">
+                <Icono nombre="mensaje" className="h-6 w-6" />
+              </span>
+              <h1 className="mt-5 text-2xl">Revisá tu correo</h1>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                Te enviamos un enlace a <b className="text-noche">{email}</b>. Abrilo desde este dispositivo para ingresar.
               </p>
-              <button className="btn-secundario mt-4 w-full" onClick={() => setEnviado(false)}>Usar otro email</button>
+              <button className="btn-secundario mt-6 w-full" onClick={() => setEnviado(false)}>Usar otro email</button>
             </div>
           ) : (
-            <form onSubmit={enviar} className="space-y-4">
+            <form onSubmit={enviar} className="space-y-5">
               <div>
-                <h1 className="text-lg font-bold">Ingresá a tu cuenta</h1>
-                <p className="text-sm text-slate-600">Para crear y administrar tus eventos. Sin contraseña: te mandamos un enlace.</p>
+                <p className="rotulo text-sky-500">Anfitriones</p>
+                <h1 className="mt-3 text-[1.9rem] leading-tight">Ingresá a tu cuenta</h1>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">Para crear y administrar tus eventos. Sin contraseña: te mandamos un enlace.</p>
               </div>
-              <input className="input" type="email" required autoFocus placeholder="tu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <Campo label="Email">
+                <input className="input" type="email" required autoFocus placeholder="tu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+              </Campo>
               {error && <Aviso tipo="error">{error}</Aviso>}
-              <button className="btn-primario w-full" disabled={enviando}>{enviando ? "Enviando…" : "Enviarme el enlace"}</button>
+              <button className="btn w-full rounded-full bg-noche py-3 text-white hover:bg-slate-800" disabled={enviando}>
+                {enviando ? "Enviando…" : "Enviarme el enlace"}
+              </button>
             </form>
           )}
         </div>
+        <p className="mt-6 text-center text-xs text-white/45">
+          ¿Sos invitado? <Link to="/e" className="text-[#f3e3bf] underline decoration-oro/50 underline-offset-4">Entrá con el código del evento</Link>
+        </p>
       </div>
     </div>
   );

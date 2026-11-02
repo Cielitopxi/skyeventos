@@ -2,15 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Identidad de marca ("noche de gala"). Las temáticas de cada evento redefinen estas variables. */
 :root {
-  --t-fondo: 248 250 252;
+  --t-fondo: 247 244 238;
   --t-superficie: 255 255 255;
-  --t-texto: 15 23 42;
-  --t-suave: 100 116 139;
-  --t-acento: 14 165 233;
-  --t-acento2: 245 158 11;
-  --t-font-titulo: "Space Grotesk", Inter, sans-serif;
-  --t-font-cuerpo: Inter, system-ui, sans-serif;
+  --t-texto: 21 24 39;
+  --t-suave: 112 105 94;
+  --t-acento: 148 113 58;
+  --t-acento2: 201 169 110;
+  --t-font-titulo: Fraunces, Georgia, serif;
+  --t-font-cuerpo: Manrope, Inter, system-ui, sans-serif;
 }
 
 html, body, #root { min-height: 100%; }
@@ -20,24 +21,68 @@ body {
   background: rgb(var(--t-fondo));
   color: rgb(var(--t-texto));
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
+::selection { background: rgb(var(--t-acento) / .22); }
+
+/* Páginas de marca (públicas y panel): títulos en serif editorial. */
+.marca { font-family: Manrope, Inter, system-ui, sans-serif; }
+.marca h1, .marca h2, .marca h3 { font-family: Fraunces, Georgia, serif; font-weight: 500; letter-spacing: -0.015em; }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold tracking-[.01em] transition duration-200
       disabled:cursor-not-allowed disabled:opacity-50 active:scale-[.98];
   }
-  .btn-primario { @apply btn bg-tema-acento text-white shadow-sm hover:brightness-110; }
-  .btn-secundario { @apply btn border border-tema-suave/30 bg-tema-superficie text-tema-texto hover:bg-tema-suave/10; }
-  .btn-peligro { @apply btn bg-rose-600 text-white hover:bg-rose-700; }
-  .btn-chico { @apply px-3 py-1.5 text-xs rounded-lg; }
-  .input {
-    @apply w-full rounded-xl border border-tema-suave/30 bg-tema-superficie px-3 py-2.5 text-sm text-tema-texto
-      outline-none placeholder:text-tema-suave/70 focus:border-tema-acento focus:ring-2 focus:ring-tema-acento/20;
+  .btn-primario {
+    @apply btn bg-tema-acento text-white hover:brightness-110;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .22), 0 1px 2px rgb(0 0 0 / .08), 0 8px 20px -10px rgb(var(--t-acento) / .7);
   }
-  .etiqueta { @apply mb-1 block text-xs font-semibold uppercase tracking-wide text-tema-suave; }
-  .tarjeta { @apply rounded-2xl border border-tema-suave/15 bg-tema-superficie p-5 shadow-sm; }
-  .chip { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; }
+  .btn-secundario {
+    @apply btn border border-tema-suave/25 bg-tema-superficie text-tema-texto hover:border-tema-suave/45 hover:bg-tema-suave/[.06];
+    box-shadow: 0 1px 2px rgb(0 0 0 / .04);
+  }
+  .btn-peligro { @apply btn bg-rose-700 text-white hover:bg-rose-800; }
+  .btn-chico { @apply rounded-lg px-3 py-1.5 text-xs; }
+  .input {
+    @apply w-full rounded-xl border border-tema-suave/25 bg-tema-superficie px-3.5 py-2.5 text-sm text-tema-texto outline-none transition
+      placeholder:text-tema-suave/60 focus:border-tema-acento/70 focus:ring-4 focus:ring-tema-acento/10;
+    box-shadow: inset 0 1px 2px rgb(0 0 0 / .03);
+  }
+  .etiqueta { @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[.14em] text-tema-suave; }
+  .tarjeta {
+    @apply rounded-2xl border border-tema-suave/[.14] bg-tema-superficie p-5;
+    box-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 12px 32px -16px rgb(0 0 0 / .14);
+  }
+  .chip { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide; }
+
+  /* Rótulo editorial: línea fina + texto espaciado */
+  .rotulo { @apply inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[.28em]; }
+  .rotulo::before { content: ""; @apply h-px w-8 bg-current opacity-60; }
+
+  /* Cielo nocturno: estrellas finas sobre medianoche */
+  .cielo {
+    background-color: #151827;
+    background-image:
+      radial-gradient(1px 1px at 12% 18%, rgb(255 255 255 / .55), transparent 60%),
+      radial-gradient(1px 1px at 72% 12%, rgb(255 255 255 / .45), transparent 60%),
+      radial-gradient(1.5px 1.5px at 38% 62%, rgb(255 255 255 / .35), transparent 60%),
+      radial-gradient(1px 1px at 88% 48%, rgb(255 255 255 / .5), transparent 60%),
+      radial-gradient(1px 1px at 22% 82%, rgb(255 255 255 / .35), transparent 60%),
+      radial-gradient(1.5px 1.5px at 56% 30%, rgb(201 169 110 / .6), transparent 60%),
+      radial-gradient(1px 1px at 64% 86%, rgb(255 255 255 / .4), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 80% 0%, rgb(201 169 110 / .16), transparent 70%),
+      radial-gradient(ellipse 70% 60% at 0% 100%, rgb(88 96 160 / .25), transparent 70%);
+  }
+  .texto-oro {
+    background: linear-gradient(100deg, #e9d3a3 0%, #c9a96e 45%, #f3e3bf 70%, #b8925a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hilo-oro { background: linear-gradient(90deg, transparent, rgb(201 169 110 / .7), transparent); height: 1px; }
 }
 
 /* Pantalla en vivo */
@@ -45,6 +90,10 @@ body {
 .entrar { animation: entrar .9s ease both; }
 @keyframes subir { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 .subir { animation: subir .6s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .entrar, .subir { animation: none; }
+}
 
 /* Fotolibro */
 @media print {
