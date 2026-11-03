@@ -81,7 +81,8 @@ export default function TabTrivia({ evento, plan }: PropsTab) {
 
   async function borrar(p: PreguntaTrivia) {
     if (!confirm(`¿Borrar la pregunta "${p.texto}" y sus respuestas?`)) return;
-    await supabase.from("trivia_preguntas").delete().eq("id", p.id);
+    const r = await supabase.from("trivia_preguntas").delete().eq("id", p.id);
+    if (r.error) setError(mensajeError(r.error));
     cargar();
   }
 

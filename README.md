@@ -1,48 +1,94 @@
 # SkyEventos
 
-Plataforma para eventos: los invitados comparten fotos y mensajes con un QR, se proyectan en una pantalla en vivo, juegan misiones y al final se genera un fotolibro PDF con la temática del evento.
+Plataforma para eventos sociales y corporativos. Los invitados escanean un QR y, sin instalar nada:
 
-**Stack:** React + Vite + Tailwind · Supabase (Postgres con RLS, Auth, Storage, Realtime, Edge Functions) · Mercado Pago Checkout Pro.
+- Comparten **fotos, videos y audios** de hasta 10 segundos, y dejan **mensajes**.
+- Ven todo en una **pantalla en vivo** (TV o proyector).
+- Juegan: **misiones**, **bingo de momentos**, **trivia** y **premios por votación**.
+- Dejan mensajes en una **cápsula del tiempo** (plan Premium).
+
+Al final, el anfitrión descarga un **fotolibro** en PDF con la temática del evento y QR para los clips.
+
+**Stack:** React 18 + Vite + Tailwind · Supabase (Postgres con RLS, Auth, Storage, Realtime, Edge Functions) · Mercado Pago Checkout Pro · Resend (mails).
+
+- Para salir a producción: [docs/PRODUCCION.md](docs/PRODUCCION.md).
+- Cómo está armado: [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
 ## Rutas
 
 | Ruta | Para quién |
 |---|---|
 | `/` | Landing con planes y temáticas |
-| `/contratar` | Asistente de contratación y pago (requiere login por email) |
-| `/panel`, `/panel/:id` | Panel del anfitrión: resumen, personalizar, moderar, misiones y premios, invitados, QR, fotolibro |
-| `/panel/:id/libro` | Fotolibro 21 × 21 cm → “Guardar como PDF” |
-| `/e`, `/e/:codigo` | App del invitado (sesión anónima, sin cuenta) |
-| `/pantalla/:codigo?k=token` | Pantalla en vivo para TV/proyector |
+| `/demo` | Demo pública (evento `DEMO26`) |
+| `/ingresar` | Login de anfitriones (enlace mágico por email) |
+| `/contratar` | Asistente de contratación y pago |
+| `/pago` | Retorno de Mercado Pago (espera la activación por webhook) |
+| `/panel`, `/panel/:id` | Panel del anfitrión: resumen, personalizar, moderar, juegos, invitados, QR, cápsula y fotolibro |
+| `/panel/:id/libro` | Fotolibro 21 × 21 cm → "Guardar como PDF" |
+| `/admin` | Panel de administración (solo usuarios en `admins`) |
+| `/e`, `/e/:codigo` | App del invitado: nombre + email, sin confirmación (sesión anónima) |
+| `/pantalla/:codigo?k=token` | Pantalla en vivo |
+| `/c/:id` | Reproductor público de un clip (el QR del fotolibro) |
 
-## Puesta en marcha
+## Desarrollo local
 
-1. **Base de datos:** en el SQL Editor de Supabase ejecutá `supabase/migrations/0001_esquema_inicial.sql`.
-2. **Auth** (Authentication → Sign In / Providers):
-   - Activar **Anonymous sign-ins** (lo usan invitados y pantallas).
-   - Email con magic link activado (viene por defecto).
-   - URL Configuration: Site URL = la URL pública; agregar `http://localhost:5190/**` a Redirect URLs.
-3. **Frontend:** copiá `.env.example` a `.env` y completá `VITE_SUPABASE_ANON_KEY` (Settings → API).
-   ```
-   npm install
-   npm run dev      # http://localhost:5190
-   ```
-4. **Mercado Pago:**
-   - Desplegar las funciones: `supabase functions deploy mp-crear-preferencia` y `supabase functions deploy mp-webhook --no-verify-jwt`.
-   - Secretos: `supabase secrets set MP_ACCESS_TOKEN=... APP_URL=https://tu-dominio MP_WEBHOOK_SECRET=...`.
-   - Con un token `TEST-...` se usa el checkout de prueba.
-   - En el panel de Mercado Pago → Webhooks, configurá `https://<proyecto>.supabase.co/functions/v1/mp-webhook` (evento *Pagos*) y copiá la clave secreta a `MP_WEBHOOK_SECRET`.
-5. **Administrador:** para activar eventos sin pago (pruebas, cortesías), insertá tu usuario:
-   `insert into admins (user_id) select id from auth.users where email = 'tu@email.com';`
+```bash
+cp .env.example .env      # completar VITE_SUPABASE_ANON_KEY
+npm install
+npm run dev               # http://localhost:5190
+```
 
-## Pruebas de la base
+| Script | Qué hace |
+|---|---|
+| `npm run dev` | Servidor de desarrollo en el puerto 5190 |
+| `npm run typecheck` | Chequeo de tipos (TypeScript estricto) |
+| `npm run build` | Tipos + build de producción en `dist/` |
+| `npm run test:db` | Aplica las migraciones en un Postgres embebido (PGlite) y prueba las reglas de acceso |
 
-`npm run test:db` aplica la migración en un Postgres embebido (PGlite) con simulaciones de `auth` y `storage` y verifica las reglas de acceso: contratación, activación por pago, ingreso por código, aislamiento entre eventos, moderación, misiones y puntos, pantalla, carpetas de storage, cierre con 48 h de gracia y límites del plan.
+### Variables del frontend (`.env`)
 
-## Pendiente / próximas etapas
+| Variable | Valor |
+|---|---|
+| `VITE_SUPABASE_URL` | URL del proyecto (`https://<ref>.supabase.co`) |
+| `VITE_SUPABASE_ANON_KEY` | Clave pública (Settings → API). Es pública por diseño: la seguridad la da RLS. |
+| `VITE_APP_URL` | URL pública de la app, sin `/` final. Se usa en los QR y en los enlaces de login. |
 
-- Generación del PDF en servidor (Chromium headless sobre `/panel/:id/libro`) y envío por email.
-- Mover las fotos a Cloudflare R2 si crece el volumen (hoy: Supabase Storage, bucket privado `fotos`).
-- Cola de subida persistente (IndexedDB) para no perder fotos si el invitado cierra la pestaña sin conexión.
-- Moderación automática de contenido, bingo fotográfico, búsqueda del tesoro con QR, trivia y votaciones.
-- Borrado automático al vencer `expira_at` (cron).
+## Estructura
+
+```
+src/
+  App.tsx              rutas (cada página se carga bajo demanda)
+  components/          piezas compartidas: ui, Iconos, Portada, Instantanea (marcos), Grabador, …
+  lib/                 supabase (cliente y helpers), tipos, subida (cola con reintentos),
+                       imagen y clip (procesado en el teléfono), urls (URLs firmadas), tematicas
+  pages/
+    publico/           landing, demo, login, contratar, pago, clip público
+    invitado/          app del invitado (galería, juegos, mensajes, ranking, perfil)
+    panel/             panel del anfitrión, una pestaña por archivo (Tab*.tsx)
+    pantalla/          pantalla en vivo
+    libro/             fotolibro imprimible
+    admin/             administración
+supabase/
+  migrations/          esquema, en orden (0001 … 0013)
+  functions/           Edge Functions: mp-crear-preferencia, mp-webhook, avisos-capsula
+  tests/               esquema.test.mjs (pruebas de RLS y reglas de negocio)
+```
+
+## Base de datos
+
+Las migraciones de `supabase/migrations` se aplican en orden numérico. Todas las tablas tienen RLS. Las operaciones con reglas de negocio (unirse, votar, responder trivia, activar o cerrar un evento) son funciones `security definer` que validan permisos adentro. Detalle en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
+
+`0009_cron_capsula.sql` usa `pg_cron`, por eso queda fuera de `test:db` (PGlite no lo trae).
+
+## Pruebas
+
+`npm run test:db` levanta un Postgres embebido con simulaciones de `auth` y `storage` y verifica, entre otras cosas:
+
+- Contratación y activación por pago.
+- Ingreso por código, registro con email y quién puede ver cada email.
+- Aislamiento entre eventos y moderación.
+- Misiones, bingo, votación secreta, trivia y cápsula.
+- Clips por plan y su QR público, y marcos.
+- Límites de cada plan y cierre con 48 h de gracia.
+
+Cada línea `✓` muestra el resultado de una verificación. Las que dicen `true` o `false` hay que mirarlas: un `false` no corta la ejecución. Si un rechazo esperado no ocurre, se marca con `✗` y el proceso termina con código 1.

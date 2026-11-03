@@ -136,7 +136,7 @@ function Unirse({ evento, codigo, error: errorInicial, previo, onListo }: { even
         </div>
         <label className="flex gap-2 text-xs text-tema-suave">
           <input type="checkbox" checked={acepto} onChange={(e) => setAcepto(e.target.checked)} className="mt-0.5" />
-          Acepto que mis fotos y mensajes se muestren en la pantalla del evento y se incluyan en el fotolibro de los anfitriones.
+          Acepto que mis fotos y mensajes se muestren en la pantalla del evento y se incluyan en el fotolibro, y que los anfitriones reciban mi nombre y email.
         </label>
         {error && <Aviso tipo="error">{error}</Aviso>}
         <button className="btn-primario w-full py-3.5 text-base" disabled={!nombre.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()) || !acepto || enviando || !evento.abierto}>
@@ -436,8 +436,10 @@ function Galeria({ evento, invitado, soloMias = false }: { evento: EventoPublico
 
   async function borrar(f: Foto) {
     if (!confirm("¿Borrar esta foto?")) return;
-    await supabase.from("fotos").delete().eq("id", f.id);
-    await supabase.storage.from("fotos").remove([f.storage_path, f.thumb_path]);
+    // Primero el registro: si la base lo rechaza (evento cerrado, sin permiso) el archivo no se toca.
+    const { error } = await supabase.from("fotos").delete().eq("id", f.id);
+    if (error) return alert(mensajeError(error));
+    await supabase.storage.from(BUCKET).remove([f.storage_path, f.thumb_path]);
     setFotos((xs) => xs.filter((x) => x.id !== f.id));
     setAbierta(null);
   }
@@ -727,7 +729,8 @@ function Capsula({ evento, invitado, estado }: { evento: EventoPublico; invitado
                   className="self-start text-tema-suave hover:text-rose-600"
                   aria-label="Borrar"
                   onClick={async () => {
-                    await supabase.from("capsula_items").delete().eq("id", m.id);
+                    const { error } = await supabase.from("capsula_items").delete().eq("id", m.id);
+                    if (error) alert(mensajeError(error));
                     cargar();
                   }}
                 >

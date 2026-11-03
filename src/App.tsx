@@ -1,19 +1,23 @@
+import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
 import { supabaseConfigurado } from "./lib/supabase";
-import Inicio from "./pages/publico/Inicio";
-import Contratar from "./pages/publico/Contratar";
-import Demo from "./pages/publico/Demo";
-import Ingresar from "./pages/publico/Ingresar";
-import Login from "./pages/publico/Login";
-import ResultadoPago from "./pages/publico/ResultadoPago";
-import MisEventos from "./pages/panel/MisEventos";
-import EventoPanel from "./pages/panel/EventoPanel";
-import EventoInvitado from "./pages/invitado/EventoInvitado";
-import Pantalla from "./pages/pantalla/Pantalla";
-import Fotolibro from "./pages/libro/Fotolibro";
-import Admin from "./pages/admin/Admin";
-import Clip from "./pages/publico/Clip";
 import { RequiereLogin } from "./components/RequiereLogin";
+import { Cargando } from "./components/ui";
+
+// Cada sección se descarga recién cuando se abre: el invitado que escanea el QR no baja el panel ni el admin.
+const Inicio = lazy(() => import("./pages/publico/Inicio"));
+const Contratar = lazy(() => import("./pages/publico/Contratar"));
+const Demo = lazy(() => import("./pages/publico/Demo"));
+const Ingresar = lazy(() => import("./pages/publico/Ingresar"));
+const Login = lazy(() => import("./pages/publico/Login"));
+const ResultadoPago = lazy(() => import("./pages/publico/ResultadoPago"));
+const Clip = lazy(() => import("./pages/publico/Clip"));
+const MisEventos = lazy(() => import("./pages/panel/MisEventos"));
+const EventoPanel = lazy(() => import("./pages/panel/EventoPanel"));
+const EventoInvitado = lazy(() => import("./pages/invitado/EventoInvitado"));
+const Pantalla = lazy(() => import("./pages/pantalla/Pantalla"));
+const Fotolibro = lazy(() => import("./pages/libro/Fotolibro"));
+const Admin = lazy(() => import("./pages/admin/Admin"));
 
 export default function App() {
   return (
@@ -23,22 +27,24 @@ export default function App() {
           Falta configurar Supabase: copiá <code>.env.example</code> a <code>.env</code> y completá la clave.
         </div>
       )}
-      <Routes>
-        <Route path="/" element={<Inicio />} />
-        <Route path="/demo" element={<Demo />} />
-        <Route path="/contratar" element={<RequiereLogin><Contratar /></RequiereLogin>} />
-        <Route path="/ingresar" element={<Login />} />
-        <Route path="/pago" element={<ResultadoPago />} />
-        <Route path="/panel" element={<RequiereLogin><MisEventos /></RequiereLogin>} />
-        <Route path="/panel/:id" element={<RequiereLogin><EventoPanel /></RequiereLogin>} />
-        <Route path="/panel/:id/libro" element={<RequiereLogin><Fotolibro /></RequiereLogin>} />
-        <Route path="/admin" element={<RequiereLogin><Admin /></RequiereLogin>} />
-        <Route path="/c/:id" element={<Clip />} />
-        <Route path="/e" element={<Ingresar />} />
-        <Route path="/e/:codigo" element={<EventoInvitado />} />
-        <Route path="/pantalla/:codigo" element={<Pantalla />} />
-        <Route path="*" element={<Ingresar />} />
-      </Routes>
+      <Suspense fallback={<Cargando />}>
+        <Routes>
+          <Route path="/" element={<Inicio />} />
+          <Route path="/demo" element={<Demo />} />
+          <Route path="/contratar" element={<RequiereLogin><Contratar /></RequiereLogin>} />
+          <Route path="/ingresar" element={<Login />} />
+          <Route path="/pago" element={<ResultadoPago />} />
+          <Route path="/panel" element={<RequiereLogin><MisEventos /></RequiereLogin>} />
+          <Route path="/panel/:id" element={<RequiereLogin><EventoPanel /></RequiereLogin>} />
+          <Route path="/panel/:id/libro" element={<RequiereLogin><Fotolibro /></RequiereLogin>} />
+          <Route path="/admin" element={<RequiereLogin><Admin /></RequiereLogin>} />
+          <Route path="/c/:id" element={<Clip />} />
+          <Route path="/e" element={<Ingresar />} />
+          <Route path="/e/:codigo" element={<EventoInvitado />} />
+          <Route path="/pantalla/:codigo" element={<Pantalla />} />
+          <Route path="*" element={<Ingresar />} />
+        </Routes>
+      </Suspense>
     </>
   );
 }

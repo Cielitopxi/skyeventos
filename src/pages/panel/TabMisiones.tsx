@@ -61,14 +61,17 @@ export default function TabMisiones({ evento, plan }: PropsTab) {
   async function lanzarRelampago(m: Mision, minutos: number) {
     const inicio = new Date();
     const fin = new Date(inicio.getTime() + minutos * 60_000);
-    await supabase.from("misiones").update({ relampago: true, inicio: inicio.toISOString(), fin: fin.toISOString() }).eq("id", m.id);
+    setError("");
+    const r = await supabase.from("misiones").update({ relampago: true, inicio: inicio.toISOString(), fin: fin.toISOString() }).eq("id", m.id);
+    if (r.error) return setError(mensajeError(r.error));
     await supabase.from("anuncios").insert({ evento_id: evento.id, texto: `Misión relámpago (${minutos} min, puntos dobles): ${m.titulo}` });
     cargar();
   }
 
   async function borrar(m: Mision) {
     if (!confirm(`¿Borrar la misión "${m.titulo}"? Las fotos quedan, pero sin puntos de misión.`)) return;
-    await supabase.from("misiones").delete().eq("id", m.id);
+    const r = await supabase.from("misiones").delete().eq("id", m.id);
+    if (r.error) setError(mensajeError(r.error));
     cargar();
   }
 
@@ -77,14 +80,18 @@ export default function TabMisiones({ evento, plan }: PropsTab) {
     const nuevas = misionesSugeridas(evento.tipo)
       .filter((s) => !existentes.has(s.titulo))
       .map((s, i) => ({ evento_id: evento.id, titulo: s.titulo, descripcion: s.descripcion, puntos: s.puntos, orden: misiones.length + i }));
-    if (nuevas.length) await supabase.from("misiones").insert(nuevas);
+    if (nuevas.length) {
+      const r = await supabase.from("misiones").insert(nuevas);
+      if (r.error) setError(mensajeError(r.error));
+    }
     cargar();
   }
 
   async function agregarPremio(e: React.FormEvent) {
     e.preventDefault();
     if (!nuevoPremio.trim()) return;
-    await supabase.from("premios").insert({ evento_id: evento.id, puesto: premios.length + 1, descripcion: nuevoPremio.trim() });
+    const r = await supabase.from("premios").insert({ evento_id: evento.id, puesto: premios.length + 1, descripcion: nuevoPremio.trim() });
+    if (r.error) return setError(mensajeError(r.error));
     setNuevoPremio("");
     cargar();
   }

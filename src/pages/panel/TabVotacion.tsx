@@ -70,7 +70,8 @@ export default function TabVotacion({ evento, plan }: PropsTab) {
 
   async function borrar(c: CategoriaVoto) {
     if (!confirm(`¿Borrar la categoría "${c.titulo}" y sus votos?`)) return;
-    await supabase.from("votacion_categorias").delete().eq("id", c.id);
+    const r = await supabase.from("votacion_categorias").delete().eq("id", c.id);
+    if (r.error) setError(mensajeError(r.error));
     cargar();
   }
 

@@ -26,15 +26,18 @@ export class ColaSubida {
   private oyentes = new Set<Oyente>();
   private trabajando = false;
 
-  constructor(private eventoId: string, private invitadoId: string) {
-    window.addEventListener("online", () => this.procesar());
-  }
+  private alVolverConexion = () => this.procesar();
 
+  constructor(private eventoId: string, private invitadoId: string) {}
+
+  /** Mientras haya alguien mirando la cola, se reintenta sola al volver la conexión. */
   suscribir(fn: Oyente) {
+    if (!this.oyentes.size) window.addEventListener("online", this.alVolverConexion);
     this.oyentes.add(fn);
     fn(this.tareas);
     return () => {
       this.oyentes.delete(fn);
+      if (!this.oyentes.size) window.removeEventListener("online", this.alVolverConexion);
     };
   }
 

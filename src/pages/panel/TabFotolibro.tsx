@@ -32,7 +32,11 @@ export default function TabFotolibro({ evento, recargar }: PropsTab) {
 
   async function alternar(f: Foto) {
     setFotos((xs) => xs.map((x) => (x.id === f.id ? { ...x, en_libro: !x.en_libro } : x)));
-    await supabase.from("fotos").update({ en_libro: !f.en_libro }).eq("id", f.id);
+    const { error } = await supabase.from("fotos").update({ en_libro: !f.en_libro }).eq("id", f.id);
+    if (error) {
+      setError(mensajeError(error));
+      cargar();
+    }
   }
 
   async function usarDePortada(f: Foto) {

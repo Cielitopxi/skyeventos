@@ -7,7 +7,9 @@ import { APP_URL, mensajeError, supabase } from "../../lib/supabase";
 /** Ingreso de anfitriones con enlace mágico por email. */
 export default function Login() {
   const [params] = useSearchParams();
-  const volver = params.get("volver") || "/panel";
+  // Solo rutas internas: evita que un link armado mande el enlace mágico (y la sesión) a otro sitio.
+  const pedido = params.get("volver") ?? "";
+  const volver = /^\/(?![/\\])/.test(pedido) ? pedido : "/panel";
   const { usuario } = useUsuario();
   const nav = useNavigate();
   const [email, setEmail] = useState("");

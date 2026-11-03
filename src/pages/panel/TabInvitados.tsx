@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { supabase } from "../../lib/supabase";
+import { mensajeError, supabase } from "../../lib/supabase";
 import type { FilaRanking, Invitado } from "../../lib/tipos";
 import type { PropsTab } from "./EventoPanel";
 
@@ -30,7 +30,8 @@ export default function TabInvitados({ evento }: PropsTab) {
 
   async function bloquear(i: Invitado) {
     if (!i.bloqueado && !confirm(`¿Bloquear a ${i.nombre}? No podrá subir más contenido y sus fotos dejan de verse en pantalla.`)) return;
-    await supabase.from("invitados").update({ bloqueado: !i.bloqueado }).eq("id", i.id);
+    const { error } = await supabase.from("invitados").update({ bloqueado: !i.bloqueado }).eq("id", i.id);
+    if (error) return alert(mensajeError(error));
     if (!i.bloqueado) await supabase.from("fotos").update({ estado: "oculta" }).eq("invitado_id", i.id);
     cargar();
   }

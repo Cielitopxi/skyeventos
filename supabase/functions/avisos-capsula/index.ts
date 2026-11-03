@@ -2,9 +2,16 @@
 // Encola los que falten (encolar_avisos_capsula) y envía los pendientes con Resend.
 // Secretos: RESEND_API_KEY, AVISOS_REMITENTE (ej. "SkyEventos <hola@skyeventos.com>") y APP_URL.
 // Programarla una vez por día (Supabase → Edge Functions → Schedules o pg_cron + pg_net).
+// Opcional: AVISOS_CLAVE. Si está, la llamada debe traer el header x-avisos-clave con ese valor
+// (así nadie más puede dispararla con la clave pública del proyecto).
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-Deno.serve(async () => {
+// El título lo escribe el anfitrión: se escapa antes de meterlo en el HTML del mail.
+const escapar = (t: string) => t.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
+Deno.serve(async (req) => {
+  const claveLlamada = Deno.env.get("AVISOS_CLAVE");
+  if (claveLlamada && req.headers.get("x-avisos-clave") !== claveLlamada) return Response.json({ error: "No autorizado" }, { status: 401 });
   const clave = Deno.env.get("RESEND_API_KEY");
   if (!clave) return Response.json({ error: "Falta RESEND_API_KEY" }, { status: 500 });
   const remitente = Deno.env.get("AVISOS_REMITENTE") ?? "SkyEventos <onboarding@resend.dev>";
@@ -25,7 +32,7 @@ Deno.serve(async () => {
   for (const n of pendientes ?? []) {
     // deno-lint-ignore no-explicit-any
     const ev = (n as any).eventos;
-    const titulo = ev?.personalizacion?.titulo || ev?.nombre || "su evento";
+    const titulo = escapar(String(ev?.personalizacion?.titulo || ev?.nombre || "su evento"));
     const link = `${app}/panel/${n.evento_id}?tab=capsula`;
     const html = `
       <div style="font-family:Georgia,serif;max-width:520px;margin:auto;padding:32px;color:#16222e">

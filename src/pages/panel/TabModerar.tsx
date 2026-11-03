@@ -76,7 +76,8 @@ export default function TabModerar({ evento }: PropsTab) {
   async function aprobarTodas() {
     const ids = fotos.filter((f) => f.estado === "pendiente").map((f) => f.id);
     if (!ids.length) return;
-    await supabase.from("fotos").update({ estado: "aprobada" }).in("id", ids);
+    const { error } = await supabase.from("fotos").update({ estado: "aprobada" }).in("id", ids);
+    if (error) setError(mensajeError(error));
     cargar();
   }
 

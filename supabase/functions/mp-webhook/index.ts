@@ -9,15 +9,28 @@ async function hmacHex(secreto: string, texto: string) {
   return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Comparación en tiempo constante: no deja adivinar la firma midiendo cuánto tarda la respuesta.
+function iguales(a: string, b: string) {
+  if (a.length !== b.length) return false;
+  let dif = 0;
+  for (let i = 0; i < a.length; i++) dif |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return dif === 0;
+}
+
 async function firmaValida(req: Request, dataId: string) {
   const secreto = Deno.env.get("MP_WEBHOOK_SECRET");
-  if (!secreto) return true; // sin secreto configurado se confía en la consulta a la API
+  if (!secreto) {
+    // Sin secreto se confía en la consulta a la API de MP (no se puede falsificar un pago aprobado),
+    // pero en producción conviene configurarlo.
+    console.warn("MP_WEBHOOK_SECRET sin configurar: no se valida la firma del webhook");
+    return true;
+  }
   const firma = req.headers.get("x-signature") ?? "";
   const requestId = req.headers.get("x-request-id") ?? "";
   const partes = Object.fromEntries(firma.split(",").map((p) => p.trim().split("=") as [string, string]));
   if (!partes.ts || !partes.v1) return false;
   const manifiesto = `id:${dataId.toLowerCase()};request-id:${requestId};ts:${partes.ts};`;
-  return (await hmacHex(secreto, manifiesto)) === partes.v1;
+  return iguales(await hmacHex(secreto, manifiesto), partes.v1);
 }
 
 Deno.serve(async (req) => {
@@ -41,7 +54,7 @@ Deno.serve(async (req) => {
   if (!pedido) return new Response("pedido desconocido", { status: 200 });
 
   if (pago.status === "approved") {
-    if (Number(pago.transaction_amount) + 0.01 < Number(pedido.monto)) {
+    if (pago.currency_id !== "ARS" || Number(pago.transaction_amount) + 0.01 < Number(pedido.monto)) {
       console.error("Monto menor al esperado", pago.id, pago.transaction_amount, pedido.monto);
       return new Response("monto incorrecto", { status: 200 });
     }
