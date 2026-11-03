@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Aviso } from "../../components/ui";
 import { IconoDuo } from "../../components/Iconos";
+import { MarcaClip } from "../../components/MarcaClip";
 import { mensajeError, supabase } from "../../lib/supabase";
 import type { Foto, Invitado } from "../../lib/tipos";
 import { urlsFirmadas, useUrls } from "../../lib/urls";
@@ -56,7 +57,8 @@ export default function TabFotolibro({ evento, recargar }: PropsTab) {
         const quien = (invitados[f.invitado_id]?.nombre ?? "invitado").replace(/[^\p{L}\p{N} _-]/gu, "").trim() || "invitado";
         porNombre[quien] = (porNombre[quien] ?? 0) + 1;
         const r = await fetch(firmadas[f.storage_path]);
-        if (r.ok) z.file(`${quien}/${String(porNombre[quien]).padStart(3, "0")}.jpg`, await r.blob());
+        const ext = f.storage_path.split(".").pop() ?? "jpg";
+        if (r.ok) z.file(`${quien}/${String(porNombre[quien]).padStart(3, "0")}.${ext}`, await r.blob());
         setZip({ hecho: ++hecho, total: todas.length });
       }
       const blob = await z.generateAsync({ type: "blob" });
@@ -71,7 +73,8 @@ export default function TabFotolibro({ evento, recargar }: PropsTab) {
     setZip(null);
   }
 
-  const enLibro = fotos.filter((f) => f.en_libro).length;
+  const enLibro = fotos.filter((f) => f.en_libro && f.medio === "foto").length;
+  const clipsEnLibro = fotos.filter((f) => f.en_libro && f.medio !== "foto").length;
 
   return (
     <div className="space-y-6">
@@ -79,7 +82,8 @@ export default function TabFotolibro({ evento, recargar }: PropsTab) {
         <div className="mr-auto">
           <h2 className="font-bold">Fotolibro</h2>
           <p className="text-sm text-slate-600">
-            {enLibro} de {fotos.length} fotos aprobadas van al libro. Capítulos por invitado, misiones, mensajes y ranking.
+            {enLibro} de {fotos.filter((f) => f.medio === "foto").length} fotos aprobadas van al libro. Capítulos por invitado, misiones, mensajes y ranking.
+            {clipsEnLibro > 0 && ` Los ${clipsEnLibro} videos y audios van con un QR para escucharlos desde la página impresa.`}
             {evento.estado === "activo" && " Te recomendamos generarlo después de cerrar el evento."}
           </p>
         </div>
@@ -93,17 +97,20 @@ export default function TabFotolibro({ evento, recargar }: PropsTab) {
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-8">
         {fotos.map((f) => (
           <div key={f.id} className="group relative">
-            <button onClick={() => alternar(f)} className={`block aspect-square w-full overflow-hidden rounded-lg bg-slate-200 ${f.en_libro ? "" : "opacity-30 grayscale"}`}>
+            <button onClick={() => alternar(f)} className={`relative block aspect-square w-full overflow-hidden rounded-lg bg-slate-200 ${f.en_libro ? "" : "opacity-30 grayscale"}`}>
               {urls[f.thumb_path] && <img src={urls[f.thumb_path]} alt="" className="h-full w-full object-cover" loading="lazy" />}
+              <MarcaClip foto={f} />
             </button>
             {f.destacada && <span className="absolute left-1 top-1 text-amber-400 drop-shadow">★</span>}
             {evento.personalizacion.portada_path === f.storage_path && <span className="absolute bottom-1 left-1 chip bg-sky-500 text-white">Portada</span>}
-            <button
-              onClick={() => usarDePortada(f)}
-              className="absolute bottom-1 right-1 hidden rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold group-hover:block"
-            >
-              Portada
-            </button>
+            {f.medio === "foto" && (
+              <button
+                onClick={() => usarDePortada(f)}
+                className="absolute bottom-1 right-1 hidden rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold group-hover:block"
+              >
+                Portada
+              </button>
+            )}
           </div>
         ))}
       </div>

@@ -1,3 +1,4 @@
+import { medioDe, procesarClip } from "./clip";
 import { procesarImagen } from "./imagen";
 import { BUCKET, supabase } from "./supabase";
 
@@ -11,6 +12,7 @@ export interface TareaSubida {
   misionId?: string | null;
   bingoId?: string | null;
   caption?: string;
+  duracion?: number; // la que midió el grabador (clips)
 }
 
 type Oyente = (tareas: TareaSubida[]) => void;
@@ -41,7 +43,7 @@ export class ColaSubida {
     this.oyentes.forEach((f) => f(copia));
   }
 
-  agregar(archivos: File[], opciones: { misionId?: string | null; bingoId?: string | null; caption?: string } = {}) {
+  agregar(archivos: File[], opciones: { misionId?: string | null; bingoId?: string | null; caption?: string; duracion?: number } = {}) {
     for (const archivo of archivos) {
       this.tareas.push({
         id: crypto.randomUUID(),
@@ -52,6 +54,7 @@ export class ColaSubida {
         misionId: opciones.misionId ?? null,
         bingoId: opciones.bingoId ?? null,
         caption: opciones.caption,
+        duracion: opciones.duracion,
       });
     }
     this.avisar();
@@ -89,23 +92,33 @@ export class ColaSubida {
     try {
       t.estado = "procesando";
       this.avisar();
-      const img = await procesarImagen(t.archivo);
+      // Fotos: se reducen en el teléfono. Clips: se suben tal cual, con un cuadro como miniatura.
+      const medio = medioDe(t.archivo) ?? "foto";
+      const m =
+        medio === "foto"
+          ? await procesarImagen(t.archivo).then((img) => ({
+              archivo: img.completa, contentType: "image/jpeg", extension: "jpg", miniatura: img.miniatura,
+              ancho: img.ancho as number | null, alto: img.alto as number | null, duracion: null as number | null,
+            }))
+          : await procesarClip(t.archivo, t.duracion);
       t.estado = "subiendo";
       this.avisar();
       const base = `${this.eventoId}/${this.invitadoId}/${t.id}`;
       const st = supabase.storage.from(BUCKET);
-      const a = await st.upload(`${base}.jpg`, img.completa, { contentType: "image/jpeg", upsert: true });
+      const a = await st.upload(`${base}.${m.extension}`, m.archivo, { contentType: m.contentType, upsert: true });
       if (a.error) throw a.error;
-      const b = await st.upload(`${base}_t.jpg`, img.miniatura, { contentType: "image/jpeg", upsert: true });
+      const b = await st.upload(`${base}_t.jpg`, m.miniatura, { contentType: "image/jpeg", upsert: true });
       if (b.error) throw b.error;
       const { error } = await supabase.from("fotos").insert({
         id: t.id,
         evento_id: this.eventoId,
         invitado_id: this.invitadoId,
-        storage_path: `${base}.jpg`,
+        storage_path: `${base}.${m.extension}`,
         thumb_path: `${base}_t.jpg`,
-        ancho: img.ancho,
-        alto: img.alto,
+        ancho: m.ancho,
+        alto: m.alto,
+        medio,
+        duracion: m.duracion,
         mision_id: t.misionId || null,
         bingo_id: t.bingoId || null,
         caption: t.caption?.trim() || null,
@@ -115,7 +128,7 @@ export class ColaSubida {
     } catch (e) {
       t.intentos++;
       const msg = (e as { message?: string }).message || "Error al subir";
-      const definitivo = /máximo|no está disponible|bloquead|row-level/i.test(msg) || t.intentos >= 4;
+      const definitivo = /máximo|no está disponible|bloquead|row-level|segundos|plan Fiesta|admitido|duración/i.test(msg) || t.intentos >= 4;
       t.estado = definitivo ? "error" : "esperando";
       t.error = msg;
       if (!definitivo) await new Promise((r) => setTimeout(r, 1500 * 2 ** t.intentos));

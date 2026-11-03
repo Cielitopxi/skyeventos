@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import QRCode from "qrcode";
 import { Cargando } from "../../components/ui";
 import { IconoDuo, Medalla } from "../../components/Iconos";
+import { MarcaClip } from "../../components/MarcaClip";
 import { fuentePortada } from "../../components/Portada";
 import { APP_URL, asegurarSesion, mensajeError, supabase } from "../../lib/supabase";
 import { estiloTematica, tematica } from "../../lib/tematicas";
@@ -36,6 +37,23 @@ export default function Pantalla() {
   const [anuncio, setAnuncio] = useState<Anuncio | null>(null);
   const [qr, setQr] = useState("");
   const [cursor, setCursor] = useState<boolean>(true);
+  // Sonido de videos y audios: apagado por defecto (activarlo es un clic, que el navegador exige).
+  const [sonido, setSonido] = useState(() => {
+    try {
+      return localStorage.getItem("pantalla-sonido") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const alternarSonido = () =>
+    setSonido((s) => {
+      try {
+        localStorage.setItem("pantalla-sonido", s ? "0" : "1");
+      } catch {
+        /* sin almacenamiento: queda solo en esta sesión */
+      }
+      return !s;
+    });
 
   const nuevas = useRef<Foto[]>([]);
   const nuevosMensajes = useRef<Mensaje[]>([]);
@@ -181,7 +199,9 @@ export default function Pantalla() {
         e = { tipo: "foto", foto: lista[indice.current], nueva: false };
       }
       setEscena(e);
-      timer = setTimeout(siguiente, e ? DUR[e.tipo] : 3000);
+      // Los clips se muestran completos (más un respiro al final).
+      const dur = e?.tipo === "foto" && e.foto.medio !== "foto" ? Math.max(DUR.foto, (e.foto.duracion ?? 10) * 1000 + 1500) : e ? DUR[e.tipo] : 3000;
+      timer = setTimeout(siguiente, dur);
     };
     siguiente();
     return () => clearTimeout(timer);
@@ -232,7 +252,22 @@ export default function Pantalla() {
 
         {escena?.tipo === "foto" && (
           <div key={escena.foto.id} className="entrar absolute inset-0 flex items-center justify-center p-[3vh]">
-            {urls[escena.foto.storage_path] && (
+            {urls[escena.foto.thumb_path] && escena.foto.medio !== "foto" && (
+              <img src={urls[escena.foto.thumb_path]} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl" />
+            )}
+            {urls[escena.foto.storage_path] && escena.foto.medio === "video" && (
+              <video src={urls[escena.foto.storage_path]} autoPlay muted={!sonido} playsInline className="relative max-h-full max-w-full rounded-2xl shadow-2xl" />
+            )}
+            {urls[escena.foto.storage_path] && escena.foto.medio === "audio" && (
+              <div className="relative flex flex-col items-center">
+                {urls[escena.foto.thumb_path] && <img src={urls[escena.foto.thumb_path]} alt="" className="h-[60vh] w-[60vh] rounded-[3vh] shadow-2xl" />}
+                <span className="absolute -top-[3vh] flex h-[6vh] w-[6vh] items-center justify-center rounded-full bg-tema-acento text-white shadow-xl">
+                  <IconoDuo nombre="microfono" className="h-[3vh] w-[3vh]" />
+                </span>
+                {sonido && <audio src={urls[escena.foto.storage_path]} autoPlay />}
+              </div>
+            )}
+            {urls[escena.foto.storage_path] && escena.foto.medio === "foto" && (
               <>
                 <img src={urls[escena.foto.storage_path]} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl" />
                 <img src={urls[escena.foto.storage_path]} alt="" className="relative max-h-full max-w-full rounded-2xl shadow-2xl" />
@@ -241,8 +276,8 @@ export default function Pantalla() {
             <div className="absolute bottom-[4vh] left-[3vw] max-w-[50vw] rounded-2xl border border-white/10 bg-black/50 px-[1.6vw] py-[1.4vh] text-white shadow-2xl backdrop-blur-md">
               {escena.nueva && <p className="mb-1 text-[.85vw] font-semibold uppercase tracking-[.35em] text-amber-300">Recién llegada</p>}
               <p className="flex items-center gap-[.7vw] text-[2vw] font-medium leading-tight tracking-tight">
-                <IconoDuo nombre="camara" className="h-[2vw] w-[2vw] shrink-0 opacity-80" />
-                {nombres[escena.foto.invitado_id] ?? "Invitado"}
+                <IconoDuo nombre={escena.foto.medio === "video" ? "video" : escena.foto.medio === "audio" ? "microfono" : "camara"} className="h-[2vw] w-[2vw] shrink-0 opacity-80" />
+                {escena.foto.medio === "audio" ? `Mensaje de voz de ${nombres[escena.foto.invitado_id] ?? "un invitado"}` : nombres[escena.foto.invitado_id] ?? "Invitado"}
               </p>
               {escena.foto.caption && <p className="mt-1 text-[1.4vw] italic leading-snug text-white/85" style={{ fontFamily: titulo }}>{escena.foto.caption}</p>}
             </div>
@@ -252,8 +287,9 @@ export default function Pantalla() {
         {escena?.tipo === "muro" && (
           <div className="entrar grid h-full grid-cols-4 grid-rows-3 gap-2 p-3">
             {escena.fotos.map((f, i) => (
-              <div key={f.id} className="subir overflow-hidden rounded-xl" style={{ animationDelay: `${i * 80}ms` }}>
+              <div key={f.id} className="subir relative overflow-hidden rounded-xl" style={{ animationDelay: `${i * 80}ms` }}>
                 {urls[f.thumb_path] && <img src={urls[f.thumb_path]} alt="" className="h-full w-full object-cover" />}
+                <MarcaClip foto={f} className="bottom-2 right-2 text-[.8vw]" />
               </div>
             ))}
           </div>
@@ -392,6 +428,15 @@ export default function Pantalla() {
           <p><span className="block text-[1.8vw] font-semibold tabular-nums text-tema-texto">{fotos.length}</span><span className="text-[.75vw] uppercase tracking-[.2em]">fotos</span></p>
           <p><span className="block text-[1.8vw] font-semibold tabular-nums text-tema-texto">{mensajes.length}</span><span className="text-[.75vw] uppercase tracking-[.2em]">mensajes</span></p>
         </div>
+        {(cursor || !sonido) && (
+          <button
+            onClick={alternarSonido}
+            onDoubleClick={(e) => e.stopPropagation()}
+            className={`flex items-center gap-[.4vw] rounded-full border px-[.8vw] py-[.4vh] text-[.8vw] font-semibold ${sonido ? "border-tema-acento/40 text-tema-acento" : "border-tema-suave/30 text-tema-suave"}`}
+          >
+            <IconoDuo nombre="microfono" className="h-[1vw] w-[1vw]" /> Sonido de clips: {sonido ? "sí" : "no"}
+          </button>
+        )}
         {cursor && <p className="text-[.8vw] text-tema-suave">Doble clic: pantalla completa</p>}
       </aside>
     </div>

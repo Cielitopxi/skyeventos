@@ -34,6 +34,7 @@ export interface Plan {
   sin_marca: boolean;
   capsula: boolean;
   portada_personalizada: boolean;
+  clips: boolean;
   orden: number;
 }
 
@@ -79,6 +80,8 @@ export interface Invitado {
   created_at: string;
 }
 
+export type MedioFoto = "foto" | "video" | "audio";
+
 export interface Foto {
   id: string;
   evento_id: string;
@@ -90,6 +93,8 @@ export interface Foto {
   caption: string | null;
   mision_id: string | null;
   bingo_id: string | null;
+  medio: MedioFoto;
+  duracion: number | null;
   estado: EstadoContenido;
   mision_estado: "pendiente" | "aprobada" | "rechazada" | null;
   destacada: boolean;

@@ -240,4 +240,21 @@ console.log("✓ admin archiva un evento:", (await db.query(`select estado from 
 await como(adm, false, `update planes set precio_ars = 159000 where id='premium'`);
 await como(host, false, `update planes set precio_ars = 1 where id='premium'`);
 console.log("✓ solo el admin cambia precios:", (await db.query(`select precio_ars::int p from planes where id='premium'`)).rows[0].p === 159000);
+
+// Clips de video y audio (hasta 10 s, desde el plan Fiesta)
+const clip = (eid, iid, medio, dur, nombre) =>
+  `insert into fotos (evento_id,invitado_id,storage_path,thumb_path,medio,duracion) values ('${eid}','${iid}','${eid}/${iid}/${nombre}','${eid}/${iid}/${nombre}_t.jpg','${medio}',${dur}) returning id`;
+await espera_error(como(g1, true, clip(ev.id, i1.id, "video", 8, "v.mp4")), "video en el plan Básico");
+await espera_error(como(g1, true, clip(ev2.id, b1.id, "video", 15, "largo.mp4")), "video de más de 10 segundos");
+await espera_error(como(g1, true, clip(ev2.id, b1.id, "video", "null", "sin.mp4")), "video sin duración");
+const v1 = (await como(g1, true, clip(ev2.id, b1.id, "video", 9.8, "v1.mp4"))).rows[0];
+console.log("✓ video de 9,8 s en plan Fiesta:", !!v1.id);
+const a1 = (await como(g1, true, clip(ev2.id, b1.id, "audio", 6, "a1.m4a"))).rows[0];
+console.log("✓ audio de 6 s:", !!a1.id);
+console.log("✓ el QR del libro muestra el clip a cualquiera:", (await como(intruso, true, `select medio from clip_publico('${v1.id}')`)).rows[0]?.medio === "video");
+await db.exec(`insert into storage.objects (bucket_id,name) values ('fotos','${ev2.id}/${b1.id}/v1.mp4'),('fotos','${ev2.id}/${b1.id}/b0.jpg')`);
+console.log("✓ y puede leer ese archivo:", (await como(intruso, true, `select count(*)::int n from storage.objects where name like '%v1.mp4'`)).rows[0].n === 1);
+console.log("✓ pero no las fotos del evento:", (await como(intruso, true, `select count(*)::int n from storage.objects where name like '%b0.jpg'`)).rows[0].n === 0);
+await db.exec(`update fotos set en_libro = false where id='${v1.id}'`);
+console.log("✓ fuera del libro deja de ser público:", (await como(intruso, true, `select count(*)::int n from clip_publico('${v1.id}')`)).rows[0].n === 0);
 console.log("FIN");

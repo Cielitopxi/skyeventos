@@ -7,6 +7,29 @@ import type { ReactNode } from "react";
 type Dibujo = { relleno?: ReactNode; trazo: ReactNode };
 
 const DIBUJOS: Record<string, Dibujo> = {
+  video: {
+    relleno: <rect x="2.5" y="6" width="13" height="12" rx="2.5" />,
+    trazo: (
+      <>
+        <rect x="2.5" y="6" width="13" height="12" rx="2.5" />
+        <path d="M15.5 10.2l4.6-2.7a.9.9 0 0 1 1.4.8v7.4a.9.9 0 0 1-1.4.8l-4.6-2.7" />
+        <circle cx="6.5" cy="10" r="1" />
+      </>
+    ),
+  },
+  microfono: {
+    relleno: <rect x="8.5" y="3" width="7" height="11.5" rx="3.5" />,
+    trazo: (
+      <>
+        <rect x="8.5" y="3" width="7" height="11.5" rx="3.5" />
+        <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M8.5 21h7M8.5 7.5h2M8.5 10.5h2" />
+      </>
+    ),
+  },
+  play: {
+    relleno: <path d="M8 5.3v13.4a1 1 0 0 0 1.5.9l10.6-6.7a1 1 0 0 0 0-1.8L9.5 4.4A1 1 0 0 0 8 5.3z" />,
+    trazo: <path d="M8 5.3v13.4a1 1 0 0 0 1.5.9l10.6-6.7a1 1 0 0 0 0-1.8L9.5 4.4A1 1 0 0 0 8 5.3z" />,
+  },
   fotos: {
     relleno: <rect x="3" y="5" width="15" height="13" rx="2.5" />,
     trazo: (

@@ -12,6 +12,7 @@ import EventoInvitado from "./pages/invitado/EventoInvitado";
 import Pantalla from "./pages/pantalla/Pantalla";
 import Fotolibro from "./pages/libro/Fotolibro";
 import Admin from "./pages/admin/Admin";
+import Clip from "./pages/publico/Clip";
 import { RequiereLogin } from "./components/RequiereLogin";
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/panel/:id" element={<RequiereLogin><EventoPanel /></RequiereLogin>} />
         <Route path="/panel/:id/libro" element={<RequiereLogin><Fotolibro /></RequiereLogin>} />
         <Route path="/admin" element={<RequiereLogin><Admin /></RequiereLogin>} />
+        <Route path="/c/:id" element={<Clip />} />
         <Route path="/e" element={<Ingresar />} />
         <Route path="/e/:codigo" element={<EventoInvitado />} />
         <Route path="/pantalla/:codigo" element={<Pantalla />} />

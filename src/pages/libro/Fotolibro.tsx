@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Aviso, Cargando } from "../../components/ui";
+import { IconoDuo, Medalla } from "../../components/Iconos";
+import { formatoDuracion } from "../../lib/clip";
 import { fechaLarga, hora, nombreTipo } from "../../lib/formato";
-import { supabase } from "../../lib/supabase";
+import { APP_URL, supabase } from "../../lib/supabase";
 import { estiloTematica, tematica, type Tematica } from "../../lib/tematicas";
 import type { Evento, FilaRanking, Foto, Invitado, Mensaje, Mision, Premio } from "../../lib/tipos";
 import { urlsFirmadas } from "../../lib/urls";
@@ -16,6 +18,8 @@ interface Datos {
   evento: Evento;
   invitados: Invitado[];
   fotos: Foto[];
+  clips: Foto[]; // videos y audios: van con un QR para reproducirlos desde el papel
+  qrs: Record<string, string>;
   mensajes: Mensaje[];
   misiones: Mision[];
   ranking: FilaRanking[];
@@ -58,16 +62,24 @@ export default function Fotolibro() {
         supabase.rpc("ranking", { p_evento: id }),
         supabase.from("premios").select("*").eq("evento_id", id!).order("puesto"),
       ]);
+      const todas = (fo.data as Foto[]) ?? [];
+      const clips = todas.filter((f) => f.medio !== "foto");
+      const QRCode = (await import("qrcode")).default;
+      const qrs = Object.fromEntries(
+        await Promise.all(clips.map(async (c) => [c.id, await QRCode.toDataURL(`${APP_URL}/c/${c.id}`, { width: 300, margin: 0 })] as const)),
+      );
       const d: Datos = {
         evento: ev.data as Evento,
         invitados: (inv.data as Invitado[]) ?? [],
-        fotos: (fo.data as Foto[]) ?? [],
+        fotos: todas.filter((f) => f.medio === "foto"),
+        clips,
+        qrs,
         mensajes: (me.data as Mensaje[]) ?? [],
         misiones: (mi.data as Mision[]) ?? [],
         ranking: (ra.data as FilaRanking[]) ?? [],
         premios: (pr.data as Premio[]) ?? [],
       };
-      const paths = d.fotos.map((f) => f.storage_path);
+      const paths = [...d.fotos.map((f) => f.storage_path), ...d.clips.map((c) => c.thumb_path)];
       if (d.evento.personalizacion.portada_path) paths.push(d.evento.personalizacion.portada_path);
       setUrls(await urlsFirmadas(paths));
       setDatos(d);
@@ -245,7 +257,7 @@ function armarPaginas(d: Datos, urls: Record<string, string>, alCargar: () => vo
               </p>
             ))}
             {cumplidas.length > 0 && (
-              <p className="text-[9pt] opacity-70">🎯 {cumplidas.map((c) => c.titulo).join(" · ")}</p>
+              <p className="flex items-center gap-[1.5mm] text-[9pt] opacity-70"><IconoDuo nombre="mision" className="h-[4mm] w-[4mm] shrink-0" /> {cumplidas.map((c) => c.titulo).join(" · ")}</p>
             )}
             <p className="text-[9pt] opacity-50">{susFotos.length} foto{susFotos.length === 1 ? "" : "s"}</p>
           </div>
@@ -284,7 +296,7 @@ function armarPaginas(d: Datos, urls: Record<string, string>, alCargar: () => vo
         contenido: (
           <div className="flex h-full flex-col p-[12mm]">
             <div className="mb-[5mm] text-center">
-              <h3 className="titulo text-[20pt]">🎯 {m.titulo}</h3>
+              <h3 className="titulo flex items-center justify-center gap-[2mm] text-[20pt]"><IconoDuo nombre="mision" className="h-[7mm] w-[7mm]" /> {m.titulo}</h3>
               <p className="text-[9pt] opacity-70">{fotos.length} invitado(s) la cumplieron: {[...new Set(fotos.map((f) => nombre(f.invitado_id)))].slice(0, 8).join(", ")}</p>
             </div>
             <div className="min-h-0 flex-1"><Grilla fotos={elegidas} Img={Img} /></div>
@@ -315,7 +327,49 @@ function armarPaginas(d: Datos, urls: Record<string, string>, alCargar: () => vo
     }),
   );
 
-  // 7. Ranking
+  // 7. Videos y mensajes de voz: cada uno con su QR para verlo o escucharlo desde el libro impreso
+  if (d.clips.length) {
+    trozos(d.clips, 4).forEach((grupo, i) =>
+      paginas.push({
+        decorada: i === 0,
+        contenido: (
+          <div className="flex h-full flex-col p-[14mm]">
+            {i === 0 && (
+              <div className="mb-[6mm] text-center">
+                <h2 className="titulo text-[26pt]">Para ver y escuchar</h2>
+                <p className="text-[9pt] opacity-70">Escaneá cada código con la cámara del teléfono</p>
+              </div>
+            )}
+            <div className="grid flex-1 grid-cols-2 grid-rows-2 gap-[5mm]">
+              {grupo.map((c) => (
+                <div key={c.id} className="flex flex-col overflow-hidden rounded-[3mm] shadow-sm" style={{ background: "rgb(var(--t-superficie) / .85)" }}>
+                  <div className="relative min-h-0 flex-1 overflow-hidden">
+                    {urls[c.thumb_path] && (
+                      <img src={urls[c.thumb_path]} alt="" className="h-full w-full object-cover" onLoad={() => { if (!vistas.has(c.thumb_path)) { vistas.add(c.thumb_path); alCargar(); } }} />
+                    )}
+                    <span className="absolute left-[3mm] top-[3mm] flex items-center gap-[1mm] rounded-full bg-black/55 px-[2.5mm] py-[0.8mm] text-[7pt] font-semibold text-white">
+                      <IconoDuo nombre={c.medio === "video" ? "play" : "microfono"} className="h-[3mm] w-[3mm]" trazo={2} />
+                      {c.medio === "video" ? "Video" : "Audio"} · {formatoDuracion(c.duracion)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-[3mm] p-[3mm]">
+                    <img src={d.qrs[c.id]} alt="" className="h-[20mm] w-[20mm] shrink-0 rounded-[1mm] bg-white p-[1mm]" />
+                    <div className="min-w-0">
+                      <p className="truncate text-[10pt] font-semibold">{nombre(c.invitado_id)}</p>
+                      {c.caption && <p className="line-clamp-2 text-[8pt] italic opacity-75">{c.caption}</p>}
+                      <p className="text-[7pt] opacity-50">{hora(c.created_at)}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ),
+      }),
+    );
+  }
+
+  // 8. Ranking
   if (d.evento.premios_activos && d.ranking.some((r) => r.puntos > 0)) {
     paginas.push({
       decorada: true,
@@ -323,7 +377,7 @@ function armarPaginas(d: Datos, urls: Record<string, string>, alCargar: () => vo
     });
   }
 
-  // 8. Contraportada
+  // 9. Contraportada
   paginas.push({
     decorada: true,
     contenido: (
@@ -385,10 +439,10 @@ function PaginaRanking({ d, t }: { d: Datos; t: Tematica }) {
           const premio = d.premios.find((p) => p.puesto === i + 1);
           return (
             <li key={r.invitado_id} className="flex items-center gap-[4mm] rounded-[2mm] px-[4mm] py-[2mm] text-[12pt]" style={{ background: "rgb(var(--t-superficie) / .75)" }}>
-              <span className="w-[8mm] text-center">{["🥇", "🥈", "🥉"][i] ?? i + 1}</span>
+              <span className="flex w-[8mm] justify-center"><Medalla puesto={i + 1} className="h-[7mm] w-[7mm]" /></span>
               <span className="flex-1 font-semibold">
                 {r.nombre}
-                {premio && <span className="block text-[8pt] font-normal opacity-70">🎁 {premio.descripcion}</span>}
+                {premio && <span className="flex items-center gap-[1mm] text-[8pt] font-normal opacity-70"><IconoDuo nombre="regalo" className="h-[3.5mm] w-[3.5mm]" /> {premio.descripcion}</span>}
               </span>
               <span className="font-bold">{r.puntos} pts</span>
             </li>

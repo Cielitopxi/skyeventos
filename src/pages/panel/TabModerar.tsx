@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Aviso } from "../../components/ui";
 import { IconoDuo } from "../../components/Iconos";
+import { MarcaClip } from "../../components/MarcaClip";
 import { hora } from "../../lib/formato";
 import { mensajeError, supabase } from "../../lib/supabase";
 import type { Foto, Invitado, Mensaje, Mision } from "../../lib/tipos";
@@ -101,8 +102,9 @@ export default function TabModerar({ evento }: PropsTab) {
             const mis = f.mision_id ? misiones[f.mision_id] : null;
             return (
               <div key={f.id} className={`overflow-hidden rounded-xl border bg-white ${f.estado === "oculta" ? "opacity-50" : ""}`}>
-                <button className="block aspect-square w-full bg-slate-100" onClick={() => setAmpliada(f)}>
+                <button className="relative block aspect-square w-full bg-slate-100" onClick={() => setAmpliada(f)}>
                   {urls[f.thumb_path] && <img src={urls[f.thumb_path]} alt="" className="h-full w-full object-cover" loading="lazy" />}
+                  <MarcaClip foto={f} className="bottom-2 right-2 text-xs" />
                 </button>
                 <div className="space-y-1.5 p-2 text-xs">
                   <p className="truncate font-semibold">{invitados[f.invitado_id]?.nombre ?? "—"} <span className="font-normal text-slate-400">{hora(f.created_at)}</span></p>
@@ -148,7 +150,17 @@ export default function TabModerar({ evento }: PropsTab) {
 
       {ampliada && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" onClick={() => setAmpliada(null)}>
-          {urlAmpliada[ampliada.storage_path] && <img src={urlAmpliada[ampliada.storage_path]} alt="" className="max-h-full max-w-full rounded-lg" />}
+          {urlAmpliada[ampliada.storage_path] &&
+            (ampliada.medio === "video" ? (
+              <video src={urlAmpliada[ampliada.storage_path]} className="max-h-full max-w-full rounded-lg" autoPlay controls playsInline onClick={(e) => e.stopPropagation()} />
+            ) : ampliada.medio === "audio" ? (
+              <div className="flex w-full max-w-sm flex-col gap-4" onClick={(e) => e.stopPropagation()}>
+                {urls[ampliada.thumb_path] && <img src={urls[ampliada.thumb_path]} alt="" className="w-full rounded-xl" />}
+                <audio src={urlAmpliada[ampliada.storage_path]} autoPlay controls className="w-full" />
+              </div>
+            ) : (
+              <img src={urlAmpliada[ampliada.storage_path]} alt="" className="max-h-full max-w-full rounded-lg" />
+            ))}
         </div>
       )}
     </div>

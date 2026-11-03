@@ -452,6 +452,7 @@ function SeccionPlanes({ planes, recargar }: { planes: Plan[]; recargar: () => v
             </div>
             <div className="space-y-1.5 pt-1">
               {chk(p, "misiones", "Juegos y misiones")}
+              {chk(p, "clips", "Videos y audios de 10 s")}
               {chk(p, "sin_marca", "Sin marca SkyEventos")}
               {chk(p, "capsula", "Cápsula del tiempo")}
               {chk(p, "portada_personalizada", "Portada personalizada")}

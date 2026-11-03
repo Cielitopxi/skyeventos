@@ -247,6 +247,7 @@ export default function Inicio() {
                       p.max_fotos ? `${p.max_fotos.toLocaleString("es-AR")} fotos` : "Fotos ilimitadas",
                       `${p.pantallas} pantalla${p.pantallas > 1 ? "s" : ""} en vivo`,
                       p.misiones ? "Juegos: misiones, bingo, trivia y votación" : null,
+                      p.clips ? "Videos y audios de 10 segundos, con QR en el fotolibro" : null,
                       "Fotolibro PDF",
                       `Disponible ${Math.round(p.retencion_dias / 30)} meses`,
                       p.sin_marca ? "Sin marca SkyEventos" : null,

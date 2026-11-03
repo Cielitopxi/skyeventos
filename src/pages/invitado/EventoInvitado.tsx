@@ -3,6 +3,9 @@ import { Link, useParams } from "react-router-dom";
 import { Aviso, Cargando, ConTema, Modal } from "../../components/ui";
 import { IconoDuo, Medalla } from "../../components/Iconos";
 import { Portada } from "../../components/Portada";
+import { Grabador } from "../../components/Grabador";
+import { MarcaClip } from "../../components/MarcaClip";
+import { duracionArchivo, MAX_CLIP, medioDe, type MedioClip } from "../../lib/clip";
 import { procesarImagen } from "../../lib/imagen";
 import { hora, rankingPorMesa } from "../../lib/formato";
 import { asegurarSesion, BUCKET, mensajeError, supabase } from "../../lib/supabase";
@@ -148,8 +151,15 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
   const inputCamara = useRef<HTMLInputElement>(null);
   const inputGaleria = useRef<HTMLInputElement>(null);
   const [selector, setSelector] = useState(false);
+  const [clipsOk, setClipsOk] = useState(false);
+  const [grabar, setGrabar] = useState<MedioClip | null>(null);
+  const [errorClip, setErrorClip] = useState("");
 
   useEffect(() => cola.suscribir(setTareas), [cola]);
+
+  useEffect(() => {
+    supabase.rpc("clips_habilitados", { p_evento: evento.id }).then(({ data }) => setClipsOk(Boolean(data)));
+  }, [evento.id]);
 
   // El cartón se carga acá: la pestaña Bingo aparece solo con las 9 casillas.
   useEffect(() => {
@@ -211,10 +221,26 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
     setSelector(true);
   }
 
-  function archivos(fs: FileList | null) {
+  async function archivos(fs: FileList | null) {
     setSelector(false);
     if (!fs?.length) return;
-    cola.agregar([...fs], { misionId: misionElegida?.id, bingoId: casillaElegida?.id });
+    // Videos de la galería: se aceptan solo los de hasta 10 segundos.
+    const lista: File[] = [];
+    let largos = 0;
+    for (const f of [...fs]) {
+      if (!medioDe(f)) lista.push(f);
+      else if (clipsOk && (await duracionArchivo(f).catch(() => 0)) <= MAX_CLIP + 0.5) lista.push(f);
+      else largos++;
+    }
+    setErrorClip(largos ? `${largos === 1 ? "Un video no se subió" : `${largos} videos no se subieron`}: pueden durar hasta ${MAX_CLIP} segundos. Grabalo desde acá con "Grabar video".` : "");
+    if (lista.length) cola.agregar(lista, { misionId: misionElegida?.id, bingoId: casillaElegida?.id });
+    setMisionElegida(null);
+    setCasillaElegida(null);
+  }
+
+  function clipGrabado(archivo: File, duracion: number) {
+    cola.agregar([archivo], { misionId: misionElegida?.id, bingoId: casillaElegida?.id, duracion });
+    setGrabar(null);
     setMisionElegida(null);
     setCasillaElegida(null);
   }
@@ -250,10 +276,10 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
 
       {(activas.length > 0 || listas > 0) && (
         <div className="mx-4 mt-3 rounded-xl bg-tema-superficie p-3 text-sm shadow">
-          {activas.length > 0 ? (
-            <p className="flex items-center gap-2"><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-tema-acento border-t-transparent" /> Subiendo {activas.length - errores.length} foto(s)… {!navigator.onLine && "(sin conexión, se reintenta sola)"}</p>
-          ) : (
-            <p className="flex items-center gap-2"><IconoDuo nombre="check" className="h-4 w-4 text-emerald-600" trazo={2.2} /> {listas} foto(s) subida(s)</p>
+          {activas.length > errores.length ? (
+            <p className="flex items-center gap-2"><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-tema-acento border-t-transparent" /> Subiendo {activas.length - errores.length} archivo(s)… {!navigator.onLine && "(sin conexión, se reintenta sola)"}</p>
+          ) : listas === 0 ? null : (
+            <p className="flex items-center gap-2"><IconoDuo nombre="check" className="h-4 w-4 text-emerald-600" trazo={2.2} /> {listas === 1 ? "1 archivo subido" : `${listas} archivos subidos`}</p>
           )}
           {errores.length > 0 && (
             <div className="mt-1 text-rose-600">
@@ -264,6 +290,8 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
           {activas.length === 0 && <button className="mt-1 text-xs text-tema-suave underline" onClick={() => cola.limpiarListas()}>Ocultar</button>}
         </div>
       )}
+
+      {errorClip && <div className="mx-4 mt-3"><Aviso tipo="error">{errorClip}</Aviso></div>}
 
       <div className="px-4 pt-4">
         {pestana === "fotos" && <Galeria evento={evento} invitado={invitado} />}
@@ -319,7 +347,7 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
       </nav>
 
       <input ref={inputCamara} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { archivos(e.target.files); e.target.value = ""; }} />
-      <input ref={inputGaleria} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { archivos(e.target.files); e.target.value = ""; }} />
+      <input ref={inputGaleria} type="file" accept={clipsOk ? "image/*,video/*" : "image/*"} multiple className="hidden" onChange={(e) => { archivos(e.target.files); e.target.value = ""; }} />
 
       <Modal abierto={selector} onCerrar={() => { setSelector(false); setMisionElegida(null); setCasillaElegida(null); }}
         titulo={misionElegida ? misionElegida.titulo : casillaElegida ? casillaElegida.texto : "Subir fotos"}
@@ -333,8 +361,31 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
           <button className="btn-secundario flex w-full items-center justify-center gap-2 py-4 text-base" onClick={() => inputGaleria.current?.click()}>
             <IconoDuo nombre="galeria" className="h-5 w-5" /> Elegir de la galería
           </button>
+          {clipsOk && (
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <button className="btn-secundario flex flex-col items-center gap-1 py-3.5" onClick={() => { setSelector(false); setGrabar("video"); }}>
+                <IconoDuo nombre="video" className="h-6 w-6 text-tema-acento" />
+                <span className="text-sm font-semibold">Grabar video</span>
+                <span className="text-[11px] text-tema-suave">hasta {MAX_CLIP} s</span>
+              </button>
+              <button className="btn-secundario flex flex-col items-center gap-1 py-3.5" onClick={() => { setSelector(false); setGrabar("audio"); }}>
+                <IconoDuo nombre="microfono" className="h-6 w-6 text-tema-acento" />
+                <span className="text-sm font-semibold">Grabar audio</span>
+                <span className="text-[11px] text-tema-suave">hasta {MAX_CLIP} s</span>
+              </button>
+            </div>
+          )}
         </div>
       </Modal>
+
+      {grabar && (
+        <Grabador
+          medio={grabar}
+          titulo={misionElegida?.titulo ?? casillaElegida?.texto}
+          onListo={clipGrabado}
+          onCerrar={() => { setGrabar(null); setMisionElegida(null); setCasillaElegida(null); }}
+        />
+      )}
     </div>
   );
 }
@@ -389,6 +440,7 @@ function Galeria({ evento, invitado, soloMias = false }: { evento: EventoPublico
         {fotos.map((f) => (
           <button key={f.id} onClick={() => setAbierta(f)} className="relative aspect-square overflow-hidden rounded-md bg-tema-suave/10">
             {urls[f.thumb_path] && <img src={urls[f.thumb_path]} alt="" className="h-full w-full object-cover" loading="lazy" />}
+            <MarcaClip foto={f} />
             {f.estado === "pendiente" && <span className="absolute inset-x-0 bottom-0 bg-black/60 py-0.5 text-[10px] text-white">En revisión</span>}
           </button>
         ))}
@@ -396,7 +448,18 @@ function Galeria({ evento, invitado, soloMias = false }: { evento: EventoPublico
       {abierta && (
         <div className="fixed inset-0 z-50 flex flex-col bg-black/95" onClick={() => setAbierta(null)}>
           <div className="flex flex-1 items-center justify-center p-2">
-            {grande[abierta.storage_path] ? <img src={grande[abierta.storage_path]} alt="" className="max-h-full max-w-full" /> : <Cargando texto="" />}
+            {!grande[abierta.storage_path] ? (
+              <Cargando texto="" />
+            ) : abierta.medio === "video" ? (
+              <video src={grande[abierta.storage_path]} className="max-h-full max-w-full" autoPlay playsInline controls onClick={(e) => e.stopPropagation()} />
+            ) : abierta.medio === "audio" ? (
+              <div className="flex w-full max-w-sm flex-col items-center gap-5" onClick={(e) => e.stopPropagation()}>
+                {urls[abierta.thumb_path] && <img src={urls[abierta.thumb_path]} alt="" className="w-full rounded-2xl" />}
+                <audio src={grande[abierta.storage_path]} autoPlay controls className="w-full" />
+              </div>
+            ) : (
+              <img src={grande[abierta.storage_path]} alt="" className="max-h-full max-w-full" />
+            )}
           </div>
           <div className="flex items-center justify-between p-4 text-sm text-white" onClick={(e) => e.stopPropagation()}>
             <span>{hora(abierta.created_at)}</span>
