@@ -257,4 +257,11 @@ console.log("✓ y puede leer ese archivo:", (await como(intruso, true, `select 
 console.log("✓ pero no las fotos del evento:", (await como(intruso, true, `select count(*)::int n from storage.objects where name like '%b0.jpg'`)).rows[0].n === 0);
 await db.exec(`update fotos set en_libro = false where id='${v1.id}'`);
 console.log("✓ fuera del libro deja de ser público:", (await como(intruso, true, `select count(*)::int n from clip_publico('${v1.id}')`)).rows[0].n === 0);
+
+// Marco de foto instantánea
+const conMarco = (marco, medio = "foto", dur = "null") =>
+  `insert into fotos (evento_id,invitado_id,storage_path,thumb_path,medio,duracion,marco) values ('${ev2.id}','${b1.id}','${ev2.id}/${b1.id}/m.jpg','${ev2.id}/${b1.id}/m_t.jpg','${medio}',${dur},${marco}) returning marco`;
+console.log("✓ foto con marco blanco:", (await como(g1, true, conMarco("'blanco'"))).rows[0].marco === "blanco");
+await espera_error(como(g1, true, conMarco("'arcoiris'")), "marco inexistente");
+await espera_error(como(g1, true, conMarco("'negro'", "video", 5)), "un video con marco");
 console.log("FIN");

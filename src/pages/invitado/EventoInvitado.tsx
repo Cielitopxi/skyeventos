@@ -5,13 +5,14 @@ import { IconoDuo, Medalla } from "../../components/Iconos";
 import { Portada } from "../../components/Portada";
 import { Grabador } from "../../components/Grabador";
 import { MarcaClip } from "../../components/MarcaClip";
+import { giro, Instantanea, MARCOS, MuestraMarco, PROPORCION_MARCO } from "../../components/Instantanea";
 import { duracionArchivo, MAX_CLIP, medioDe, type MedioClip } from "../../lib/clip";
 import { procesarImagen } from "../../lib/imagen";
 import { hora, rankingPorMesa } from "../../lib/formato";
 import { asegurarSesion, BUCKET, mensajeError, supabase } from "../../lib/supabase";
 import { ColaSubida, type TareaSubida } from "../../lib/subida";
 import { estiloTematica, tematica } from "../../lib/tematicas";
-import type { CapsulaItem, CasillaBingo, CategoriaVoto, EstadoCapsula, EventoPublico, FilaRanking, FilaResultado, PreguntaTrivia, Foto, Invitado, Mensaje, Mision, Premio } from "../../lib/tipos";
+import type { MarcoFoto, CapsulaItem, CasillaBingo, CategoriaVoto, EstadoCapsula, EventoPublico, FilaRanking, FilaResultado, PreguntaTrivia, Foto, Invitado, Mensaje, Mision, Premio } from "../../lib/tipos";
 import { useUrls } from "../../lib/urls";
 
 type Pestana = "fotos" | "juegos" | "mensajes" | "ranking" | "yo";
@@ -154,6 +155,25 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
   const [clipsOk, setClipsOk] = useState(false);
   const [grabar, setGrabar] = useState<MedioClip | null>(null);
   const [errorClip, setErrorClip] = useState("");
+  // Marco instantánea: arranca con el que sugirió el anfitrión y se recuerda la elección de cada invitado.
+  const claveMarco = `marco-${evento.id}`;
+  const [marco, setMarcoState] = useState<MarcoFoto | null>(() => {
+    try {
+      const g = localStorage.getItem(claveMarco);
+      if (g !== null) return (g || null) as MarcoFoto | null;
+    } catch {
+      /* sin almacenamiento */
+    }
+    return evento.personalizacion.marco ?? null;
+  });
+  const setMarco = (m: MarcoFoto | null) => {
+    setMarcoState(m);
+    try {
+      localStorage.setItem(claveMarco, m ?? "");
+    } catch {
+      /* sin almacenamiento: vale para esta visita */
+    }
+  };
 
   useEffect(() => cola.suscribir(setTareas), [cola]);
 
@@ -233,7 +253,7 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
       else largos++;
     }
     setErrorClip(largos ? `${largos === 1 ? "Un video no se subió" : `${largos} videos no se subieron`}: pueden durar hasta ${MAX_CLIP} segundos. Grabalo desde acá con "Grabar video".` : "");
-    if (lista.length) cola.agregar(lista, { misionId: misionElegida?.id, bingoId: casillaElegida?.id });
+    if (lista.length) cola.agregar(lista, { misionId: misionElegida?.id, bingoId: casillaElegida?.id, marco });
     setMisionElegida(null);
     setCasillaElegida(null);
   }
@@ -355,6 +375,15 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
         <div className="space-y-3">
           {misionElegida?.descripcion && <p className="text-sm text-tema-suave">{misionElegida.descripcion}</p>}
           {casillaElegida && <p className="text-sm text-tema-suave">Sacale una foto a este momento para marcar la casilla del bingo.</p>}
+          <div className="rounded-2xl bg-tema-suave/[.07] px-3 py-3">
+            <p className="mb-2 text-center text-xs font-semibold uppercase tracking-[.15em] text-tema-suave">Marco de foto instantánea</p>
+            <div className="flex justify-center gap-4 text-tema-acento">
+              <MuestraMarco marco={null} activo={!marco} onClick={() => setMarco(null)} etiqueta="Sin marco" />
+              {MARCOS.map((m) => (
+                <MuestraMarco key={m.id} marco={m.id} activo={marco === m.id} onClick={() => setMarco(m.id)} etiqueta={m.nombre} />
+              ))}
+            </div>
+          </div>
           <button className="btn-primario flex w-full items-center justify-center gap-2 py-4 text-base" onClick={() => inputCamara.current?.click()}>
             <IconoDuo nombre="camara" className="h-5 w-5" /> Sacar una foto
           </button>
@@ -438,8 +467,14 @@ function Galeria({ evento, invitado, soloMias = false }: { evento: EventoPublico
     <>
       <div className="grid grid-cols-3 gap-1">
         {fotos.map((f) => (
-          <button key={f.id} onClick={() => setAbierta(f)} className="relative aspect-square overflow-hidden rounded-md bg-tema-suave/10">
-            {urls[f.thumb_path] && <img src={urls[f.thumb_path]} alt="" className="h-full w-full object-cover" loading="lazy" />}
+          <button key={f.id} onClick={() => setAbierta(f)} className={`relative aspect-square overflow-hidden rounded-md ${f.marco ? "bg-tema-suave/[.06] py-[6%]" : "bg-tema-suave/10"}`}>
+            {f.marco ? (
+              <Instantanea marco={f.marco} mini inclinar={giro(f.id, 2)} className="mx-auto h-full">
+                {urls[f.thumb_path] && <img src={urls[f.thumb_path]} alt="" loading="lazy" />}
+              </Instantanea>
+            ) : (
+              urls[f.thumb_path] && <img src={urls[f.thumb_path]} alt="" className="h-full w-full object-cover" loading="lazy" />
+            )}
             <MarcaClip foto={f} />
             {f.estado === "pendiente" && <span className="absolute inset-x-0 bottom-0 bg-black/60 py-0.5 text-[10px] text-white">En revisión</span>}
           </button>
@@ -457,6 +492,10 @@ function Galeria({ evento, invitado, soloMias = false }: { evento: EventoPublico
                 {urls[abierta.thumb_path] && <img src={urls[abierta.thumb_path]} alt="" className="w-full rounded-2xl" />}
                 <audio src={grande[abierta.storage_path]} autoPlay controls className="w-full" />
               </div>
+            ) : abierta.marco ? (
+              <Instantanea marco={abierta.marco} pie={abierta.caption || evento.personalizacion.titulo || evento.nombre} style={{ width: `min(88vw, calc(74vh / ${PROPORCION_MARCO}))` }}>
+                <img src={grande[abierta.storage_path]} alt="" />
+              </Instantanea>
             ) : (
               <img src={grande[abierta.storage_path]} alt="" className="max-h-full max-w-full" />
             )}

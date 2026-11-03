@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Aviso } from "../../components/ui";
 import { IconoDuo } from "../../components/Iconos";
 import { MarcaClip } from "../../components/MarcaClip";
+import { giro, Instantanea } from "../../components/Instantanea";
 import { mensajeError, supabase } from "../../lib/supabase";
 import type { Foto, Invitado } from "../../lib/tipos";
 import { urlsFirmadas, useUrls } from "../../lib/urls";
@@ -98,7 +99,15 @@ export default function TabFotolibro({ evento, recargar }: PropsTab) {
         {fotos.map((f) => (
           <div key={f.id} className="group relative">
             <button onClick={() => alternar(f)} className={`relative block aspect-square w-full overflow-hidden rounded-lg bg-slate-200 ${f.en_libro ? "" : "opacity-30 grayscale"}`}>
-              {urls[f.thumb_path] && <img src={urls[f.thumb_path]} alt="" className="h-full w-full object-cover" loading="lazy" />}
+              {f.marco ? (
+                    <span className="flex h-full items-center justify-center bg-slate-50 py-[6%]">
+                      <Instantanea marco={f.marco} mini inclinar={giro(f.id, 2)} className="h-full">
+                        {urls[f.thumb_path] && <img src={urls[f.thumb_path]} alt="" loading="lazy" />}
+                      </Instantanea>
+                    </span>
+                  ) : (
+                    urls[f.thumb_path] && <img src={urls[f.thumb_path]} alt="" className="h-full w-full object-cover" loading="lazy" />
+                  )}
               <MarcaClip foto={f} />
             </button>
             {f.destacada && <span className="absolute left-1 top-1 text-amber-400 drop-shadow">★</span>}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Aviso, Cargando } from "../../components/ui";
 import { IconoDuo, Medalla } from "../../components/Iconos";
+import { giro, Instantanea, PROPORCION_MARCO } from "../../components/Instantanea";
 import { formatoDuracion } from "../../lib/clip";
 import { fechaLarga, hora, nombreTipo } from "../../lib/formato";
 import { APP_URL, supabase } from "../../lib/supabase";
@@ -263,7 +264,7 @@ function armarPaginas(d: Datos, urls: Record<string, string>, alCargar: () => vo
           </div>
           <div className="w-1/2 p-[8mm]">
             {primera ? (
-              <div className="h-full overflow-hidden rounded-[3mm] shadow-lg"><Img f={primera} /></div>
+              <Celda f={primera} Img={Img} pie={titulo} className="h-full" />
             ) : (
               <div className="flex h-full items-center justify-center rounded-[3mm] bg-black/5">
                 <p className="titulo text-[60pt]">{t.ornamento}</p>
@@ -273,7 +274,7 @@ function armarPaginas(d: Datos, urls: Record<string, string>, alCargar: () => vo
         </div>
       ),
     });
-    for (const grupo of paginarFotos(resto)) paginas.push({ contenido: <PaginaFotos fotos={grupo} Img={Img} /> });
+    for (const grupo of paginarFotos(resto)) paginas.push({ contenido: <PaginaFotos fotos={grupo} Img={Img} pie={titulo} /> });
   }
 
   // 5. Misiones
@@ -299,7 +300,7 @@ function armarPaginas(d: Datos, urls: Record<string, string>, alCargar: () => vo
               <h3 className="titulo flex items-center justify-center gap-[2mm] text-[20pt]"><IconoDuo nombre="mision" className="h-[7mm] w-[7mm]" /> {m.titulo}</h3>
               <p className="text-[9pt] opacity-70">{fotos.length} invitado(s) la cumplieron: {[...new Set(fotos.map((f) => nombre(f.invitado_id)))].slice(0, 8).join(", ")}</p>
             </div>
-            <div className="min-h-0 flex-1"><Grilla fotos={elegidas} Img={Img} /></div>
+            <div className="min-h-0 flex-1"><Grilla fotos={elegidas} Img={Img} pie={titulo} /></div>
           </div>
         ),
       });
@@ -395,35 +396,49 @@ function armarPaginas(d: Datos, urls: Record<string, string>, alCargar: () => vo
 
 type ImgComp = (props: { f: Foto; className?: string }) => ReactNode;
 
-function Grilla({ fotos, Img }: { fotos: Foto[]; Img: ImgComp }) {
-  const marco = "overflow-hidden rounded-[2mm] shadow-md";
-  if (fotos.length === 1) return <div className={`h-full ${marco}`}><Img f={fotos[0]} /></div>;
+/** Celda de foto: con marco instantánea (inclinada, con su texto manuscrito) o recortada a la celda. */
+function Celda({ f, Img, pie, className = "" }: { f: Foto; Img: ImgComp; pie: string; className?: string }) {
+  if (f.marco)
+    return (
+      // La celda es contenedor de tamaño: el marco entra entero tanto en celdas anchas como en altas.
+      <div className={`flex min-h-0 items-center justify-center [container-type:size] ${className}`}>
+        <Instantanea marco={f.marco} pie={f.caption || pie} inclinar={giro(f.id, 2.5)} style={{ width: `min(94cqw, 94cqh / ${PROPORCION_MARCO})` }}>
+          <Img f={f} />
+        </Instantanea>
+      </div>
+    );
+  return <div className={`overflow-hidden rounded-[2mm] shadow-md ${className}`}><Img f={f} /></div>;
+}
+
+function Grilla({ fotos, Img, pie }: { fotos: Foto[]; Img: ImgComp; pie: string }) {
+  if (fotos.length === 1) return <Celda f={fotos[0]} Img={Img} pie={pie} className="h-full" />;
   if (fotos.length === 2)
     return (
       <div className="grid h-full grid-cols-2 gap-[4mm]">
-        {fotos.map((f) => <div key={f.id} className={marco}><Img f={f} /></div>)}
+        {fotos.map((f) => <Celda key={f.id} f={f} Img={Img} pie={pie} />)}
       </div>
     );
-  if (fotos.length === 3)
+  // La foto alta del armado de 3 no admite marco (es angosta): con marco se usa la grilla de 2 × 2.
+  if (fotos.length === 3 && !fotos[0].marco)
     return (
       <div className="grid h-full grid-cols-2 grid-rows-2 gap-[4mm]">
-        <div className={`row-span-2 ${marco}`}><Img f={fotos[0]} /></div>
-        <div className={marco}><Img f={fotos[1]} /></div>
-        <div className={marco}><Img f={fotos[2]} /></div>
+        <Celda f={fotos[0]} Img={Img} pie={pie} className="row-span-2" />
+        <Celda f={fotos[1]} Img={Img} pie={pie} />
+        <Celda f={fotos[2]} Img={Img} pie={pie} />
       </div>
     );
   return (
     <div className="grid h-full grid-cols-2 grid-rows-2 gap-[4mm]">
-      {fotos.slice(0, 4).map((f) => <div key={f.id} className={marco}><Img f={f} /></div>)}
+      {fotos.slice(0, 4).map((f) => <Celda key={f.id} f={f} Img={Img} pie={pie} />)}
     </div>
   );
 }
 
-function PaginaFotos({ fotos, Img }: { fotos: Foto[]; Img: ImgComp }) {
-  const conCaption = fotos.find((f) => f.caption);
+function PaginaFotos({ fotos, Img, pie }: { fotos: Foto[]; Img: ImgComp; pie: string }) {
+  const conCaption = fotos.find((f) => f.caption && !f.marco);
   return (
     <div className="flex h-full flex-col p-[12mm]">
-      <div className="min-h-0 flex-1"><Grilla fotos={fotos} Img={Img} /></div>
+      <div className="min-h-0 flex-1"><Grilla fotos={fotos} Img={Img} pie={pie} /></div>
       {conCaption && <p className="mt-[3mm] text-center text-[9pt] italic opacity-70">{conCaption.caption}</p>}
     </div>
   );

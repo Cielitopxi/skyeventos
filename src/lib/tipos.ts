@@ -10,7 +10,10 @@ export interface Personalizacion {
   portada_path?: string;
   portada?: DisenoPortada; // solo planes con portada personalizada
   juegos?: Partial<Record<JuegoId, boolean>>; // ausente = activo
+  marco?: MarcoFoto | null; // marco instantánea sugerido al subir (cada invitado puede cambiarlo)
 }
+
+export type MarcoFoto = "blanco" | "negro" | "crema";
 
 export type JuegoId = "misiones" | "bingo" | "trivia" | "votacion" | "capsula";
 
@@ -95,6 +98,7 @@ export interface Foto {
   bingo_id: string | null;
   medio: MedioFoto;
   duracion: number | null;
+  marco: MarcoFoto | null;
   estado: EstadoContenido;
   mision_estado: "pendiente" | "aprobada" | "rechazada" | null;
   destacada: boolean;

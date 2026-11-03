@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Aviso, Campo } from "../../components/ui";
 import { IconoDuo } from "../../components/Iconos";
+import { Instantanea, MARCOS, MuestraMarco } from "../../components/Instantanea";
 import { FUENTES_PORTADA, PORTADA_INICIAL, fuentePortada } from "../../components/Portada";
 import { VistaPrevia } from "../../components/VistaPrevia";
 import { TIPOS_EVENTO } from "../../lib/formato";
@@ -213,6 +214,26 @@ export default function TabPersonalizar({ evento, plan, recargar }: PropsTab) {
               )}
             </>
           )}
+        </div>
+
+        <div className="tarjeta space-y-4">
+          <div>
+            <h2 className="font-bold">Marco de foto instantánea</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Cada invitado elige si su foto va con marco al subirla. Acá definís cuál aparece sugerido. La foto original no se toca: el marco se ve en la galería, la pantalla y el fotolibro.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-end gap-6 text-sky-600">
+            <MuestraMarco marco={null} activo={!p.marco} onClick={() => setP((x) => ({ ...x, marco: null }))} etiqueta="Sin marco" />
+            {MARCOS.map((m) => (
+              <MuestraMarco key={m.id} marco={m.id} activo={p.marco === m.id} onClick={() => setP((x) => ({ ...x, marco: m.id }))} etiqueta={m.nombre} />
+            ))}
+            {p.marco && (
+              <Instantanea marco={p.marco} pie={p.titulo || nombre || "Nuestro evento"} inclinar={-2} className="ml-auto w-36">
+                <span className="block h-full w-full" style={{ background: t.fondoDecorado }} />
+              </Instantanea>
+            )}
+          </div>
         </div>
 
         <div className="tarjeta space-y-4">
