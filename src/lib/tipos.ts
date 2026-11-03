@@ -136,3 +136,22 @@ export interface Anuncio {
   texto: string;
   created_at: string;
 }
+
+export type EstadoVotacion = "preparada" | "abierta" | "cerrada" | "revelada";
+
+export interface CategoriaVoto {
+  id: string;
+  evento_id: string;
+  titulo: string;
+  orden: number;
+  estado: EstadoVotacion;
+  created_at: string;
+}
+
+export interface FilaResultado {
+  categoria_id: string;
+  candidato_id: string;
+  nombre: string;
+  mesa: string | null;
+  votos: number;
+}

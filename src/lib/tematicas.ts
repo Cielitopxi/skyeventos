@@ -170,3 +170,5 @@ const BINGO_SUGERIDO: Record<string, string[]> = {
 };
 
 export const bingoSugerido = (tipo: string) => [...new Set([...(BINGO_SUGERIDO[tipo] ?? []), ...BINGO_COMUNES])].slice(0, 9);
+
+export const CATEGORIAS_SUGERIDAS = ["Mejor look", "Rey o reina de la pista", "Alma de la fiesta", "La mejor sonrisa", "El brindis más emotivo"];

@@ -8,6 +8,7 @@ import TabResumen from "./TabResumen";
 import TabPersonalizar from "./TabPersonalizar";
 import TabModerar from "./TabModerar";
 import TabMisiones from "./TabMisiones";
+import TabVotacion from "./TabVotacion";
 import TabInvitados from "./TabInvitados";
 import TabQr from "./TabQr";
 import TabFotolibro from "./TabFotolibro";
@@ -23,6 +24,7 @@ const TABS = [
   { id: "personalizar", t: "Personalizar" },
   { id: "moderar", t: "Moderar" },
   { id: "misiones", t: "Misiones y premios" },
+  { id: "votacion", t: "Votación" },
   { id: "invitados", t: "Invitados" },
   { id: "qr", t: "QR para imprimir" },
   { id: "libro", t: "Fotolibro" },
@@ -92,6 +94,7 @@ export default function EventoPanel() {
         {tab === "personalizar" && <TabPersonalizar {...props} />}
         {tab === "moderar" && <TabModerar {...props} />}
         {tab === "misiones" && <TabMisiones {...props} />}
+        {tab === "votacion" && <TabVotacion {...props} />}
         {tab === "invitados" && <TabInvitados {...props} />}
         {tab === "qr" && <TabQr {...props} />}
         {tab === "libro" && <TabFotolibro {...props} />}

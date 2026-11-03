@@ -5,10 +5,10 @@ import { fechaLarga, hora, rankingPorMesa } from "../../lib/formato";
 import { asegurarSesion, mensajeError, supabase } from "../../lib/supabase";
 import { ColaSubida, type TareaSubida } from "../../lib/subida";
 import { estiloTematica, tematica } from "../../lib/tematicas";
-import type { CasillaBingo, EventoPublico, FilaRanking, Foto, Invitado, Mensaje, Mision, Premio } from "../../lib/tipos";
+import type { CasillaBingo, CategoriaVoto, EventoPublico, FilaRanking, FilaResultado, Foto, Invitado, Mensaje, Mision, Premio } from "../../lib/tipos";
 import { useUrls } from "../../lib/urls";
 
-type Pestana = "fotos" | "misiones" | "bingo" | "mensajes" | "ranking" | "yo";
+type Pestana = "fotos" | "misiones" | "bingo" | "votar" | "mensajes" | "ranking" | "yo";
 
 export default function EventoInvitado() {
   const { codigo = "" } = useParams();
@@ -141,6 +141,7 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
   const [misionElegida, setMisionElegida] = useState<Mision | null>(null);
   const [casillaElegida, setCasillaElegida] = useState<CasillaBingo | null>(null);
   const [carton, setCarton] = useState<CasillaBingo[]>([]);
+  const [categorias, setCategorias] = useState<CategoriaVoto[]>([]);
   const [tareas, setTareas] = useState<TareaSubida[]>([]);
   const cola = useMemo(() => new ColaSubida(evento.id, invitado.id), [evento.id, invitado.id]);
   const inputCamara = useRef<HTMLInputElement>(null);
@@ -157,6 +158,21 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
     const canal = supabase
       .channel(`inv-bingo-${evento.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "bingo_casillas", filter: `evento_id=eq.${evento.id}` }, cargar)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(canal);
+    };
+  }, [evento.id]);
+
+  // Categorías de votación: la pestaña aparece cuando el organizador abre la primera.
+  useEffect(() => {
+    const cargar = () =>
+      supabase.from("votacion_categorias").select("*").eq("evento_id", evento.id).neq("estado", "preparada").order("orden").order("created_at")
+        .then(({ data }) => setCategorias((data as CategoriaVoto[]) ?? []));
+    cargar();
+    const canal = supabase
+      .channel(`inv-votacion-${evento.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "votacion_categorias", filter: `evento_id=eq.${evento.id}` }, cargar)
       .subscribe();
     return () => {
       supabase.removeChannel(canal);
@@ -191,6 +207,7 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
     { id: "fotos", i: "🖼️", t: "Fotos" },
     { id: "misiones", i: "🎯", t: "Misiones" },
     ...(carton.length === 9 ? [{ id: "bingo" as Pestana, i: "🎲", t: "Bingo" }] : []),
+    ...(categorias.length ? [{ id: "votar" as Pestana, i: "🗳️", t: "Votar" }] : []),
     { id: "mensajes", i: "💬", t: "Mensajes" },
     ...(premiosActivos ? [{ id: "ranking" as Pestana, i: "🏆", t: "Ranking" }] : []),
     { id: "yo", i: "🙂", t: "Yo" },
@@ -222,6 +239,7 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
         {pestana === "fotos" && <Galeria evento={evento} invitado={invitado} />}
         {pestana === "misiones" && <Misiones evento={evento} invitado={invitado} onCumplir={elegir} />}
         {pestana === "bingo" && <Bingo evento={evento} invitado={invitado} carton={carton} onMarcar={elegirCasilla} />}
+        {pestana === "votar" && <Votacion evento={evento} invitado={invitado} categorias={categorias} />}
         {pestana === "mensajes" && <Mensajes evento={evento} invitado={invitado} />}
         {pestana === "ranking" && <Ranking evento={evento} invitado={invitado} />}
         {pestana === "yo" && <Yo evento={evento} invitado={invitado} setInvitado={setInvitado} />}
@@ -477,6 +495,102 @@ function Bingo({ evento, invitado, carton, onMarcar }: { evento: EventoPublico; 
         })}
       </div>
       <p className="text-center text-xs text-tema-suave">5 pts por casilla · 15 por línea · 50 por cartón lleno</p>
+    </div>
+  );
+}
+
+function Votacion({ evento, invitado, categorias }: { evento: EventoPublico; invitado: Invitado; categorias: CategoriaVoto[] }) {
+  const [candidatos, setCandidatos] = useState<Pick<Invitado, "id" | "nombre" | "mesa">[] | null>(null);
+  const [misVotos, setMisVotos] = useState<Record<string, string>>({});
+  const [resultados, setResultados] = useState<FilaResultado[]>([]);
+  const [eligiendo, setEligiendo] = useState<CategoriaVoto | null>(null);
+  const [busqueda, setBusqueda] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    supabase.from("invitados").select("id, nombre, mesa").eq("evento_id", evento.id).eq("bloqueado", false).neq("id", invitado.id).order("nombre")
+      .then(({ data }) => setCandidatos(data ?? []));
+    supabase.from("votos").select("categoria_id, candidato_id").eq("evento_id", evento.id)
+      .then(({ data }) => setMisVotos(Object.fromEntries((data ?? []).map((v: { categoria_id: string; candidato_id: string }) => [v.categoria_id, v.candidato_id]))));
+  }, [evento.id, invitado.id]);
+
+  // Los resultados se piden de nuevo cada vez que cambia el estado de alguna categoría.
+  const clave = categorias.map((c) => c.id + c.estado).join();
+  useEffect(() => {
+    if (!categorias.some((c) => c.estado === "revelada")) return setResultados([]);
+    supabase.rpc("resultados_votacion", { p_evento: evento.id }).then(({ data }) => setResultados((data as FilaResultado[]) ?? []));
+  }, [clave]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function votar(candidato: string) {
+    if (!eligiendo) return;
+    setError("");
+    const { error } = await supabase.rpc("votar", { p_categoria: eligiendo.id, p_candidato: candidato });
+    if (error) return setError(mensajeError(error));
+    setMisVotos((v) => ({ ...v, [eligiendo.id]: candidato }));
+    setEligiendo(null);
+    setBusqueda("");
+  }
+
+  if (!candidatos) return <Cargando />;
+  const nombreDe = (id: string) => candidatos.find((c) => c.id === id)?.nombre ?? "—";
+  const filtrados = candidatos.filter((c) => c.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()));
+
+  return (
+    <div className="space-y-3">
+      <p className="text-center text-sm text-tema-suave">Un voto por categoría. Es secreto y lo podés cambiar mientras la votación siga abierta.</p>
+      {categorias.map((c) => {
+        const filas = resultados.filter((r) => r.categoria_id === c.id);
+        const max = Math.max(0, ...filas.map((r) => Number(r.votos)));
+        const ganadores = filas.filter((r) => Number(r.votos) === max && max > 0);
+        const voto = misVotos[c.id];
+        return (
+          <div key={c.id} className={`rounded-2xl bg-tema-superficie p-4 shadow-sm ${c.estado === "abierta" ? "ring-2 ring-tema-acento/40" : ""}`}>
+            <p className="text-xs font-semibold uppercase tracking-widest text-tema-suave">
+              {c.estado === "abierta" ? "Votación abierta" : c.estado === "cerrada" ? "Votación cerrada" : "🏆 Ganador"}
+            </p>
+            <p className="mt-0.5 text-lg font-semibold" style={{ fontFamily: "var(--t-font-titulo)" }}>{c.titulo}</p>
+            {c.estado === "revelada" ? (
+              ganadores.length ? (
+                <p className="mt-2 text-base font-bold text-tema-acento">
+                  {ganadores.map((g) => g.nombre).join(" y ")} <span className="text-sm font-normal text-tema-suave">· {max} {max === 1 ? "voto" : "votos"}</span>
+                </p>
+              ) : (
+                <p className="mt-2 text-sm text-tema-suave">Sin votos</p>
+              )
+            ) : (
+              <div className="mt-3 flex items-center gap-3">
+                <p className="flex-1 text-sm text-tema-suave">
+                  {voto ? <>Tu voto: <b className="text-tema-texto">{nombreDe(voto)}</b></> : c.estado === "abierta" ? "Todavía no votaste" : "No votaste"}
+                </p>
+                {c.estado === "abierta" && evento.abierto && (
+                  <button className={voto ? "btn-secundario btn-chico" : "btn-primario btn-chico"} onClick={() => setEligiendo(c)}>{voto ? "Cambiar" : "Votar"}</button>
+                )}
+              </div>
+            )}
+            {c.estado === "cerrada" && <p className="mt-2 text-xs text-tema-suave">El resultado se revela pronto en la pantalla 👀</p>}
+          </div>
+        );
+      })}
+
+      <Modal abierto={!!eligiendo} onCerrar={() => { setEligiendo(null); setBusqueda(""); setError(""); }} titulo={eligiendo ? `🗳️ ${eligiendo.titulo}` : ""}>
+        <div className="space-y-3">
+          <input className="input text-base" placeholder="Buscar por nombre" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+          {error && <Aviso tipo="error">{error}</Aviso>}
+          <div className="max-h-[50vh] space-y-1 overflow-y-auto">
+            {filtrados.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => votar(c.id)}
+                className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition hover:bg-tema-suave/10 ${eligiendo && misVotos[eligiendo.id] === c.id ? "bg-tema-acento/10 font-semibold" : ""}`}
+              >
+                <span>{c.nombre}</span>
+                {c.mesa && <span className="text-xs text-tema-suave">mesa {c.mesa}</span>}
+              </button>
+            ))}
+            {!filtrados.length && <p className="py-6 text-center text-sm text-tema-suave">{candidatos.length ? "No hay nadie con ese nombre" : "Todavía no hay otros invitados"}</p>}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

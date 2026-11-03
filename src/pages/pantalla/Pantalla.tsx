@@ -4,7 +4,7 @@ import QRCode from "qrcode";
 import { Cargando } from "../../components/ui";
 import { APP_URL, asegurarSesion, mensajeError, supabase } from "../../lib/supabase";
 import { estiloTematica, tematica } from "../../lib/tematicas";
-import type { Anuncio, EventoPublico, FilaRanking, Foto, Mensaje } from "../../lib/tipos";
+import type { Anuncio, CategoriaVoto, EventoPublico, FilaRanking, FilaResultado, Foto, Mensaje } from "../../lib/tipos";
 import { rankingPorMesa } from "../../lib/formato";
 import { urlsFirmadas } from "../../lib/urls";
 
@@ -12,9 +12,10 @@ type Escena =
   | { tipo: "foto"; foto: Foto; nueva: boolean }
   | { tipo: "muro"; fotos: Foto[] }
   | { tipo: "mensajes"; mensajes: Mensaje[] }
-  | { tipo: "ranking" };
+  | { tipo: "ranking" }
+  | { tipo: "premio"; titulo: string; filas: FilaResultado[] };
 
-const DUR = { foto: 7000, muro: 12000, mensajes: 12000, ranking: 12000 };
+const DUR = { foto: 7000, muro: 12000, mensajes: 12000, ranking: 12000, premio: 16000 };
 
 /** Pantalla en vivo para TV o proyector: /pantalla/CODIGO?k=TOKEN */
 export default function Pantalla() {
@@ -35,6 +36,7 @@ export default function Pantalla() {
 
   const nuevas = useRef<Foto[]>([]);
   const nuevosMensajes = useRef<Mensaje[]>([]);
+  const nuevosPremios = useRef<{ titulo: string; filas: FilaResultado[] }[]>([]);
   const indice = useRef(0);
   const vuelta = useRef(0);
   const estado = useRef({ fotos, mensajes, ranking });
@@ -101,6 +103,14 @@ export default function Pantalla() {
         });
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "anuncios", filter: `evento_id=eq.${id}` }, (p) => setAnuncio(p.new as Anuncio))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "votacion_categorias", filter: `evento_id=eq.${id}` }, async (p) => {
+        // Al revelar una categoría, el ganador pasa al frente de la programación.
+        const c = p.new as CategoriaVoto;
+        if (c.estado !== "revelada") return;
+        const { data } = await supabase.rpc("resultados_votacion", { p_evento: id });
+        const filas = ((data as FilaResultado[]) ?? []).filter((r) => r.categoria_id === c.id);
+        if (filas.length) nuevosPremios.current.push({ titulo: c.titulo, filas });
+      })
       .subscribe();
     const t = setInterval(cargarRanking, 30_000);
     return () => {
@@ -130,7 +140,9 @@ export default function Pantalla() {
       const { fotos, mensajes, ranking } = estado.current;
       let e: Escena | null = null;
       vuelta.current++;
-      if (nuevosMensajes.current.length) {
+      if (nuevosPremios.current.length) {
+        e = { tipo: "premio", ...nuevosPremios.current.shift()! };
+      } else if (nuevosMensajes.current.length) {
         e = { tipo: "mensajes", mensajes: nuevosMensajes.current.splice(0, 3) };
       } else if (nuevas.current.length) {
         e = { tipo: "foto", foto: nuevas.current.shift()!, nueva: true };
@@ -262,6 +274,32 @@ export default function Pantalla() {
             </div>
           </div>
         )}
+
+        {escena?.tipo === "premio" && (() => {
+          const max = Number(escena.filas[0].votos);
+          const ganadores = escena.filas.filter((r) => Number(r.votos) === max);
+          const resto = escena.filas.filter((r) => Number(r.votos) < max).slice(0, 2);
+          return (
+            <div className="entrar flex h-full flex-col items-center justify-center px-[6vw] text-center">
+              <p className="text-[1.6vw] font-semibold uppercase tracking-[.3em] text-tema-suave">Premio a</p>
+              <p className="mt-[1vh] text-[4.5vw] leading-tight text-tema-acento" style={{ fontFamily: "var(--t-font-titulo)" }}>{escena.titulo}</p>
+              <p className="subir mt-[5vh] text-[8vw] leading-none" style={{ animationDelay: "900ms" }}>🏆</p>
+              <p className="subir mt-[3vh] text-[5.5vw] font-bold leading-tight" style={{ animationDelay: "1500ms", fontFamily: "var(--t-font-titulo)" }}>
+                {ganadores.map((g) => g.nombre).join(" y ")}
+              </p>
+              <p className="subir mt-[1vh] text-[1.8vw] text-tema-suave" style={{ animationDelay: "1800ms" }}>
+                {max} {max === 1 ? "voto" : "votos"}{ganadores.length === 1 && ganadores[0].mesa ? ` · mesa ${ganadores[0].mesa}` : ""}
+              </p>
+              {resto.length > 0 && (
+                <div className="subir mt-[5vh] flex gap-[3vw] text-[1.7vw] text-tema-suave" style={{ animationDelay: "2600ms" }}>
+                  {resto.map((r) => (
+                    <span key={r.candidato_id}>{r.nombre} · {r.votos}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {anuncio && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 p-[6vw]">
