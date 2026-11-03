@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Aviso, Campo, Modal } from "../../components/ui";
 import { mensajeError, supabase } from "../../lib/supabase";
-import { misionesSugeridas } from "../../lib/tematicas";
-import type { Mision, Premio } from "../../lib/tipos";
+import { bingoSugerido, misionesSugeridas } from "../../lib/tematicas";
+import type { CasillaBingo, Evento, Mision, Premio } from "../../lib/tipos";
 import type { PropsTab } from "./EventoPanel";
 
 const vacia = { titulo: "", descripcion: "", puntos: 10, validacion: "automatica" as "automatica" | "moderador", relampago: false, minutos: 10 };
@@ -133,6 +133,8 @@ export default function TabMisiones({ evento, plan }: PropsTab) {
             </div>
           );
         })}
+
+        <CartonBingo evento={evento} />
       </div>
 
       <div className="tarjeta h-fit space-y-3">
@@ -172,6 +174,83 @@ export default function TabMisiones({ evento, plan }: PropsTab) {
           </div>
         )}
       </Modal>
+    </div>
+  );
+}
+
+/** Editor del cartón de Bingo de momentos (3x3). El bingo se activa con las 9 casillas completas. */
+function CartonBingo({ evento }: { evento: Evento }) {
+  const [textos, setTextos] = useState<string[]>(Array(9).fill(""));
+  const [guardado, setGuardado] = useState<string[]>(Array(9).fill(""));
+  const [estado, setEstado] = useState<"" | "guardando" | "ok">("");
+  const [error, setError] = useState("");
+
+  const cargar = useCallback(async () => {
+    const { data } = await supabase.from("bingo_casillas").select("*").eq("evento_id", evento.id);
+    const t = Array(9).fill("");
+    ((data as CasillaBingo[]) ?? []).forEach((c) => (t[c.posicion] = c.texto));
+    setTextos(t);
+    setGuardado(t);
+  }, [evento.id]);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  async function guardar() {
+    setError("");
+    setEstado("guardando");
+    const limpios = textos.map((t) => t.trim().slice(0, 60));
+    const filas = limpios.flatMap((texto, posicion) => (texto ? [{ evento_id: evento.id, posicion, texto }] : []));
+    const vacias = limpios.flatMap((t, i) => (t ? [] : [i]));
+    const r = filas.length ? await supabase.from("bingo_casillas").upsert(filas, { onConflict: "evento_id,posicion" }) : { error: null };
+    const b = vacias.length ? await supabase.from("bingo_casillas").delete().eq("evento_id", evento.id).in("posicion", vacias) : { error: null };
+    if (r.error || b.error) {
+      setEstado("");
+      return setError(mensajeError(r.error ?? b.error));
+    }
+    await cargar();
+    setEstado("ok");
+  }
+
+  const completas = textos.filter((t) => t.trim()).length;
+  const cambios = textos.some((t, i) => t.trim() !== guardado[i]);
+
+  return (
+    <div className="tarjeta mt-6 space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="mr-auto text-lg font-bold">Bingo de momentos</h2>
+        <button className="btn-secundario btn-chico" onClick={() => setTextos(bingoSugerido(evento.tipo))}>Completar con sugeridas</button>
+      </div>
+      <p className="text-sm text-slate-600">
+        Los invitados fotografían cada momento del cartón: 5 pts por casilla, 15 por línea completa y 50 por cartón lleno. Se activa con las 9 casillas.
+      </p>
+      <div className="grid grid-cols-3 gap-2">
+        {textos.map((t, i) => (
+          <textarea
+            key={i}
+            rows={2}
+            maxLength={60}
+            className="input resize-none text-center text-sm"
+            placeholder={`Casilla ${i + 1}`}
+            value={t}
+            onChange={(e) => {
+              setEstado("");
+              setTextos(textos.map((x, j) => (j === i ? e.target.value : x)));
+            }}
+          />
+        ))}
+      </div>
+      {error && <Aviso tipo="error">{error}</Aviso>}
+      <div className="flex flex-wrap items-center gap-3">
+        <button className="btn-primario btn-chico" disabled={!cambios || estado === "guardando"} onClick={guardar}>
+          {estado === "guardando" ? "Guardando…" : "Guardar cartón"}
+        </button>
+        <span className="text-sm text-slate-500">
+          {estado === "ok" && !cambios ? "Guardado. " : ""}
+          {completas === 9 ? "El bingo está activo para los invitados." : `${completas} de 9 casillas`}
+        </span>
+      </div>
     </div>
   );
 }

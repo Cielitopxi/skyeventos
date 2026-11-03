@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
     "preview": "vite preview",
-    "test:db": "node supabase/tests/esquema.test.mjs supabase/migrations/0001_esquema_inicial.sql supabase/migrations/0002_advisors.sql supabase/migrations/0003_demo.sql supabase/migrations/0004_unirse_idempotente.sql"
+    "test:db": "node supabase/tests/esquema.test.mjs supabase/migrations/0001_esquema_inicial.sql supabase/migrations/0002_advisors.sql supabase/migrations/0003_demo.sql supabase/migrations/0004_unirse_idempotente.sql supabase/migrations/0005_bingo.sql"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.45.4",

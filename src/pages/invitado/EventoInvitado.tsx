@@ -5,10 +5,10 @@ import { fechaLarga, hora, rankingPorMesa } from "../../lib/formato";
 import { asegurarSesion, mensajeError, supabase } from "../../lib/supabase";
 import { ColaSubida, type TareaSubida } from "../../lib/subida";
 import { estiloTematica, tematica } from "../../lib/tematicas";
-import type { EventoPublico, FilaRanking, Foto, Invitado, Mensaje, Mision, Premio } from "../../lib/tipos";
+import type { CasillaBingo, EventoPublico, FilaRanking, Foto, Invitado, Mensaje, Mision, Premio } from "../../lib/tipos";
 import { useUrls } from "../../lib/urls";
 
-type Pestana = "fotos" | "misiones" | "mensajes" | "ranking" | "yo";
+type Pestana = "fotos" | "misiones" | "bingo" | "mensajes" | "ranking" | "yo";
 
 export default function EventoInvitado() {
   const { codigo = "" } = useParams();
@@ -139,6 +139,8 @@ function Unirse({ evento, codigo, error: errorInicial, onListo }: { evento: Even
 function App({ evento, invitado, setInvitado, premiosActivos }: { evento: EventoPublico; invitado: Invitado; setInvitado: (i: Invitado) => void; premiosActivos: boolean }) {
   const [pestana, setPestana] = useState<Pestana>("fotos");
   const [misionElegida, setMisionElegida] = useState<Mision | null>(null);
+  const [casillaElegida, setCasillaElegida] = useState<CasillaBingo | null>(null);
+  const [carton, setCarton] = useState<CasillaBingo[]>([]);
   const [tareas, setTareas] = useState<TareaSubida[]>([]);
   const cola = useMemo(() => new ColaSubida(evento.id, invitado.id), [evento.id, invitado.id]);
   const inputCamara = useRef<HTMLInputElement>(null);
@@ -147,16 +149,38 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
 
   useEffect(() => cola.suscribir(setTareas), [cola]);
 
+  // El cartón se carga acá: la pestaña Bingo aparece solo con las 9 casillas.
+  useEffect(() => {
+    const cargar = () =>
+      supabase.from("bingo_casillas").select("*").eq("evento_id", evento.id).order("posicion").then(({ data }) => setCarton((data as CasillaBingo[]) ?? []));
+    cargar();
+    const canal = supabase
+      .channel(`inv-bingo-${evento.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "bingo_casillas", filter: `evento_id=eq.${evento.id}` }, cargar)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(canal);
+    };
+  }, [evento.id]);
+
   function elegir(m: Mision | null) {
     setMisionElegida(m);
+    setCasillaElegida(null);
+    setSelector(true);
+  }
+
+  function elegirCasilla(c: CasillaBingo) {
+    setMisionElegida(null);
+    setCasillaElegida(c);
     setSelector(true);
   }
 
   function archivos(fs: FileList | null) {
     setSelector(false);
     if (!fs?.length) return;
-    cola.agregar([...fs], { misionId: misionElegida?.id });
+    cola.agregar([...fs], { misionId: misionElegida?.id, bingoId: casillaElegida?.id });
     setMisionElegida(null);
+    setCasillaElegida(null);
   }
 
   const activas = tareas.filter((t) => t.estado !== "listo");
@@ -166,6 +190,7 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
   const pestanas: { id: Pestana; i: string; t: string }[] = [
     { id: "fotos", i: "🖼️", t: "Fotos" },
     { id: "misiones", i: "🎯", t: "Misiones" },
+    ...(carton.length === 9 ? [{ id: "bingo" as Pestana, i: "🎲", t: "Bingo" }] : []),
     { id: "mensajes", i: "💬", t: "Mensajes" },
     ...(premiosActivos ? [{ id: "ranking" as Pestana, i: "🏆", t: "Ranking" }] : []),
     { id: "yo", i: "🙂", t: "Yo" },
@@ -196,6 +221,7 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
       <div className="px-4 pt-4">
         {pestana === "fotos" && <Galeria evento={evento} invitado={invitado} />}
         {pestana === "misiones" && <Misiones evento={evento} invitado={invitado} onCumplir={elegir} />}
+        {pestana === "bingo" && <Bingo evento={evento} invitado={invitado} carton={carton} onMarcar={elegirCasilla} />}
         {pestana === "mensajes" && <Mensajes evento={evento} invitado={invitado} />}
         {pestana === "ranking" && <Ranking evento={evento} invitado={invitado} />}
         {pestana === "yo" && <Yo evento={evento} invitado={invitado} setInvitado={setInvitado} />}
@@ -224,9 +250,12 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
       <input ref={inputCamara} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { archivos(e.target.files); e.target.value = ""; }} />
       <input ref={inputGaleria} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { archivos(e.target.files); e.target.value = ""; }} />
 
-      <Modal abierto={selector} onCerrar={() => { setSelector(false); setMisionElegida(null); }} titulo={misionElegida ? `🎯 ${misionElegida.titulo}` : "Subir fotos"}>
+      <Modal abierto={selector} onCerrar={() => { setSelector(false); setMisionElegida(null); setCasillaElegida(null); }}
+        titulo={misionElegida ? `🎯 ${misionElegida.titulo}` : casillaElegida ? `🎲 ${casillaElegida.texto}` : "Subir fotos"}
+      >
         <div className="space-y-3">
           {misionElegida?.descripcion && <p className="text-sm text-tema-suave">{misionElegida.descripcion}</p>}
+          {casillaElegida && <p className="text-sm text-tema-suave">Sacale una foto a este momento para marcar la casilla del bingo.</p>}
           <button className="btn-primario w-full py-4 text-base" onClick={() => inputCamara.current?.click()}>📸 Sacar una foto</button>
           <button className="btn-secundario w-full py-4 text-base" onClick={() => inputGaleria.current?.click()}>🖼️ Elegir de la galería</button>
         </div>
@@ -373,6 +402,81 @@ function Misiones({ evento, invitado, onCumplir }: { evento: EventoPublico; invi
           </div>
         );
       })}
+    </div>
+  );
+}
+
+const LINEAS = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+
+function Bingo({ evento, invitado, carton, onMarcar }: { evento: EventoPublico; invitado: Invitado; carton: CasillaBingo[]; onMarcar: (c: CasillaBingo) => void }) {
+  const [mias, setMias] = useState<Foto[] | null>(null);
+
+  useEffect(() => {
+    const cargar = () =>
+      supabase
+        .from("fotos")
+        .select("*")
+        .eq("evento_id", evento.id)
+        .eq("invitado_id", invitado.id)
+        .not("bingo_id", "is", null)
+        .neq("estado", "oculta")
+        .order("created_at", { ascending: false })
+        .then(({ data }) => setMias((data as Foto[]) ?? []));
+    cargar();
+    const canal = supabase
+      .channel(`inv-bingo-fotos-${invitado.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "fotos", filter: `invitado_id=eq.${invitado.id}` }, cargar)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(canal);
+    };
+  }, [evento.id, invitado.id]);
+
+  // La foto más reciente de cada casilla (la consulta viene ordenada de nueva a vieja).
+  const porCasilla = useMemo(() => {
+    const m = new Map<string, Foto>();
+    (mias ?? []).forEach((f) => !m.has(f.bingo_id!) && m.set(f.bingo_id!, f));
+    return m;
+  }, [mias]);
+  const urls = useUrls([...porCasilla.values()].map((f) => f.thumb_path));
+
+  if (!mias) return <Cargando />;
+  const marcadas = new Set(carton.filter((c) => porCasilla.has(c.id)).map((c) => c.posicion));
+  const lineas = LINEAS.filter((l) => l.every((p) => marcadas.has(p)));
+  const enLinea = new Set(lineas.flat());
+  const lleno = marcadas.size === 9;
+  const puntos = marcadas.size * 5 + lineas.length * 15 + (lleno ? 50 : 0);
+
+  return (
+    <div className="space-y-4">
+      <div className="text-center">
+        <p className="text-sm text-tema-suave">
+          {lleno ? "🎉 ¡Cartón lleno!" : lineas.length ? `¡${lineas.length === 1 ? "Línea" : `${lineas.length} líneas`}!` : "Fotografiá cada momento para marcar tu cartón"}
+        </p>
+        <p className="mt-1 text-2xl font-bold" style={{ fontFamily: "var(--t-font-titulo)" }}>{puntos} pts</p>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {carton.map((c) => {
+          const f = porCasilla.get(c.id);
+          const url = f && urls[f.thumb_path];
+          return (
+            <button
+              key={c.id}
+              disabled={!evento.abierto}
+              onClick={() => onMarcar(c)}
+              className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl p-2 text-center text-[13px] font-semibold leading-tight shadow-sm transition active:scale-95 ${
+                f ? "bg-tema-acento text-white" : "border-2 border-dashed border-tema-suave/30 bg-tema-superficie"
+              } ${enLinea.has(c.posicion) ? "ring-[3px] ring-amber-400" : ""}`}
+            >
+              {url && <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+              {f && <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />}
+              <span className={f ? "relative mt-auto drop-shadow" : ""}>{c.texto}</span>
+              {f && <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-white text-[11px] text-emerald-600">✓</span>}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-center text-xs text-tema-suave">5 pts por casilla · 15 por línea · 50 por cartón lleno</p>
     </div>
   );
 }

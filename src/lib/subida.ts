@@ -9,6 +9,7 @@ export interface TareaSubida {
   error?: string;
   intentos: number;
   misionId?: string | null;
+  bingoId?: string | null;
   caption?: string;
 }
 
@@ -40,7 +41,7 @@ export class ColaSubida {
     this.oyentes.forEach((f) => f(copia));
   }
 
-  agregar(archivos: File[], opciones: { misionId?: string | null; caption?: string } = {}) {
+  agregar(archivos: File[], opciones: { misionId?: string | null; bingoId?: string | null; caption?: string } = {}) {
     for (const archivo of archivos) {
       this.tareas.push({
         id: crypto.randomUUID(),
@@ -49,6 +50,7 @@ export class ColaSubida {
         estado: "esperando",
         intentos: 0,
         misionId: opciones.misionId ?? null,
+        bingoId: opciones.bingoId ?? null,
         caption: opciones.caption,
       });
     }
@@ -105,6 +107,7 @@ export class ColaSubida {
         ancho: img.ancho,
         alto: img.alto,
         mision_id: t.misionId || null,
+        bingo_id: t.bingoId || null,
         caption: t.caption?.trim() || null,
       });
       if (error && error.code !== "23505") throw error; // 23505: ya estaba registrada (reintento)

@@ -132,4 +132,25 @@ await como(g1, true, `select unirse_pantalla('${ev.codigo}','${tok}')`);
 await como(g1, true, `select unirse_pantalla('${ev.codigo}','${tok}')`);
 const again = (await como(g1, true, `select nombre, mesa from unirse_evento('${ev.codigo}','Pepe','7')`)).rows[0];
 console.log("✓ unirse dos veces actualiza sin duplicar:", again.mesa === "7", (await db.query(`select count(*)::int n from invitados where user_id = '${g1}'`)).rows[0].n === 1);
+
+// Bingo de momentos (plan Fiesta)
+const ev2 = (await como(host, false, `select * from crear_evento('Bingo','cumple','elegante','fiesta',null)`)).rows[0];
+await como(host, false, `select activar_evento('${ev2.id}', 'pago-456')`, "service_role");
+const casillas = (await como(host, false, `insert into bingo_casillas (evento_id,posicion,texto) select '${ev2.id}', p, 'Momento ' || p from generate_series(0,8) p returning id, posicion`)).rows.sort((a, b) => a.posicion - b.posicion);
+await espera_error(como(g1, true, `insert into bingo_casillas (evento_id,posicion,texto) values ('${ev2.id}',0,'x')`), "un invitado no edita el cartón");
+const b1 = (await como(g1, true, `select * from unirse_evento('${ev2.codigo}','Pepe','1')`)).rows[0];
+console.log("✓ miembro ve el cartón:", (await como(g1, true, `select count(*)::int n from bingo_casillas`)).rows[0].n === 9);
+console.log("✓ intruso no ve el cartón:", (await como(intruso, true, `select count(*)::int n from bingo_casillas where evento_id='${ev2.id}'`)).rows[0].n === 0);
+const fotoB = (pos) => `insert into fotos (evento_id,invitado_id,storage_path,thumb_path,bingo_id) values ('${ev2.id}','${b1.id}','${ev2.id}/${b1.id}/b${pos}.jpg','${ev2.id}/${b1.id}/b${pos}_t.jpg','${casillas[pos].id}') returning bingo_id`;
+const pts = async () => (await como(g1, true, `select puntos::int from ranking('${ev2.id}') where invitado_id='${b1.id}'`)).rows[0].puntos;
+await como(g1, true, fotoB(0));
+await como(g1, true, fotoB(0));
+console.log("✓ casilla repetida cuenta una vez (2 fotos + 5):", (await pts()) === 7);
+await como(g1, true, fotoB(1));
+await como(g1, true, fotoB(2));
+console.log("✓ línea completa (4 fotos + 15 casillas + 15 línea):", (await pts()) === 34);
+for (const p of [3, 4, 5, 6, 7, 8]) await como(g1, true, fotoB(p));
+console.log("✓ cartón lleno (10 fotos + 45 + 8 líneas·15 + 50):", (await pts()) === 10 + 45 + 120 + 50);
+const ajena = (await como(g1, true, `insert into fotos (evento_id,invitado_id,storage_path,thumb_path,bingo_id) values ('${ev.id}','${i1.id}','${ev.id}/${i1.id}/z.jpg','${ev.id}/${i1.id}/z_t.jpg','${casillas[0].id}') returning bingo_id`)).rows[0];
+console.log("✓ casilla de otro evento se anula:", ajena.bingo_id === null);
 console.log("FIN");

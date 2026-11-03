@@ -158,3 +158,15 @@ export const MISIONES_SUGERIDAS: Record<string, MisionSugerida[]> = {
 };
 
 export const misionesSugeridas = (tipo: string) => MISIONES_SUGERIDAS[tipo] ?? COMUNES;
+
+// Bingo de momentos: 9 casillas por cartón (las propias de cada tipo primero, el resto se completa con las comunes).
+const BINGO_COMUNES = ["Un brindis", "Un abrazo", "Selfie grupal", "Alguien bailando", "La torta", "Una carcajada", "Zapatos de fiesta", "Alguien de otra mesa", "La pista llena"];
+
+const BINGO_SUGERIDO: Record<string, string[]> = {
+  boda: ["El beso de los novios", "Los anillos", "El ramo", "Un brindis", "Selfie con los novios", "Alguien emocionado", "Un abrazo", "La pista llena", "La torta"],
+  quince: ["El vals", "Las velas", "Selfie con la quinceañera", "Un brindis", "La pista llena", "Un abrazo", "La torta", "Zapatos de fiesta", "Una carcajada"],
+  infantil: ["Soplando las velas", "Una cara pintada", "Un disfraz", "Chicos jugando", "La torta", "Globos", "Un abrazo", "Selfie grupal", "Una carcajada"],
+  corporativo: ["El discurso", "Selfie con el equipo", "Alguien de otra área", "Un brindis", "Un apretón de manos", "Una carcajada", "Selfie grupal", "El logo de la empresa", "La pista llena"],
+};
+
+export const bingoSugerido = (tipo: string) => [...new Set([...(BINGO_SUGERIDO[tipo] ?? []), ...BINGO_COMUNES])].slice(0, 9);

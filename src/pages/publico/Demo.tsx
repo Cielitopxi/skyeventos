@@ -12,7 +12,7 @@ interface InfoDemo {
 const PASOS = [
   { i: "camara", t: "Subí una foto", d: "Desde el celular de la izquierda, como si fueras un invitado." },
   { i: "pantalla", t: "Mirala en la pantalla", d: "Aparece en segundos en la proyección del salón." },
-  { i: "diana", t: "Cumplí una misión", d: "Sumá puntos y mirá cómo cambia el ranking por persona y por mesa." },
+  { i: "bingo", t: "Jugá al bingo", d: "Completá el cartón de momentos con fotos y mirá cómo cambia el ranking por persona y por mesa." },
 ];
 
 /** Demo pública: invitado y pantalla del evento DEMO, lado a lado. */

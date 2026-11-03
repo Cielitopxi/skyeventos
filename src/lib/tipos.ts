@@ -75,6 +75,7 @@ export interface Foto {
   alto: number | null;
   caption: string | null;
   mision_id: string | null;
+  bingo_id: string | null;
   estado: EstadoContenido;
   mision_estado: "pendiente" | "aprobada" | "rechazada" | null;
   destacada: boolean;
@@ -91,6 +92,13 @@ export interface Mensaje {
   estado: EstadoContenido;
   en_libro: boolean;
   created_at: string;
+}
+
+export interface CasillaBingo {
+  id: string;
+  evento_id: string;
+  posicion: number;
+  texto: string;
 }
 
 export interface Mision {
