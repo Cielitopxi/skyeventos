@@ -155,3 +155,22 @@ export interface FilaResultado {
   mesa: string | null;
   votos: number;
 }
+
+export type EstadoTrivia = "preparada" | "abierta" | "cerrada";
+
+export interface PreguntaTrivia {
+  id: string;
+  evento_id: string;
+  texto: string;
+  opciones: string[];
+  puntos: number;
+  orden: number;
+  estado: EstadoTrivia;
+  created_at: string;
+}
+
+export interface ResumenTrivia {
+  pregunta_id: string;
+  opcion: number;
+  respuestas: number;
+}

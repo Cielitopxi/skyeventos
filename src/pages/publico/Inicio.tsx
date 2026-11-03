@@ -22,7 +22,7 @@ const FUNCIONES: { i: string; t: string; d: string; pronto?: boolean }[] = [
   { i: "mensaje", t: "Muro de dedicatorias", d: "Mensajes en vivo que después quedan en el fotolibro junto a las fotos." },
   { i: "libro", t: "Fotolibro 21 × 21", d: "Con la estética de tu evento, listo para imprimir o compartir." },
   { i: "bingo", t: "Bingo de momentos", d: "Un cartón de 3x3 que se completa con fotos: brindis, abrazo, selfie grupal, baile y torta. Línea y cartón lleno suman puntos." },
-  { i: "trivia", t: "Trivia personalizada", d: "Preguntas sobre los protagonistas, en rondas breves que se juegan desde el celular.", pronto: true },
+  { i: "trivia", t: "Trivia personalizada", d: "Preguntas sobre los protagonistas que se responden desde el celular; la pantalla revela la respuesta y quién acertó." },
   { i: "premio", t: "Premios por votación", d: "“Mejor look”, “Alma de la fiesta”: cada invitado vota en secreto y el ganador se revela en la pantalla." },
   { i: "capsula", t: "Cápsula del tiempo", d: "Fotos y mensajes que se revelan en una fecha elegida, como el primer aniversario.", pronto: true },
 ];

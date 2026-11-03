@@ -179,4 +179,26 @@ await como(host, false, `update votacion_categorias set estado='revelada' where 
 await espera_error(como(u3, true, `select votar('${cat.id}','${b1.id}')`), "no se vota una categoría revelada");
 console.log("✓ revelada, el invitado ve al ganador:", (await como(g1, true, `select nombre, votos::int from resultados_votacion('${ev2.id}')`)).rows[0]);
 await espera_error(sinSesion(`select resultados_votacion('${ev2.id}')`), "anon no ve resultados");
+
+// Trivia personalizada (mismo evento Fiesta)
+const pre = (await como(host, false, `insert into trivia_preguntas (evento_id,texto,opciones,puntos) values ('${ev2.id}','¿Dónde se conocieron?','{Facultad,Trabajo,Boliche}',10) returning id`)).rows[0];
+await como(host, false, `insert into trivia_claves (pregunta_id,evento_id,correcta) values ('${pre.id}','${ev2.id}',2)`);
+await espera_error(como(g1, true, `insert into trivia_claves (pregunta_id,evento_id,correcta) values ('${pre.id}','${ev2.id}',0)`), "un invitado no escribe claves");
+await espera_error(como(g1, true, `select responder_trivia('${pre.id}',2)`), "no se responde una pregunta preparada");
+await como(host, false, `update trivia_preguntas set estado='abierta' where id='${pre.id}'`);
+console.log("✓ abierta, el invitado no ve la respuesta:", (await como(g1, true, `select count(*)::int n from trivia_claves`)).rows[0].n === 0);
+const ptsDe = async (inv) => (await como(g1, true, `select puntos::int from ranking('${ev2.id}') where invitado_id='${inv}'`)).rows[0].puntos;
+const antesLola = await ptsDe(b2.id), antesPepe = await ptsDe(b1.id);
+await como(g2, true, `select responder_trivia('${pre.id}',2)`);
+await como(g1, true, `select responder_trivia('${pre.id}',0)`);
+await espera_error(como(g2, true, `select responder_trivia('${pre.id}',1)`), "responder dos veces");
+await espera_error(como(u3, true, `select responder_trivia('${pre.id}',3)`), "opción fuera de rango");
+await espera_error(como(g1, true, `insert into trivia_respuestas (pregunta_id,invitado_id,evento_id,opcion) values ('${pre.id}','${b3.id}','${ev2.id}',2)`), "insertar respuestas sin responder_trivia()");
+console.log("✓ abierta, no suma puntos todavía:", (await ptsDe(b2.id)) === antesLola);
+console.log("✓ invitado no ve el resumen abierto:", (await como(g1, true, `select count(*)::int n from trivia_resumen('${ev2.id}')`)).rows[0].n === 0);
+console.log("✓ organizador ve el resumen:", (await como(host, false, `select count(*)::int n from trivia_resumen('${ev2.id}')`)).rows[0].n === 2);
+await como(host, false, `update trivia_preguntas set estado='cerrada' where id='${pre.id}'`);
+console.log("✓ cerrada, el invitado ve la respuesta:", (await como(g1, true, `select correcta from trivia_claves`)).rows[0]?.correcta === 2);
+console.log("✓ acierto suma 10, error no suma:", (await ptsDe(b2.id)) === antesLola + 10, (await ptsDe(b1.id)) === antesPepe);
+await espera_error(como(u3, true, `select responder_trivia('${pre.id}',2)`), "no se responde una pregunta cerrada");
 console.log("FIN");

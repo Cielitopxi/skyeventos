@@ -5,10 +5,11 @@ import { fechaLarga, hora, rankingPorMesa } from "../../lib/formato";
 import { asegurarSesion, mensajeError, supabase } from "../../lib/supabase";
 import { ColaSubida, type TareaSubida } from "../../lib/subida";
 import { estiloTematica, tematica } from "../../lib/tematicas";
-import type { CasillaBingo, CategoriaVoto, EventoPublico, FilaRanking, FilaResultado, Foto, Invitado, Mensaje, Mision, Premio } from "../../lib/tipos";
+import type { CasillaBingo, CategoriaVoto, EventoPublico, FilaRanking, FilaResultado, PreguntaTrivia, Foto, Invitado, Mensaje, Mision, Premio } from "../../lib/tipos";
 import { useUrls } from "../../lib/urls";
 
-type Pestana = "fotos" | "misiones" | "bingo" | "votar" | "mensajes" | "ranking" | "yo";
+type Pestana = "fotos" | "juegos" | "mensajes" | "ranking" | "yo";
+type Juego = "misiones" | "bingo" | "trivia" | "votar";
 
 export default function EventoInvitado() {
   const { codigo = "" } = useParams();
@@ -138,10 +139,12 @@ function Unirse({ evento, codigo, error: errorInicial, onListo }: { evento: Even
 
 function App({ evento, invitado, setInvitado, premiosActivos }: { evento: EventoPublico; invitado: Invitado; setInvitado: (i: Invitado) => void; premiosActivos: boolean }) {
   const [pestana, setPestana] = useState<Pestana>("fotos");
+  const [juego, setJuego] = useState<Juego>("misiones");
   const [misionElegida, setMisionElegida] = useState<Mision | null>(null);
   const [casillaElegida, setCasillaElegida] = useState<CasillaBingo | null>(null);
   const [carton, setCarton] = useState<CasillaBingo[]>([]);
   const [categorias, setCategorias] = useState<CategoriaVoto[]>([]);
+  const [preguntas, setPreguntas] = useState<PreguntaTrivia[]>([]);
   const [tareas, setTareas] = useState<TareaSubida[]>([]);
   const cola = useMemo(() => new ColaSubida(evento.id, invitado.id), [evento.id, invitado.id]);
   const inputCamara = useRef<HTMLInputElement>(null);
@@ -179,6 +182,21 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
     };
   }, [evento.id]);
 
+  // Preguntas de trivia: aparecen a medida que el organizador las abre.
+  useEffect(() => {
+    const cargar = () =>
+      supabase.from("trivia_preguntas").select("*").eq("evento_id", evento.id).neq("estado", "preparada").order("orden").order("created_at")
+        .then(({ data }) => setPreguntas((data as PreguntaTrivia[]) ?? []));
+    cargar();
+    const canal = supabase
+      .channel(`inv-trivia-${evento.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "trivia_preguntas", filter: `evento_id=eq.${evento.id}` }, cargar)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(canal);
+    };
+  }, [evento.id]);
+
   function elegir(m: Mision | null) {
     setMisionElegida(m);
     setCasillaElegida(null);
@@ -203,11 +221,19 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
   const errores = tareas.filter((t) => t.estado === "error");
   const listas = tareas.filter((t) => t.estado === "listo").length;
 
+  // Los juegos comparten una pestaña; cada uno aparece cuando tiene contenido.
+  const juegos: { id: Juego; t: string; nuevo?: boolean }[] = [
+    { id: "misiones", t: "🎯 Misiones" },
+    ...(carton.length === 9 ? [{ id: "bingo" as Juego, t: "🎲 Bingo" }] : []),
+    ...(preguntas.length ? [{ id: "trivia" as Juego, t: "❓ Trivia", nuevo: preguntas.some((q) => q.estado === "abierta") }] : []),
+    ...(categorias.length ? [{ id: "votar" as Juego, t: "🗳️ Votar", nuevo: categorias.some((c) => c.estado === "abierta") }] : []),
+  ];
+  const juegoActual = juegos.some((j) => j.id === juego) ? juego : "misiones";
+  const hayNovedad = juegos.some((j) => j.nuevo);
+
   const pestanas: { id: Pestana; i: string; t: string }[] = [
     { id: "fotos", i: "🖼️", t: "Fotos" },
-    { id: "misiones", i: "🎯", t: "Misiones" },
-    ...(carton.length === 9 ? [{ id: "bingo" as Pestana, i: "🎲", t: "Bingo" }] : []),
-    ...(categorias.length ? [{ id: "votar" as Pestana, i: "🗳️", t: "Votar" }] : []),
+    { id: "juegos", i: "🎯", t: "Juegos" },
     { id: "mensajes", i: "💬", t: "Mensajes" },
     ...(premiosActivos ? [{ id: "ranking" as Pestana, i: "🏆", t: "Ranking" }] : []),
     { id: "yo", i: "🙂", t: "Yo" },
@@ -237,9 +263,28 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
 
       <div className="px-4 pt-4">
         {pestana === "fotos" && <Galeria evento={evento} invitado={invitado} />}
-        {pestana === "misiones" && <Misiones evento={evento} invitado={invitado} onCumplir={elegir} />}
-        {pestana === "bingo" && <Bingo evento={evento} invitado={invitado} carton={carton} onMarcar={elegirCasilla} />}
-        {pestana === "votar" && <Votacion evento={evento} invitado={invitado} categorias={categorias} />}
+        {pestana === "juegos" && (
+          <>
+            {juegos.length > 1 && (
+              <div className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1">
+                {juegos.map((j) => (
+                  <button
+                    key={j.id}
+                    onClick={() => setJuego(j.id)}
+                    className={`relative shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${juegoActual === j.id ? "bg-tema-acento text-white shadow" : "bg-tema-superficie text-tema-suave shadow-sm"}`}
+                  >
+                    {j.t}
+                    {j.nuevo && juegoActual !== j.id && <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-tema-fondo" />}
+                  </button>
+                ))}
+              </div>
+            )}
+            {juegoActual === "misiones" && <Misiones evento={evento} invitado={invitado} onCumplir={elegir} />}
+            {juegoActual === "bingo" && <Bingo evento={evento} invitado={invitado} carton={carton} onMarcar={elegirCasilla} />}
+            {juegoActual === "trivia" && <Trivia evento={evento} preguntas={preguntas} />}
+            {juegoActual === "votar" && <Votacion evento={evento} invitado={invitado} categorias={categorias} />}
+          </>
+        )}
         {pestana === "mensajes" && <Mensajes evento={evento} invitado={invitado} />}
         {pestana === "ranking" && <Ranking evento={evento} invitado={invitado} />}
         {pestana === "yo" && <Yo evento={evento} invitado={invitado} setInvitado={setInvitado} />}
@@ -257,8 +302,9 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-tema-suave/20 bg-tema-superficie/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
         <div className="mx-auto flex max-w-md">
           {pestanas.map((p) => (
-            <button key={p.id} onClick={() => setPestana(p.id)} className={`flex flex-1 flex-col items-center py-2 text-[11px] font-medium ${pestana === p.id ? "text-tema-acento" : "text-tema-suave"}`}>
+            <button key={p.id} onClick={() => setPestana(p.id)} className={`relative flex flex-1 flex-col items-center py-2 text-[11px] font-medium ${pestana === p.id ? "text-tema-acento" : "text-tema-suave"}`}>
               <span className="text-xl">{p.i}</span>
+              {p.id === "juegos" && hayNovedad && pestana !== "juegos" && <span className="absolute right-[30%] top-1.5 h-2.5 w-2.5 rounded-full bg-rose-500" />}
               {p.t}
             </button>
           ))}
@@ -495,6 +541,104 @@ function Bingo({ evento, invitado, carton, onMarcar }: { evento: EventoPublico; 
         })}
       </div>
       <p className="text-center text-xs text-tema-suave">5 pts por casilla · 15 por línea · 50 por cartón lleno</p>
+    </div>
+  );
+}
+
+const LETRAS = ["A", "B", "C", "D"];
+
+function Trivia({ evento, preguntas }: { evento: EventoPublico; preguntas: PreguntaTrivia[] }) {
+  const [mias, setMias] = useState<Record<string, number> | null>(null);
+  const [claves, setClaves] = useState<Record<string, number>>({});
+  const [enviando, setEnviando] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    supabase.from("trivia_respuestas").select("pregunta_id, opcion").eq("evento_id", evento.id)
+      .then(({ data }) => setMias(Object.fromEntries((data ?? []).map((r: { pregunta_id: string; opcion: number }) => [r.pregunta_id, r.opcion]))));
+  }, [evento.id]);
+
+  // Las respuestas correctas solo son legibles cuando la pregunta está cerrada.
+  const clave = preguntas.map((q) => q.id + q.estado).join();
+  useEffect(() => {
+    if (!preguntas.some((q) => q.estado === "cerrada")) return;
+    supabase.from("trivia_claves").select("pregunta_id, correcta").eq("evento_id", evento.id)
+      .then(({ data }) => setClaves(Object.fromEntries((data ?? []).map((k: { pregunta_id: string; correcta: number }) => [k.pregunta_id, k.correcta]))));
+  }, [clave]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function responder(q: PreguntaTrivia, opcion: number) {
+    setError("");
+    setEnviando(q.id);
+    const { error } = await supabase.rpc("responder_trivia", { p_pregunta: q.id, p_opcion: opcion });
+    setEnviando(null);
+    if (error) return setError(mensajeError(error));
+    setMias((m) => ({ ...m, [q.id]: opcion }));
+  }
+
+  if (!mias) return <Cargando />;
+  const cerradas = preguntas.filter((q) => q.estado === "cerrada");
+  const aciertos = cerradas.filter((q) => mias[q.id] !== undefined && mias[q.id] === claves[q.id]);
+  const puntos = aciertos.reduce((s, q) => s + q.puntos, 0);
+
+  return (
+    <div className="space-y-3">
+      <p className="text-center text-sm text-tema-suave">
+        {cerradas.length ? `Acertaste ${aciertos.length} de ${cerradas.length} · ${puntos} pts` : "Una sola respuesta por pregunta. ¿Cuánto conocés a los anfitriones?"}
+      </p>
+      {error && <Aviso tipo="error">{error}</Aviso>}
+      {[...preguntas].reverse().map((q) => {
+        const mia = mias[q.id];
+        const correcta = q.estado === "cerrada" ? claves[q.id] : undefined;
+        const respondida = mia !== undefined;
+        return (
+          <div key={q.id} className={`rounded-2xl bg-tema-superficie p-4 shadow-sm ${q.estado === "abierta" && !respondida ? "ring-2 ring-tema-acento/40" : ""}`}>
+            <div className="flex items-start gap-3">
+              <p className="min-w-0 flex-1 text-base font-semibold">{q.texto}</p>
+              <span className="chip shrink-0 bg-tema-acento/15 text-tema-acento">{q.puntos} pts</span>
+            </div>
+            <div className="mt-3 grid gap-2">
+              {q.opciones.map((o, i) => {
+                const esCorrecta = correcta === i;
+                const esMia = mia === i;
+                const estilo =
+                  correcta !== undefined
+                    ? esCorrecta
+                      ? "bg-emerald-500 text-white"
+                      : esMia
+                        ? "bg-rose-100 text-rose-700 line-through"
+                        : "bg-tema-fondo text-tema-suave"
+                    : esMia
+                      ? "bg-tema-acento text-white"
+                      : "bg-tema-fondo";
+                return (
+                  <button
+                    key={i}
+                    disabled={respondida || q.estado !== "abierta" || !evento.abierto || enviando === q.id}
+                    onClick={() => responder(q, i)}
+                    className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition enabled:active:scale-[.98] ${estilo}`}
+                  >
+                    <span className="w-4 text-xs font-bold opacity-70">{esCorrecta ? "✓" : LETRAS[i]}</span>
+                    {o}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-tema-suave">
+              {correcta !== undefined
+                ? !respondida
+                  ? "No respondiste esta pregunta"
+                  : mia === correcta
+                    ? `🎉 ¡Acertaste! +${q.puntos} pts`
+                    : "Esta vez no 😅"
+                : respondida
+                  ? "Respuesta enviada. La correcta se revela pronto 👀"
+                  : q.estado === "abierta"
+                    ? "Elegí una opción"
+                    : ""}
+            </p>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import QRCode from "qrcode";
 import { Cargando } from "../../components/ui";
 import { APP_URL, asegurarSesion, mensajeError, supabase } from "../../lib/supabase";
 import { estiloTematica, tematica } from "../../lib/tematicas";
-import type { Anuncio, CategoriaVoto, EventoPublico, FilaRanking, FilaResultado, Foto, Mensaje } from "../../lib/tipos";
+import type { Anuncio, CategoriaVoto, EventoPublico, FilaRanking, FilaResultado, Foto, Mensaje, PreguntaTrivia, ResumenTrivia } from "../../lib/tipos";
 import { rankingPorMesa } from "../../lib/formato";
 import { urlsFirmadas } from "../../lib/urls";
 
@@ -13,9 +13,10 @@ type Escena =
   | { tipo: "muro"; fotos: Foto[] }
   | { tipo: "mensajes"; mensajes: Mensaje[] }
   | { tipo: "ranking" }
-  | { tipo: "premio"; titulo: string; filas: FilaResultado[] };
+  | { tipo: "premio"; titulo: string; filas: FilaResultado[] }
+  | { tipo: "trivia"; pregunta: PreguntaTrivia; correcta: number; conteo: number[] };
 
-const DUR = { foto: 7000, muro: 12000, mensajes: 12000, ranking: 12000, premio: 16000 };
+const DUR = { foto: 7000, muro: 12000, mensajes: 12000, ranking: 12000, premio: 16000, trivia: 14000 };
 
 /** Pantalla en vivo para TV o proyector: /pantalla/CODIGO?k=TOKEN */
 export default function Pantalla() {
@@ -37,6 +38,7 @@ export default function Pantalla() {
   const nuevas = useRef<Foto[]>([]);
   const nuevosMensajes = useRef<Mensaje[]>([]);
   const nuevosPremios = useRef<{ titulo: string; filas: FilaResultado[] }[]>([]);
+  const nuevasTrivias = useRef<{ pregunta: PreguntaTrivia; correcta: number; conteo: number[] }[]>([]);
   const indice = useRef(0);
   const vuelta = useRef(0);
   const estado = useRef({ fotos, mensajes, ranking });
@@ -111,6 +113,20 @@ export default function Pantalla() {
         const filas = ((data as FilaResultado[]) ?? []).filter((r) => r.categoria_id === c.id);
         if (filas.length) nuevosPremios.current.push({ titulo: c.titulo, filas });
       })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "trivia_preguntas", filter: `evento_id=eq.${id}` }, async (p) => {
+        // Al cerrar una pregunta se revela la respuesta con cuántos eligieron cada opción.
+        const q = p.new as PreguntaTrivia;
+        if (q.estado !== "cerrada") return;
+        const [k, r] = await Promise.all([
+          supabase.from("trivia_claves").select("correcta").eq("pregunta_id", q.id).maybeSingle(),
+          supabase.rpc("trivia_resumen", { p_evento: id }),
+        ]);
+        if (!k.data) return;
+        const filas = ((r.data as ResumenTrivia[]) ?? []).filter((x) => x.pregunta_id === q.id);
+        const conteo = q.opciones.map((_, i) => Number(filas.find((x) => x.opcion === i)?.respuestas ?? 0));
+        nuevasTrivias.current.push({ pregunta: q, correcta: k.data.correcta, conteo });
+        cargarRanking();
+      })
       .subscribe();
     const t = setInterval(cargarRanking, 30_000);
     return () => {
@@ -140,7 +156,9 @@ export default function Pantalla() {
       const { fotos, mensajes, ranking } = estado.current;
       let e: Escena | null = null;
       vuelta.current++;
-      if (nuevosPremios.current.length) {
+      if (nuevasTrivias.current.length) {
+        e = { tipo: "trivia", ...nuevasTrivias.current.shift()! };
+      } else if (nuevosPremios.current.length) {
         e = { tipo: "premio", ...nuevosPremios.current.shift()! };
       } else if (nuevosMensajes.current.length) {
         e = { tipo: "mensajes", mensajes: nuevosMensajes.current.splice(0, 3) };
@@ -274,6 +292,40 @@ export default function Pantalla() {
             </div>
           </div>
         )}
+
+        {escena?.tipo === "trivia" && (() => {
+          const total = escena.conteo.reduce((a, b) => a + b, 0);
+          const aciertos = escena.conteo[escena.correcta] ?? 0;
+          return (
+            <div className="entrar flex h-full flex-col items-center justify-center px-[6vw]">
+              <p className="text-[1.6vw] font-semibold uppercase tracking-[.3em] text-tema-suave">❓ Trivia</p>
+              <p className="mt-[1.5vh] max-w-[60vw] text-center text-[3.4vw] leading-tight" style={{ fontFamily: "var(--t-font-titulo)" }}>{escena.pregunta.texto}</p>
+              <div className="mt-[5vh] w-[52vw] space-y-[1.6vh]">
+                {escena.pregunta.opciones.map((o, i) => {
+                  const ok = i === escena.correcta;
+                  const pct = total ? (escena.conteo[i] / total) * 100 : 0;
+                  return (
+                    <div
+                      key={i}
+                      className={`subir relative overflow-hidden rounded-2xl px-[2vw] py-[1.6vh] text-[2vw] shadow ${ok ? "bg-emerald-500 text-white" : "bg-tema-superficie/90"}`}
+                      style={{ animationDelay: `${(ok ? 1200 : 0) + i * 150}ms` }}
+                    >
+                      <span className={`absolute inset-y-0 left-0 ${ok ? "bg-white/20" : "bg-tema-acento/15"}`} style={{ width: `${pct}%` }} />
+                      <span className="relative flex items-center gap-[1.5vw]">
+                        <span className="font-bold">{ok ? "✓" : ["A", "B", "C", "D"][i]}</span>
+                        <span className="flex-1 font-semibold">{o}</span>
+                        <span className="text-[1.5vw] opacity-80">{escena.conteo[i]}</span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="subir mt-[4vh] text-[1.8vw] text-tema-suave" style={{ animationDelay: "1800ms" }}>
+                {total ? `${aciertos} de ${total} acertaron · +${escena.pregunta.puntos} pts para cada uno` : "Nadie respondió esta pregunta"}
+              </p>
+            </div>
+          );
+        })()}
 
         {escena?.tipo === "premio" && (() => {
           const max = Number(escena.filas[0].votos);

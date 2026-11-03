@@ -172,3 +172,12 @@ const BINGO_SUGERIDO: Record<string, string[]> = {
 export const bingoSugerido = (tipo: string) => [...new Set([...(BINGO_SUGERIDO[tipo] ?? []), ...BINGO_COMUNES])].slice(0, 9);
 
 export const CATEGORIAS_SUGERIDAS = ["Mejor look", "Rey o reina de la pista", "Alma de la fiesta", "La mejor sonrisa", "El brindis más emotivo"];
+
+// Disparadores para la trivia: el organizador completa las opciones con su historia.
+export const PREGUNTAS_SUGERIDAS: Record<string, string[]> = {
+  boda: ["¿Dónde se conocieron?", "¿Quién dio el primer paso?", "¿Cuántos años llevan juntos?", "¿Dónde fue la primera cita?", "¿Quién cocina mejor?"],
+  quince: ["¿Cuál es su comida favorita?", "¿Qué quiere estudiar?", "¿Cuál es su serie favorita?", "¿Cómo se llama su mascota?"],
+  infantil: ["¿Cuál es su dibujito favorito?", "¿Qué quiere ser cuando sea grande?", "¿Cuál es su comida favorita?"],
+  corporativo: ["¿En qué año se fundó la empresa?", "¿Cuántas personas trabajan hoy?", "¿Cuál fue el primer producto?"],
+};
+export const preguntasSugeridas = (tipo: string) => PREGUNTAS_SUGERIDAS[tipo] ?? ["¿Dónde nació la persona homenajeada?", "¿Cuál es su comida favorita?", "¿Cuál es su canción favorita?"];
