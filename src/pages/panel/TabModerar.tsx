@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Aviso } from "../../components/ui";
+import { IconoDuo } from "../../components/Iconos";
 import { hora } from "../../lib/formato";
 import { mensajeError, supabase } from "../../lib/supabase";
 import type { Foto, Invitado, Mensaje, Mision } from "../../lib/tipos";
@@ -106,12 +107,12 @@ export default function TabModerar({ evento }: PropsTab) {
                 <div className="space-y-1.5 p-2 text-xs">
                   <p className="truncate font-semibold">{invitados[f.invitado_id]?.nombre ?? "—"} <span className="font-normal text-slate-400">{hora(f.created_at)}</span></p>
                   {mis && (
-                    <p className="truncate text-sky-700">🎯 {mis.titulo} {f.mision_estado === "pendiente" ? "· a validar" : f.mision_estado === "rechazada" ? "· rechazada" : "✓"}</p>
+                    <p className="flex items-center gap-1 truncate text-sky-700"><IconoDuo nombre="mision" className="h-3.5 w-3.5 shrink-0" /> {mis.titulo} {f.mision_estado === "pendiente" ? "· a validar" : f.mision_estado === "rechazada" ? "· rechazada" : <IconoDuo nombre="check" className="h-3.5 w-3.5" trazo={2.4} />}</p>
                   )}
                   <div className="flex flex-wrap gap-1">
                     {f.estado !== "aprobada" && <button className="rounded bg-emerald-600 px-2 py-1 font-semibold text-white" onClick={() => actFoto(f, { estado: "aprobada" })}>Aprobar</button>}
                     {f.estado !== "oculta" && <button className="rounded bg-slate-200 px-2 py-1" onClick={() => actFoto(f, { estado: "oculta" })}>Ocultar</button>}
-                    <button className={`rounded px-2 py-1 ${f.destacada ? "bg-amber-400" : "bg-slate-100"}`} onClick={() => actFoto(f, { destacada: !f.destacada })} title="Destacar en pantalla y fotolibro">★</button>
+                    <button className={`rounded px-2 py-1 ${f.destacada ? "bg-amber-400" : "bg-slate-100"}`} onClick={() => actFoto(f, { destacada: !f.destacada })} title="Destacar en pantalla y fotolibro"><IconoDuo nombre="chispa" className="h-4 w-4" /></button>
                     {f.mision_estado === "pendiente" && (
                       <>
                         <button className="rounded bg-sky-600 px-2 py-1 text-white" onClick={() => actFoto(f, { mision_estado: "aprobada" })}>Misión ✓</button>

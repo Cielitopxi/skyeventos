@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Aviso } from "../../components/ui";
+import { IconoDuo, Medalla } from "../../components/Iconos";
 import { mensajeError, supabase } from "../../lib/supabase";
 import { CATEGORIAS_SUGERIDAS } from "../../lib/tematicas";
 import type { CategoriaVoto, EstadoVotacion, FilaResultado } from "../../lib/tipos";
@@ -37,7 +38,7 @@ export default function TabVotacion({ evento, plan }: PropsTab) {
   if (plan && !plan.misiones) {
     return (
       <div className="tarjeta text-center">
-        <p className="text-3xl">🗳️</p>
+        <IconoDuo nombre="votar" className="mx-auto h-10 w-10 text-sky-500" />
         <p className="mt-2 font-semibold">Los premios por votación están incluidos desde el plan Fiesta.</p>
       </div>
     );
@@ -62,7 +63,7 @@ export default function TabVotacion({ evento, plan }: PropsTab) {
     const r = await supabase.from("votacion_categorias").update({ estado }).eq("id", c.id);
     if (r.error) return setError(mensajeError(r.error));
     if (estado === "abierta") {
-      await supabase.from("anuncios").insert({ evento_id: evento.id, texto: `🗳️ ¡Ya podés votar! ${c.titulo}` });
+      await supabase.from("anuncios").insert({ evento_id: evento.id, texto: `¡Ya podés votar! ${c.titulo}` });
     }
     cargar();
   }
@@ -107,7 +108,7 @@ export default function TabVotacion({ evento, plan }: PropsTab) {
                   <>
                     <button className="btn-secundario btn-chico" disabled={!abierto} onClick={() => cambiarEstado(c, "abierta")}>Reabrir</button>
                     <button className="btn-primario btn-chico" disabled={!total} onClick={() => cambiarEstado(c, "revelada")} title="Muestra al ganador en la pantalla y a los invitados">
-                      🏆 Revelar ganador
+                      <IconoDuo nombre="premio" className="mr-1 inline h-4 w-4 align-[-3px]" />Revelar ganador
                     </button>
                   </>
                 )}
@@ -118,7 +119,7 @@ export default function TabVotacion({ evento, plan }: PropsTab) {
                 <ol className="space-y-1.5">
                   {filas.slice(0, 5).map((r, i) => (
                     <li key={r.candidato_id} className="flex items-center gap-3 text-sm">
-                      <span className="w-5 text-center">{["🥇", "🥈", "🥉"][i] ?? i + 1}</span>
+                      <span className="flex w-6 justify-center"><Medalla puesto={i + 1} className="h-5 w-5" /></span>
                       <span className="w-40 truncate">
                         {r.nombre}
                         {r.mesa && <span className="text-slate-400"> · mesa {r.mesa}</span>}

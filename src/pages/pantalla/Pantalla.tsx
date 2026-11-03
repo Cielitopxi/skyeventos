@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import QRCode from "qrcode";
 import { Cargando } from "../../components/ui";
+import { IconoDuo, Medalla } from "../../components/Iconos";
+import { fuentePortada } from "../../components/Portada";
 import { APP_URL, asegurarSesion, mensajeError, supabase } from "../../lib/supabase";
 import { estiloTematica, tematica } from "../../lib/tematicas";
 import type { Anuncio, CategoriaVoto, EventoPublico, FilaRanking, FilaResultado, Foto, Mensaje, PreguntaTrivia, ResumenTrivia } from "../../lib/tipos";
@@ -108,7 +110,7 @@ export default function Pantalla() {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "votacion_categorias", filter: `evento_id=eq.${id}` }, async (p) => {
         // Al revelar una categoría, el ganador pasa al frente de la programación.
         const c = p.new as CategoriaVoto;
-        if (c.estado !== "revelada") return;
+        if (c.estado !== "revelada" || evento.personalizacion.juegos?.votacion === false) return;
         const { data } = await supabase.rpc("resultados_votacion", { p_evento: id });
         const filas = ((data as FilaResultado[]) ?? []).filter((r) => r.categoria_id === c.id);
         if (filas.length) nuevosPremios.current.push({ titulo: c.titulo, filas });
@@ -116,7 +118,7 @@ export default function Pantalla() {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "trivia_preguntas", filter: `evento_id=eq.${id}` }, async (p) => {
         // Al cerrar una pregunta se revela la respuesta con cuántos eligieron cada opción.
         const q = p.new as PreguntaTrivia;
-        if (q.estado !== "cerrada") return;
+        if (q.estado !== "cerrada" || evento.personalizacion.juegos?.trivia === false) return;
         const [k, r] = await Promise.all([
           supabase.from("trivia_claves").select("correcta").eq("pregunta_id", q.id).maybeSingle(),
           supabase.rpc("trivia_resumen", { p_evento: id }),
@@ -210,6 +212,7 @@ export default function Pantalla() {
 
   const t = tematica(evento.tematica);
   const p = evento.personalizacion;
+  const titulo = p.portada ? fuentePortada(p.portada.fuente) : "var(--t-font-titulo)";
 
   return (
     <div
@@ -220,8 +223,10 @@ export default function Pantalla() {
       <div className="relative flex-1">
         {!escena && (
           <div className="flex h-full flex-col items-center justify-center text-center">
-            <p className="text-[7vw] leading-none text-tema-acento" style={{ fontFamily: "var(--t-font-titulo)" }}>{p.titulo || evento.nombre}</p>
-            <p className="mt-6 text-[2vw] text-tema-suave">Escaneá el QR y compartí tus fotos</p>
+            <p className="text-[1.3vw] font-medium uppercase tracking-[.5em] text-tema-suave">Bienvenidos</p>
+            <p className="mt-[2vh] text-[7vw] leading-[.95] text-tema-acento" style={{ fontFamily: titulo }}>{p.titulo || evento.nombre}</p>
+            <span className="mt-[4vh] h-px w-[8vw] bg-tema-acento/50" />
+            <p className="mt-[4vh] text-[1.8vw] font-light tracking-wide text-tema-suave">Escaneá el QR y compartí tus fotos</p>
           </div>
         )}
 
@@ -233,10 +238,13 @@ export default function Pantalla() {
                 <img src={urls[escena.foto.storage_path]} alt="" className="relative max-h-full max-w-full rounded-2xl shadow-2xl" />
               </>
             )}
-            <div className="absolute bottom-[4vh] left-[3vw] rounded-2xl bg-black/55 px-6 py-3 text-white backdrop-blur">
-              {escena.nueva && <p className="text-sm font-bold uppercase tracking-widest text-amber-300">¡Nueva!</p>}
-              <p className="text-[2.2vw] font-semibold">📷 {nombres[escena.foto.invitado_id] ?? "Invitado"}</p>
-              {escena.foto.caption && <p className="text-[1.4vw]">{escena.foto.caption}</p>}
+            <div className="absolute bottom-[4vh] left-[3vw] max-w-[50vw] rounded-2xl border border-white/10 bg-black/50 px-[1.6vw] py-[1.4vh] text-white shadow-2xl backdrop-blur-md">
+              {escena.nueva && <p className="mb-1 text-[.85vw] font-semibold uppercase tracking-[.35em] text-amber-300">Recién llegada</p>}
+              <p className="flex items-center gap-[.7vw] text-[2vw] font-medium leading-tight tracking-tight">
+                <IconoDuo nombre="camara" className="h-[2vw] w-[2vw] shrink-0 opacity-80" />
+                {nombres[escena.foto.invitado_id] ?? "Invitado"}
+              </p>
+              {escena.foto.caption && <p className="mt-1 text-[1.4vw] italic leading-snug text-white/85" style={{ fontFamily: titulo }}>{escena.foto.caption}</p>}
             </div>
           </div>
         )}
@@ -254,9 +262,10 @@ export default function Pantalla() {
         {escena?.tipo === "mensajes" && (
           <div className="flex h-full flex-col items-center justify-center gap-[3vh] px-[6vw]">
             {escena.mensajes.map((m, i) => (
-              <div key={m.id} className="subir w-full max-w-[70vw] rounded-3xl bg-tema-superficie/90 px-[3vw] py-[3vh] shadow-xl" style={{ animationDelay: `${i * 300}ms` }}>
-                <p className="text-[2.6vw] leading-snug">“{m.texto}”</p>
-                <p className="mt-2 text-[1.5vw] text-tema-acento">— {nombres[m.invitado_id] ?? "Invitado"}</p>
+              <div key={m.id} className="subir relative w-full max-w-[70vw] rounded-3xl bg-tema-superficie/90 px-[3.5vw] py-[3.2vh] shadow-xl" style={{ animationDelay: `${i * 300}ms` }}>
+                <span className="absolute -top-[2.2vw] left-[1.6vw] text-[6vw] leading-none text-tema-acento/40" style={{ fontFamily: titulo }}>“</span>
+                <p className="text-[2.5vw] leading-snug" style={{ fontFamily: titulo }}>{m.texto}</p>
+                <p className="mt-[1.2vh] text-[1.15vw] font-semibold uppercase tracking-[.3em] text-tema-acento">{nombres[m.invitado_id] ?? "Invitado"}</p>
               </div>
             ))}
           </div>
@@ -264,14 +273,17 @@ export default function Pantalla() {
 
         {escena?.tipo === "ranking" && (
           <div className="entrar flex h-full flex-col items-center justify-center">
-            <p className="mb-[4vh] text-[4vw] text-tema-acento" style={{ fontFamily: "var(--t-font-titulo)" }}>🏆 Ranking</p>
+            <p className="text-[1.3vw] font-semibold uppercase tracking-[.4em] text-tema-suave">Tabla de posiciones</p>
+            <p className="mb-[4vh] mt-[.5vh] flex items-center gap-[1.2vw] text-[4.4vw] leading-none text-tema-acento" style={{ fontFamily: titulo }}>
+              <IconoDuo nombre="ranking" className="h-[3.6vw] w-[3.6vw]" trazo={1.3} /> Ranking
+            </p>
             <div className="flex items-start gap-[3vw]">
             <ol className={`${rankingPorMesa(ranking).length > 1 ? "w-[34vw]" : "w-[50vw]"} space-y-[1.5vh]`}>
               {ranking.slice(0, 5).map((r, i) => (
                 <li key={r.invitado_id} className="subir flex items-center gap-[2vw] rounded-2xl bg-tema-superficie/90 px-[2vw] py-[1.5vh] text-[2.2vw] shadow" style={{ animationDelay: `${i * 150}ms` }}>
-                  <span className="w-[3vw] text-center">{["🥇", "🥈", "🥉"][i] ?? i + 1}</span>
-                  <span className="flex-1 font-semibold">{r.nombre}</span>
-                  <span className="font-bold text-tema-acento">{r.puntos}</span>
+                  <span className="flex w-[3vw] justify-center"><Medalla puesto={i + 1} className="h-[2.8vw] w-[2.8vw]" /></span>
+                  <span className="flex-1 truncate font-medium tracking-tight">{r.nombre}</span>
+                  <span className="font-bold tabular-nums text-tema-acento">{r.puntos}<span className="ml-1 text-[1vw] font-medium text-tema-suave">pts</span></span>
                 </li>
               ))}
             </ol>
@@ -281,9 +293,9 @@ export default function Pantalla() {
                 <ol className="space-y-[1.2vh]">
                   {rankingPorMesa(ranking).slice(0, 5).map((m, i) => (
                     <li key={m.mesa} className="subir flex items-center gap-[1.5vw] rounded-2xl border border-tema-acento/30 px-[1.5vw] py-[1.2vh] text-[1.8vw]" style={{ animationDelay: `${(i + 5) * 150}ms` }}>
-                      <span className="w-[2.5vw] text-center">{["🥇", "🥈", "🥉"][i] ?? i + 1}</span>
-                      <span className="flex-1 font-semibold">Mesa {m.mesa}</span>
-                      <span className="font-bold text-tema-acento">{m.puntos}</span>
+                      <span className="flex w-[2.5vw] justify-center"><Medalla puesto={i + 1} className="h-[2.2vw] w-[2.2vw]" /></span>
+                      <span className="flex-1 font-medium">Mesa {m.mesa}</span>
+                      <span className="font-bold tabular-nums text-tema-acento">{m.puntos}</span>
                     </li>
                   ))}
                 </ol>
@@ -298,8 +310,10 @@ export default function Pantalla() {
           const aciertos = escena.conteo[escena.correcta] ?? 0;
           return (
             <div className="entrar flex h-full flex-col items-center justify-center px-[6vw]">
-              <p className="text-[1.6vw] font-semibold uppercase tracking-[.3em] text-tema-suave">❓ Trivia</p>
-              <p className="mt-[1.5vh] max-w-[60vw] text-center text-[3.4vw] leading-tight" style={{ fontFamily: "var(--t-font-titulo)" }}>{escena.pregunta.texto}</p>
+              <p className="flex items-center gap-[.8vw] text-[1.4vw] font-semibold uppercase tracking-[.4em] text-tema-suave">
+                <IconoDuo nombre="trivia" className="h-[2vw] w-[2vw] text-tema-acento" /> Trivia
+              </p>
+              <p className="mt-[1.5vh] max-w-[60vw] text-center text-[3.4vw] leading-tight" style={{ fontFamily: titulo }}>{escena.pregunta.texto}</p>
               <div className="mt-[5vh] w-[52vw] space-y-[1.6vh]">
                 {escena.pregunta.opciones.map((o, i) => {
                   const ok = i === escena.correcta;
@@ -312,9 +326,9 @@ export default function Pantalla() {
                     >
                       <span className={`absolute inset-y-0 left-0 ${ok ? "bg-white/20" : "bg-tema-acento/15"}`} style={{ width: `${pct}%` }} />
                       <span className="relative flex items-center gap-[1.5vw]">
-                        <span className="font-bold">{ok ? "✓" : ["A", "B", "C", "D"][i]}</span>
+                        <span className="flex w-[2vw] justify-center font-bold">{ok ? <IconoDuo nombre="check" className="h-[2vw] w-[2vw]" trazo={2.4} /> : ["A", "B", "C", "D"][i]}</span>
                         <span className="flex-1 font-semibold">{o}</span>
-                        <span className="text-[1.5vw] opacity-80">{escena.conteo[i]}</span>
+                        <span className="text-[1.5vw] tabular-nums opacity-80">{escena.conteo[i]}</span>
                       </span>
                     </div>
                   );
@@ -334,9 +348,11 @@ export default function Pantalla() {
           return (
             <div className="entrar flex h-full flex-col items-center justify-center px-[6vw] text-center">
               <p className="text-[1.6vw] font-semibold uppercase tracking-[.3em] text-tema-suave">Premio a</p>
-              <p className="mt-[1vh] text-[4.5vw] leading-tight text-tema-acento" style={{ fontFamily: "var(--t-font-titulo)" }}>{escena.titulo}</p>
-              <p className="subir mt-[5vh] text-[8vw] leading-none" style={{ animationDelay: "900ms" }}>🏆</p>
-              <p className="subir mt-[3vh] text-[5.5vw] font-bold leading-tight" style={{ animationDelay: "1500ms", fontFamily: "var(--t-font-titulo)" }}>
+              <p className="mt-[1vh] text-[4.5vw] leading-tight text-tema-acento" style={{ fontFamily: titulo }}>{escena.titulo}</p>
+              <span className="subir mt-[5vh] flex h-[11vw] w-[11vw] items-center justify-center rounded-full border border-tema-acento/30 bg-tema-acento/10 text-tema-acento shadow-[0_0_80px_rgb(var(--t-acento)/.35)]" style={{ animationDelay: "900ms" }}>
+                <IconoDuo nombre="premio" className="h-[6vw] w-[6vw]" trazo={1.2} />
+              </span>
+              <p className="subir mt-[3vh] text-[5.5vw] leading-tight" style={{ animationDelay: "1500ms", fontFamily: titulo }}>
                 {ganadores.map((g) => g.nombre).join(" y ")}
               </p>
               <p className="subir mt-[1vh] text-[1.8vw] text-tema-suave" style={{ animationDelay: "1800ms" }}>
@@ -355,20 +371,27 @@ export default function Pantalla() {
 
         {anuncio && (
           <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/70 p-[6vw]">
-            <p className="entrar text-center text-[5vw] font-bold leading-tight text-white" style={{ fontFamily: "var(--t-font-titulo)" }}>{anuncio.texto}</p>
+            <div className="entrar text-center text-white">
+              <IconoDuo nombre="rayo" className="mx-auto h-[5vw] w-[5vw] text-amber-300" trazo={1.3} />
+              <p className="mt-[3vh] text-[4.6vw] leading-tight" style={{ fontFamily: titulo }}>{anuncio.texto.replace(/^⚡\s*/, "")}</p>
+            </div>
           </div>
         )}
       </div>
 
       <aside className="flex w-[17vw] min-w-[180px] flex-col items-center justify-center gap-[2vh] bg-tema-superficie/85 p-[1.5vw] text-center backdrop-blur">
-        <p className="text-[2vw] leading-tight text-tema-acento" style={{ fontFamily: "var(--t-font-titulo)" }}>{p.titulo || evento.nombre}</p>
-        <p className="text-[1.1vw] font-semibold">¡Subí tus fotos!</p>
+        <p className="text-[2.1vw] leading-[1.05] text-tema-acento" style={{ fontFamily: titulo }}>{p.titulo || evento.nombre}</p>
+        <span className="h-px w-[4vw] bg-tema-acento/40" />
+        <p className="flex items-center gap-[.5vw] text-[1vw] font-semibold uppercase tracking-[.2em]"><IconoDuo nombre="camara" className="h-[1.3vw] w-[1.3vw] text-tema-acento" /> Subí tus fotos</p>
         {qr && <img src={qr} alt="QR" className="w-full rounded-xl bg-white p-2" />}
         <div>
           <p className="text-[.9vw] text-tema-suave">{APP_URL.replace(/^https?:\/\//, "")}/e</p>
           <p className="font-mono text-[2vw] font-bold tracking-[.2em]">{codigo.toUpperCase()}</p>
         </div>
-        <p className="text-[.9vw] text-tema-suave">{fotos.length} fotos · {mensajes.length} mensajes</p>
+        <div className="flex gap-[1.5vw] text-tema-suave">
+          <p><span className="block text-[1.8vw] font-semibold tabular-nums text-tema-texto">{fotos.length}</span><span className="text-[.75vw] uppercase tracking-[.2em]">fotos</span></p>
+          <p><span className="block text-[1.8vw] font-semibold tabular-nums text-tema-texto">{mensajes.length}</span><span className="text-[.75vw] uppercase tracking-[.2em]">mensajes</span></p>
+        </div>
         {cursor && <p className="text-[.8vw] text-tema-suave">Doble clic: pantalla completa</p>}
       </aside>
     </div>

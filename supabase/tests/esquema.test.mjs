@@ -9,7 +9,7 @@ const migraciones = process.argv.slice(2).map((f) => fs.readFileSync(f, "utf8"))
 await db.exec(`
 create role anon; create role authenticated; create role service_role;
 create schema auth; create schema storage;
-create table auth.users (id uuid primary key, email text, is_anonymous boolean default false);
+create table auth.users (id uuid primary key, email text, is_anonymous boolean default false, created_at timestamptz default now(), last_sign_in_at timestamptz);
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('t.uid', true), '')::uuid $$;
 create function auth.role() returns text language sql stable as $$ select coalesce(nullif(current_setting('t.role', true), ''), 'authenticated') $$;
 create function auth.jwt() returns jsonb language sql stable as $$ select jsonb_build_object('is_anonymous', coalesce(nullif(current_setting('t.anon', true), ''), 'false')::boolean) $$;
@@ -201,4 +201,43 @@ await como(host, false, `update trivia_preguntas set estado='cerrada' where id='
 console.log("✓ cerrada, el invitado ve la respuesta:", (await como(g1, true, `select correcta from trivia_claves`)).rows[0]?.correcta === 2);
 console.log("✓ acierto suma 10, error no suma:", (await ptsDe(b2.id)) === antesLola + 10, (await ptsDe(b1.id)) === antesPepe);
 await espera_error(como(u3, true, `select responder_trivia('${pre.id}',2)`), "no se responde una pregunta cerrada");
+
+// Juegos activables: el anfitrión apaga la trivia y el bingo
+await como(host, false, `update trivia_preguntas set estado='abierta' where id='${pre.id}'`);
+await como(host, false, `update eventos set personalizacion = personalizacion || '{"juegos":{"trivia":false,"bingo":false}}' where id='${ev2.id}'`);
+await espera_error(como(u3, true, `select responder_trivia('${pre.id}',2)`), "trivia desactivada");
+console.log("✓ bingo desactivado anula la casilla:", (await como(g1, true, fotoB(4))).rows[0].bingo_id === null);
+console.log("✓ un plan sin portada personalizada pierde la portada:", (await como(host, false, `update eventos set personalizacion = personalizacion || '{"portada_path":"x.jpg"}' where id='${ev2.id}' returning personalizacion ? 'portada_path' as tiene`)).rows[0].tiene === false);
+
+// Cápsula del tiempo (Premium)
+const ev3 = (await como(host, false, `select * from crear_evento('Capsula','boda','elegante','premium','2026-01-10')`)).rows[0];
+await como(host, false, `select activar_evento('${ev3.id}', 'pago-789')`, "service_role");
+const c1 = (await como(g1, true, `select * from unirse_evento('${ev3.codigo}','Pepe')`)).rows[0];
+console.log("✓ Premium conserva la portada:", (await como(host, false, `update eventos set personalizacion = '{"portada_path":"x.jpg","portada":{"estilo":"completa"}}' where id='${ev3.id}' returning personalizacion ? 'portada' as tiene`)).rows[0].tiene === true);
+await como(g1, true, `insert into capsula_items (evento_id,invitado_id,texto) values ('${ev3.id}','${c1.id}','¡Feliz primer aniversario!')`);
+await espera_error(como(g1, true, `insert into capsula_items (evento_id,invitado_id,texto) values ('${ev2.id}','${b1.id}','hola')`), "cápsula en un plan sin cápsula");
+await espera_error(como(g1, true, `insert into capsula_items (evento_id,invitado_id,storage_path) values ('${ev3.id}','${c1.id}','otro/lado.jpg')`), "foto de cápsula fuera de su carpeta");
+console.log("✓ el invitado ve lo que dejó:", (await como(g1, true, `select count(*)::int n from capsula_items`)).rows[0].n === 1);
+await db.exec(`update eventos set fecha = current_date + 30 where id='${ev3.id}'`);
+console.log("✓ sellada, el anfitrión no la ve:", (await como(host, false, `select count(*)::int n from capsula_items`)).rows[0].n === 0);
+console.log("✓ pero sabe cuántos mensajes hay:", (await como(host, false, `select items::int, abierta from capsula_estado('${ev3.id}')`)).rows[0]);
+await db.exec(`update eventos set fecha = current_date - interval '11 months' - interval '1 day' where id='${ev3.id}'`);
+console.log("✓ a los 11 meses se abre:", (await como(host, false, `select count(*)::int n from capsula_items`)).rows[0].n === 1);
+console.log("✓ se encola un aviso:", (await db.query(`select encolar_avisos_capsula() n`)).rows[0].n === 1, (await db.query(`select encolar_avisos_capsula() n`)).rows[0].n === 0);
+
+// Administración
+const adm = "55555555-5555-5555-5555-555555555555";
+await db.exec(`insert into auth.users (id,email) values ('${adm}','admin@sky.com'); insert into admins values ('${adm}')`);
+await espera_error(como(host, false, `select * from admin_resumen()`), "un anfitrión no ve el resumen de admin");
+console.log("✓ admin ve el resumen:", (await como(adm, false, `select eventos_total::int, avisos_pendientes::int from admin_resumen()`)).rows[0]);
+console.log("✓ admin ve todos los eventos:", (await como(adm, false, `select count(*)::int n from admin_eventos()`)).rows[0].n === 3);
+await como(adm, false, `select admin_set_admin('a@a.com', true)`);
+console.log("✓ admin da acceso por mail:", (await como(host, false, `select count(*)::int n from admin_usuarios()`)).rows[0].n >= 2);
+await como(adm, false, `select admin_set_admin('a@a.com', false)`);
+await espera_error(como(adm, false, `select admin_set_admin('admin@sky.com', false)`), "un admin no se quita a sí mismo");
+await como(adm, false, `select admin_estado_evento('${ev3.id}','archivado')`);
+console.log("✓ admin archiva un evento:", (await db.query(`select estado from eventos where id='${ev3.id}'`)).rows[0].estado === "archivado");
+await como(adm, false, `update planes set precio_ars = 159000 where id='premium'`);
+await como(host, false, `update planes set precio_ars = 1 where id='premium'`);
+console.log("✓ solo el admin cambia precios:", (await db.query(`select precio_ars::int p from planes where id='premium'`)).rows[0].p === 159000);
 console.log("FIN");

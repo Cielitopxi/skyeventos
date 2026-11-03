@@ -10,6 +10,7 @@ import TabModerar from "./TabModerar";
 import TabMisiones from "./TabMisiones";
 import TabVotacion from "./TabVotacion";
 import TabTrivia from "./TabTrivia";
+import TabCapsula from "./TabCapsula";
 import TabInvitados from "./TabInvitados";
 import TabQr from "./TabQr";
 import TabFotolibro from "./TabFotolibro";
@@ -27,6 +28,7 @@ const TABS = [
   { id: "misiones", t: "Misiones y premios" },
   { id: "trivia", t: "Trivia" },
   { id: "votacion", t: "Votación" },
+  { id: "capsula", t: "Cápsula" },
   { id: "invitados", t: "Invitados" },
   { id: "qr", t: "QR para imprimir" },
   { id: "libro", t: "Fotolibro" },
@@ -59,6 +61,10 @@ export default function EventoPanel() {
   if (!evento) return <Cargando />;
   const est = ESTADOS[evento.estado];
   const props: PropsTab = { evento, plan, recargar };
+  // Las pestañas de juegos apagados se esconden; la cápsula solo aparece en planes que la incluyen.
+  const juegos = evento.personalizacion.juegos ?? {};
+  const visible = (id: string) =>
+    id === "trivia" ? juegos.trivia !== false : id === "votacion" ? juegos.votacion !== false : id === "capsula" ? !!plan?.capsula : true;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -71,7 +77,7 @@ export default function EventoPanel() {
             <span className="rounded-lg bg-slate-900 px-2.5 py-1 font-mono text-sm font-bold tracking-widest text-white">{evento.codigo}</span>
           </div>
           <nav className="-mb-px mt-4 flex gap-1 overflow-x-auto">
-            {TABS.map((t) => (
+            {TABS.filter((t) => visible(t.id)).map((t) => (
               <button
                 key={t.id}
                 onClick={() => setParams({ tab: t.id })}
@@ -98,6 +104,7 @@ export default function EventoPanel() {
         {tab === "misiones" && <TabMisiones {...props} />}
         {tab === "trivia" && <TabTrivia {...props} />}
         {tab === "votacion" && <TabVotacion {...props} />}
+        {tab === "capsula" && <TabCapsula {...props} />}
         {tab === "invitados" && <TabInvitados {...props} />}
         {tab === "qr" && <TabQr {...props} />}
         {tab === "libro" && <TabFotolibro {...props} />}

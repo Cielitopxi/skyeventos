@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Aviso, Campo, Modal } from "../../components/ui";
+import { IconoDuo } from "../../components/Iconos";
 import { mensajeError, supabase } from "../../lib/supabase";
 import { bingoSugerido, misionesSugeridas } from "../../lib/tematicas";
 import type { CasillaBingo, Evento, Mision, Premio } from "../../lib/tipos";
@@ -31,7 +32,7 @@ export default function TabMisiones({ evento, plan }: PropsTab) {
   if (plan && !plan.misiones) {
     return (
       <div className="tarjeta text-center">
-        <p className="text-3xl">🎯</p>
+        <IconoDuo nombre="mision" className="mx-auto h-10 w-10 text-sky-500" />
         <p className="mt-2 font-semibold">Las misiones y premios están incluidos desde el plan Fiesta.</p>
       </div>
     );
@@ -61,7 +62,7 @@ export default function TabMisiones({ evento, plan }: PropsTab) {
     const inicio = new Date();
     const fin = new Date(inicio.getTime() + minutos * 60_000);
     await supabase.from("misiones").update({ relampago: true, inicio: inicio.toISOString(), fin: fin.toISOString() }).eq("id", m.id);
-    await supabase.from("anuncios").insert({ evento_id: evento.id, texto: `⚡ Misión relámpago (${minutos} min, puntos dobles): ${m.titulo}` });
+    await supabase.from("anuncios").insert({ evento_id: evento.id, texto: `Misión relámpago (${minutos} min, puntos dobles): ${m.titulo}` });
     cargar();
   }
 
@@ -111,13 +112,13 @@ export default function TabMisiones({ evento, plan }: PropsTab) {
                 <p className="font-semibold">
                   {m.titulo} <span className="chip bg-sky-100 text-sky-700">{m.puntos} pts</span>{" "}
                   {m.validacion === "moderador" && <span className="chip bg-slate-100 text-slate-600">valida moderador</span>}{" "}
-                  {activaRelampago && <span className="chip bg-amber-100 text-amber-800">⚡ hasta {new Date(m.fin!).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>}
+                  {activaRelampago && <span className="chip flex items-center gap-1 bg-amber-100 text-amber-800"><IconoDuo nombre="rayo" className="h-3.5 w-3.5" /> hasta {new Date(m.fin!).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}</span>}
                 </p>
                 {m.descripcion && <p className="text-sm text-slate-600">{m.descripcion}</p>}
               </div>
               <div className="flex flex-wrap gap-1">
                 <button className="btn-secundario btn-chico" disabled={evento.estado !== "activo"} onClick={() => lanzarRelampago(m, 10)} title="10 minutos, puntos dobles, se anuncia en pantalla">
-                  ⚡ Relámpago 10′
+                  <IconoDuo nombre="rayo" className="mr-1 inline h-4 w-4 align-[-3px]" />Relámpago 10′
                 </button>
                 <button
                   className="btn-secundario btn-chico"

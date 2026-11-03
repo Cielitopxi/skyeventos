@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Aviso, Campo, Modal } from "../../components/ui";
+import { IconoDuo } from "../../components/Iconos";
 import { mensajeError, supabase } from "../../lib/supabase";
 import { preguntasSugeridas } from "../../lib/tematicas";
 import type { EstadoTrivia, PreguntaTrivia, ResumenTrivia } from "../../lib/tipos";
@@ -43,7 +44,7 @@ export default function TabTrivia({ evento, plan }: PropsTab) {
   if (plan && !plan.misiones) {
     return (
       <div className="tarjeta text-center">
-        <p className="text-3xl">❓</p>
+        <IconoDuo nombre="trivia" className="mx-auto h-10 w-10 text-sky-500" />
         <p className="mt-2 font-semibold">La trivia está incluida desde el plan Fiesta.</p>
       </div>
     );
@@ -74,7 +75,7 @@ export default function TabTrivia({ evento, plan }: PropsTab) {
     setError("");
     const r = await supabase.from("trivia_preguntas").update({ estado }).eq("id", p.id);
     if (r.error) return setError(mensajeError(r.error));
-    if (estado === "abierta") await supabase.from("anuncios").insert({ evento_id: evento.id, texto: `❓ Trivia: ${p.texto}` });
+    if (estado === "abierta") await supabase.from("anuncios").insert({ evento_id: evento.id, texto: `Trivia: ${p.texto}` });
     cargar();
   }
 

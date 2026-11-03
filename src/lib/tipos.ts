@@ -8,6 +8,18 @@ export interface Personalizacion {
   dedicatoria?: string;
   acento?: string; // hex opcional que pisa el acento de la temática
   portada_path?: string;
+  portada?: DisenoPortada; // solo planes con portada personalizada
+  juegos?: Partial<Record<JuegoId, boolean>>; // ausente = activo
+}
+
+export type JuegoId = "misiones" | "bingo" | "trivia" | "votacion" | "capsula";
+
+export interface DisenoPortada {
+  estilo: "banda" | "completa" | "marco";
+  fuente: string; // id de FUENTES_PORTADA
+  alineacion: "centro" | "abajo";
+  oscurecer: number; // 0 a 80 (% de velo sobre la foto)
+  color?: string; // color del título sobre la foto
 }
 
 export interface Plan {
@@ -20,6 +32,8 @@ export interface Plan {
   retencion_dias: number;
   misiones: boolean;
   sin_marca: boolean;
+  capsula: boolean;
+  portada_personalizada: boolean;
   orden: number;
 }
 
@@ -173,4 +187,21 @@ export interface ResumenTrivia {
   pregunta_id: string;
   opcion: number;
   respuestas: number;
+}
+
+export interface CapsulaItem {
+  id: string;
+  evento_id: string;
+  invitado_id: string;
+  texto: string | null;
+  storage_path: string | null;
+  created_at: string;
+}
+
+export interface EstadoCapsula {
+  items: number;
+  invitados: number;
+  abre_at: string;
+  abierta: boolean;
+  habilitada: boolean;
 }

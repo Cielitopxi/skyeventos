@@ -14,7 +14,7 @@ const PASOS = [
   { n: "04", t: "Recibí tu fotolibro", d: "Al final, un libro con todas las fotos y dedicatorias, ordenado por invitado." },
 ];
 
-const FUNCIONES: { i: string; t: string; d: string; pronto?: boolean }[] = [
+const FUNCIONES: { i: string; t: string; d: string; pronto?: boolean; premium?: boolean }[] = [
   { i: "qr", t: "Álbum en vivo", d: "Las fotos de los invitados llegan por QR. Vos decidís si se publican directo o con aprobación." },
   { i: "pantalla", t: "Pantalla del evento", d: "Presentación automática de fotos, mensajes y ranking para el televisor o el proyector." },
   { i: "diana", t: "Misiones fotográficas", d: "“Una foto con alguien que conociste hoy”, “El mejor paso de baile”, “Tres generaciones juntas”." },
@@ -24,7 +24,7 @@ const FUNCIONES: { i: string; t: string; d: string; pronto?: boolean }[] = [
   { i: "bingo", t: "Bingo de momentos", d: "Un cartón de 3x3 que se completa con fotos: brindis, abrazo, selfie grupal, baile y torta. Línea y cartón lleno suman puntos." },
   { i: "trivia", t: "Trivia personalizada", d: "Preguntas sobre los protagonistas que se responden desde el celular; la pantalla revela la respuesta y quién acertó." },
   { i: "premio", t: "Premios por votación", d: "“Mejor look”, “Alma de la fiesta”: cada invitado vota en secreto y el ganador se revela en la pantalla." },
-  { i: "capsula", t: "Cápsula del tiempo", d: "Fotos y mensajes que se revelan en una fecha elegida, como el primer aniversario.", pronto: true },
+  { i: "capsula", t: "Cápsula del tiempo", d: "Mensajes y fotos de los invitados, sellados un año. A los 11 meses les llega el aviso para abrirla.", premium: true },
 ];
 
 // Tonos cálidos que imitan fotos en la maqueta del celular
@@ -177,6 +177,7 @@ export default function Inicio() {
                     <Icono nombre={f.i} className="h-5 w-5" />
                   </span>
                   {f.pronto && <span className="chip border border-slate-300 text-slate-500">Próximamente</span>}
+                  {f.premium && <span className="chip bg-noche text-oro">Premium</span>}
                 </span>
                 <h3 className="mt-6 text-xl">{f.t}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-600">{f.d}</p>
@@ -245,10 +246,12 @@ export default function Inicio() {
                       p.max_invitados ? `Hasta ${p.max_invitados} invitados` : "Invitados ilimitados",
                       p.max_fotos ? `${p.max_fotos.toLocaleString("es-AR")} fotos` : "Fotos ilimitadas",
                       `${p.pantallas} pantalla${p.pantallas > 1 ? "s" : ""} en vivo`,
-                      p.misiones ? "Misiones, puntos y premios" : null,
+                      p.misiones ? "Juegos: misiones, bingo, trivia y votación" : null,
                       "Fotolibro PDF",
                       `Disponible ${Math.round(p.retencion_dias / 30)} meses`,
                       p.sin_marca ? "Sin marca SkyEventos" : null,
+                      p.portada_personalizada ? "Portada con diseño personalizado" : null,
+                      p.capsula ? "Cápsula del tiempo (guardada 1 año)" : null,
                     ]
                       .filter(Boolean)
                       .map((t) => (

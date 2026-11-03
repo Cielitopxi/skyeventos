@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Aviso } from "../../components/ui";
+import { IconoDuo } from "../../components/Iconos";
 import { mensajeError, supabase } from "../../lib/supabase";
 import type { Foto, Invitado } from "../../lib/tipos";
 import { urlsFirmadas, useUrls } from "../../lib/urls";
@@ -85,7 +86,7 @@ export default function TabFotolibro({ evento, recargar }: PropsTab) {
         <button className="btn-secundario" onClick={descargarZip} disabled={!!zip || !fotos.length}>
           {zip ? `Armando ZIP ${zip.hecho}/${zip.total}…` : "Descargar todas (ZIP)"}
         </button>
-        <Link to={`/panel/${evento.id}/libro`} className="btn-primario">📖 Ver y descargar PDF</Link>
+        <Link to={`/panel/${evento.id}/libro`} className="btn-primario flex items-center gap-2"><IconoDuo nombre="libro" className="h-5 w-5" /> Ver y descargar PDF</Link>
       </div>
       {error && <Aviso tipo="error">{error}</Aviso>}
       <p className="text-sm text-slate-600">Tocá una foto para sacarla o volverla a poner en el libro. ★ = destacada (va primero en su capítulo).</p>

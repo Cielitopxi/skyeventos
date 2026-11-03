@@ -1,15 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Aviso, Cargando, ConTema, Modal } from "../../components/ui";
-import { fechaLarga, hora, rankingPorMesa } from "../../lib/formato";
-import { asegurarSesion, mensajeError, supabase } from "../../lib/supabase";
+import { IconoDuo, Medalla } from "../../components/Iconos";
+import { Portada } from "../../components/Portada";
+import { procesarImagen } from "../../lib/imagen";
+import { hora, rankingPorMesa } from "../../lib/formato";
+import { asegurarSesion, BUCKET, mensajeError, supabase } from "../../lib/supabase";
 import { ColaSubida, type TareaSubida } from "../../lib/subida";
 import { estiloTematica, tematica } from "../../lib/tematicas";
-import type { CasillaBingo, CategoriaVoto, EventoPublico, FilaRanking, FilaResultado, PreguntaTrivia, Foto, Invitado, Mensaje, Mision, Premio } from "../../lib/tipos";
+import type { CapsulaItem, CasillaBingo, CategoriaVoto, EstadoCapsula, EventoPublico, FilaRanking, FilaResultado, PreguntaTrivia, Foto, Invitado, Mensaje, Mision, Premio } from "../../lib/tipos";
 import { useUrls } from "../../lib/urls";
 
 type Pestana = "fotos" | "juegos" | "mensajes" | "ranking" | "yo";
-type Juego = "misiones" | "bingo" | "trivia" | "votar";
+type Juego = "misiones" | "bingo" | "trivia" | "votar" | "capsula";
 
 export default function EventoInvitado() {
   const { codigo = "" } = useParams();
@@ -51,7 +54,7 @@ export default function EventoInvitado() {
   if (estado === "noexiste" || !evento)
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
-        <p className="text-5xl">🔍</p>
+        <IconoDuo nombre="lupa" className="h-14 w-14 text-tema-acento" />
         <p className="text-lg font-semibold">No encontramos un evento activo con el código {codigo.toUpperCase()}</p>
         <Link to="/e" className="btn-primario">Probar otro código</Link>
       </div>
@@ -72,18 +75,12 @@ function Encabezado({ evento, compacto = false }: { evento: EventoPublico; compa
   const t = tematica(evento.tematica);
   const p = evento.personalizacion;
   const portada = useUrls([p.portada_path]);
+  if (!compacto) return <Portada tematicaId={evento.tematica} nombre={evento.nombre} fecha={evento.fecha} p={p} url={p.portada_path ? portada[p.portada_path] : undefined} />;
   return (
-    <div style={{ background: t.fondoDecorado }} className="relative overflow-hidden">
-      {p.portada_path && portada[p.portada_path] && !compacto && (
-        <img src={portada[p.portada_path]} alt="" className="h-48 w-full object-cover" />
-      )}
-      <div className={`px-5 text-center ${compacto ? "py-3" : "py-6"}`}>
-        {!compacto && <p className="text-xs uppercase tracking-[.3em] text-tema-suave">{p.subtitulo || fechaLarga(evento.fecha)}</p>}
-        <h1 className={`${compacto ? "text-2xl" : "text-4xl"} leading-tight text-tema-acento`} style={{ fontFamily: "var(--t-font-titulo)" }}>
-          {p.titulo || evento.nombre}
-        </h1>
-        {!compacto && <p className="mt-1 text-tema-acento">{t.ornamento}</p>}
-      </div>
+    <div style={{ background: t.fondoDecorado }} className="relative overflow-hidden px-5 py-3 text-center">
+      <h1 className="text-2xl leading-tight text-tema-acento" style={{ fontFamily: "var(--t-font-titulo)" }}>
+        {p.titulo || evento.nombre}
+      </h1>
     </div>
   );
 }
@@ -145,6 +142,7 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
   const [carton, setCarton] = useState<CasillaBingo[]>([]);
   const [categorias, setCategorias] = useState<CategoriaVoto[]>([]);
   const [preguntas, setPreguntas] = useState<PreguntaTrivia[]>([]);
+  const [capsula, setCapsula] = useState<EstadoCapsula | null>(null);
   const [tareas, setTareas] = useState<TareaSubida[]>([]);
   const cola = useMemo(() => new ColaSubida(evento.id, invitado.id), [evento.id, invitado.id]);
   const inputCamara = useRef<HTMLInputElement>(null);
@@ -180,6 +178,10 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
     return () => {
       supabase.removeChannel(canal);
     };
+  }, [evento.id]);
+
+  useEffect(() => {
+    supabase.rpc("capsula_estado", { p_evento: evento.id }).then(({ data }) => setCapsula((data as EstadoCapsula[] | null)?.[0] ?? null));
   }, [evento.id]);
 
   // Preguntas de trivia: aparecen a medida que el organizador las abre.
@@ -221,22 +223,24 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
   const errores = tareas.filter((t) => t.estado === "error");
   const listas = tareas.filter((t) => t.estado === "listo").length;
 
-  // Los juegos comparten una pestaña; cada uno aparece cuando tiene contenido.
-  const juegos: { id: Juego; t: string; nuevo?: boolean }[] = [
-    { id: "misiones", t: "🎯 Misiones" },
-    ...(carton.length === 9 ? [{ id: "bingo" as Juego, t: "🎲 Bingo" }] : []),
-    ...(preguntas.length ? [{ id: "trivia" as Juego, t: "❓ Trivia", nuevo: preguntas.some((q) => q.estado === "abierta") }] : []),
-    ...(categorias.length ? [{ id: "votar" as Juego, t: "🗳️ Votar", nuevo: categorias.some((c) => c.estado === "abierta") }] : []),
+  // Los juegos comparten una pestaña: aparecen los que el anfitrión activó y tienen contenido.
+  const activo = (j: string) => (evento.personalizacion.juegos as Record<string, boolean> | undefined)?.[j] !== false;
+  const juegos: { id: Juego; t: string; i: string; nuevo?: boolean }[] = [
+    ...(activo("misiones") ? [{ id: "misiones" as Juego, t: "Misiones", i: "mision" }] : []),
+    ...(activo("bingo") && carton.length === 9 ? [{ id: "bingo" as Juego, t: "Bingo", i: "bingo" }] : []),
+    ...(activo("trivia") && preguntas.length ? [{ id: "trivia" as Juego, t: "Trivia", i: "trivia", nuevo: preguntas.some((q) => q.estado === "abierta") }] : []),
+    ...(activo("votacion") && categorias.length ? [{ id: "votar" as Juego, t: "Votar", i: "votar", nuevo: categorias.some((c) => c.estado === "abierta") }] : []),
+    ...(capsula?.habilitada ? [{ id: "capsula" as Juego, t: "Cápsula", i: "capsula" }] : []),
   ];
-  const juegoActual = juegos.some((j) => j.id === juego) ? juego : "misiones";
+  const juegoActual = juegos.some((j) => j.id === juego) ? juego : juegos[0]?.id;
   const hayNovedad = juegos.some((j) => j.nuevo);
 
   const pestanas: { id: Pestana; i: string; t: string }[] = [
-    { id: "fotos", i: "🖼️", t: "Fotos" },
-    { id: "juegos", i: "🎯", t: "Juegos" },
-    { id: "mensajes", i: "💬", t: "Mensajes" },
-    ...(premiosActivos ? [{ id: "ranking" as Pestana, i: "🏆", t: "Ranking" }] : []),
-    { id: "yo", i: "🙂", t: "Yo" },
+    { id: "fotos", i: "fotos", t: "Fotos" },
+    ...(juegos.length ? [{ id: "juegos" as Pestana, i: "juegos", t: "Juegos" }] : []),
+    { id: "mensajes", i: "mensajes", t: "Mensajes" },
+    ...(premiosActivos ? [{ id: "ranking" as Pestana, i: "ranking", t: "Ranking" }] : []),
+    { id: "yo", i: "perfil", t: "Yo" },
   ];
 
   return (
@@ -247,9 +251,9 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
       {(activas.length > 0 || listas > 0) && (
         <div className="mx-4 mt-3 rounded-xl bg-tema-superficie p-3 text-sm shadow">
           {activas.length > 0 ? (
-            <p>⏳ Subiendo {activas.length - errores.length} foto(s)… {!navigator.onLine && "(sin conexión, se reintenta sola)"}</p>
+            <p className="flex items-center gap-2"><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-tema-acento border-t-transparent" /> Subiendo {activas.length - errores.length} foto(s)… {!navigator.onLine && "(sin conexión, se reintenta sola)"}</p>
           ) : (
-            <p>✅ {listas} foto(s) subida(s)</p>
+            <p className="flex items-center gap-2"><IconoDuo nombre="check" className="h-4 w-4 text-emerald-600" trazo={2.2} /> {listas} foto(s) subida(s)</p>
           )}
           {errores.length > 0 && (
             <div className="mt-1 text-rose-600">
@@ -271,8 +275,9 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
                   <button
                     key={j.id}
                     onClick={() => setJuego(j.id)}
-                    className={`relative shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${juegoActual === j.id ? "bg-tema-acento text-white shadow" : "bg-tema-superficie text-tema-suave shadow-sm"}`}
+                    className={`relative flex shrink-0 items-center gap-1.5 rounded-full py-2 pl-3 pr-4 text-sm font-semibold transition ${juegoActual === j.id ? "bg-tema-acento text-white shadow" : "bg-tema-superficie text-tema-suave shadow-sm"}`}
                   >
+                    <IconoDuo nombre={j.i} className="h-[18px] w-[18px]" />
                     {j.t}
                     {j.nuevo && juegoActual !== j.id && <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-tema-fondo" />}
                   </button>
@@ -283,6 +288,7 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
             {juegoActual === "bingo" && <Bingo evento={evento} invitado={invitado} carton={carton} onMarcar={elegirCasilla} />}
             {juegoActual === "trivia" && <Trivia evento={evento} preguntas={preguntas} />}
             {juegoActual === "votar" && <Votacion evento={evento} invitado={invitado} categorias={categorias} />}
+            {juegoActual === "capsula" && capsula && <Capsula evento={evento} invitado={invitado} estado={capsula} />}
           </>
         )}
         {pestana === "mensajes" && <Mensajes evento={evento} invitado={invitado} />}
@@ -295,7 +301,8 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
           onClick={() => elegir(null)}
           className="fixed bottom-20 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-tema-acento px-7 py-4 text-base font-bold text-white shadow-xl shadow-black/20 active:scale-95"
         >
-          📷 Subir fotos
+          <IconoDuo nombre="camara" className="h-5 w-5" trazo={1.9} />
+          Subir fotos
         </button>
       )}
 
@@ -303,7 +310,7 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
         <div className="mx-auto flex max-w-md">
           {pestanas.map((p) => (
             <button key={p.id} onClick={() => setPestana(p.id)} className={`relative flex flex-1 flex-col items-center py-2 text-[11px] font-medium ${pestana === p.id ? "text-tema-acento" : "text-tema-suave"}`}>
-              <span className="text-xl">{p.i}</span>
+              <IconoDuo nombre={p.i} className={`h-6 w-6 transition ${pestana === p.id ? "scale-110" : ""}`} />
               {p.id === "juegos" && hayNovedad && pestana !== "juegos" && <span className="absolute right-[30%] top-1.5 h-2.5 w-2.5 rounded-full bg-rose-500" />}
               {p.t}
             </button>
@@ -315,13 +322,17 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
       <input ref={inputGaleria} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { archivos(e.target.files); e.target.value = ""; }} />
 
       <Modal abierto={selector} onCerrar={() => { setSelector(false); setMisionElegida(null); setCasillaElegida(null); }}
-        titulo={misionElegida ? `🎯 ${misionElegida.titulo}` : casillaElegida ? `🎲 ${casillaElegida.texto}` : "Subir fotos"}
+        titulo={misionElegida ? misionElegida.titulo : casillaElegida ? casillaElegida.texto : "Subir fotos"}
       >
         <div className="space-y-3">
           {misionElegida?.descripcion && <p className="text-sm text-tema-suave">{misionElegida.descripcion}</p>}
           {casillaElegida && <p className="text-sm text-tema-suave">Sacale una foto a este momento para marcar la casilla del bingo.</p>}
-          <button className="btn-primario w-full py-4 text-base" onClick={() => inputCamara.current?.click()}>📸 Sacar una foto</button>
-          <button className="btn-secundario w-full py-4 text-base" onClick={() => inputGaleria.current?.click()}>🖼️ Elegir de la galería</button>
+          <button className="btn-primario flex w-full items-center justify-center gap-2 py-4 text-base" onClick={() => inputCamara.current?.click()}>
+            <IconoDuo nombre="camara" className="h-5 w-5" /> Sacar una foto
+          </button>
+          <button className="btn-secundario flex w-full items-center justify-center gap-2 py-4 text-base" onClick={() => inputGaleria.current?.click()}>
+            <IconoDuo nombre="galeria" className="h-5 w-5" /> Elegir de la galería
+          </button>
         </div>
       </Modal>
     </div>
@@ -370,7 +381,7 @@ function Galeria({ evento, invitado, soloMias = false }: { evento: EventoPublico
   }
 
   if (!fotos.length)
-    return <p className="py-16 text-center text-tema-suave">{soloMias ? "Todavía no subiste fotos." : "¡Sé el primero en subir una foto! 📸"}</p>;
+    return <p className="py-16 text-center text-tema-suave">{soloMias ? "Todavía no subiste fotos." : "¡Sé el primero en subir una foto!"}</p>;
 
   return (
     <>
@@ -447,7 +458,7 @@ function Misiones({ evento, invitado, onCumplir }: { evento: EventoPublico; invi
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1">
                 {relampago && (
-                  <p className="text-xs font-bold text-amber-600">⚡ RELÁMPAGO · puntos dobles · quedan {Math.max(0, Math.ceil((new Date(m.fin!).getTime() - ahora) / 60000))} min</p>
+                  <p className="flex items-center gap-1 text-xs font-bold text-amber-600"><IconoDuo nombre="rayo" className="h-3.5 w-3.5" /> RELÁMPAGO · puntos dobles · quedan {Math.max(0, Math.ceil((new Date(m.fin!).getTime() - ahora) / 60000))} min</p>
                 )}
                 <p className="font-semibold">{m.titulo}</p>
                 {m.descripcion && <p className="text-sm text-tema-suave">{m.descripcion}</p>}
@@ -456,11 +467,11 @@ function Misiones({ evento, invitado, onCumplir }: { evento: EventoPublico; invi
             </div>
             <div className="mt-3">
               {est === "cumplida" ? (
-                <p className="text-sm font-semibold text-emerald-600">✓ ¡Cumplida!</p>
+                <p className="flex items-center gap-1.5 text-sm font-semibold text-emerald-600"><IconoDuo nombre="check" className="h-4 w-4" trazo={2.2} /> ¡Cumplida!</p>
               ) : est === "revision" ? (
-                <p className="text-sm text-tema-suave">⏳ En revisión</p>
+                <p className="flex items-center gap-1.5 text-sm text-tema-suave"><IconoDuo nombre="reloj" className="h-4 w-4" /> En revisión</p>
               ) : evento.abierto ? (
-                <button className="btn-primario btn-chico" onClick={() => onCumplir(m)}>📷 Cumplir misión</button>
+                <button className="btn-primario btn-chico flex items-center gap-1.5" onClick={() => onCumplir(m)}><IconoDuo nombre="camara" className="h-4 w-4" /> Cumplir misión</button>
               ) : null}
             </div>
           </div>
@@ -515,7 +526,7 @@ function Bingo({ evento, invitado, carton, onMarcar }: { evento: EventoPublico; 
     <div className="space-y-4">
       <div className="text-center">
         <p className="text-sm text-tema-suave">
-          {lleno ? "🎉 ¡Cartón lleno!" : lineas.length ? `¡${lineas.length === 1 ? "Línea" : `${lineas.length} líneas`}!` : "Fotografiá cada momento para marcar tu cartón"}
+          {lleno ? "¡Cartón lleno!" : lineas.length ? `¡${lineas.length === 1 ? "Línea" : `${lineas.length} líneas`}!` : "Fotografiá cada momento para marcar tu cartón"}
         </p>
         <p className="mt-1 text-2xl font-bold" style={{ fontFamily: "var(--t-font-titulo)" }}>{puntos} pts</p>
       </div>
@@ -535,12 +546,114 @@ function Bingo({ evento, invitado, carton, onMarcar }: { evento: EventoPublico; 
               {url && <img src={url} alt="" className="absolute inset-0 h-full w-full object-cover" />}
               {f && <span className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />}
               <span className={f ? "relative mt-auto drop-shadow" : ""}>{c.texto}</span>
-              {f && <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-white text-[11px] text-emerald-600">✓</span>}
+              {f && <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-white text-emerald-600"><IconoDuo nombre="check" className="h-3.5 w-3.5" trazo={2.6} /></span>}
             </button>
           );
         })}
       </div>
       <p className="text-center text-xs text-tema-suave">5 pts por casilla · 15 por línea · 50 por cartón lleno</p>
+    </div>
+  );
+}
+
+function Capsula({ evento, invitado, estado }: { evento: EventoPublico; invitado: Invitado; estado: EstadoCapsula }) {
+  const [mios, setMios] = useState<CapsulaItem[] | null>(null);
+  const [texto, setTexto] = useState("");
+  const [foto, setFoto] = useState<File | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState("");
+  const [ok, setOk] = useState(false);
+
+  const cargar = useCallback(
+    () => supabase.from("capsula_items").select("*").eq("evento_id", evento.id).eq("invitado_id", invitado.id).order("created_at").then(({ data }) => setMios((data as CapsulaItem[]) ?? [])),
+    [evento.id, invitado.id],
+  );
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+  const urls = useUrls((mios ?? []).map((m) => m.storage_path));
+  const vistaPrevia = useMemo(() => (foto ? URL.createObjectURL(foto) : ""), [foto]);
+
+  async function guardar(e: React.FormEvent) {
+    e.preventDefault();
+    if (!texto.trim() && !foto) return;
+    setEnviando(true);
+    setError("");
+    try {
+      let path: string | null = null;
+      if (foto) {
+        const img = await procesarImagen(foto, 2000);
+        path = `${evento.id}/${invitado.id}/capsula/${crypto.randomUUID()}.jpg`;
+        const up = await supabase.storage.from(BUCKET).upload(path, img.completa, { contentType: "image/jpeg" });
+        if (up.error) throw up.error;
+      }
+      const { error } = await supabase.from("capsula_items").insert({ evento_id: evento.id, invitado_id: invitado.id, texto: texto.trim() || null, storage_path: path });
+      if (error) throw error;
+      setTexto("");
+      setFoto(null);
+      setOk(true);
+      setTimeout(() => setOk(false), 3000);
+      cargar();
+    } catch (e) {
+      setError(mensajeError(e));
+    }
+    setEnviando(false);
+  }
+
+  const apertura = new Date(estado.abre_at).toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl bg-tema-acento/10 p-5 text-center">
+        <IconoDuo nombre="capsula" className="mx-auto h-10 w-10 text-tema-acento" />
+        <p className="mt-2 text-lg font-semibold" style={{ fontFamily: "var(--t-font-titulo)" }}>Un mensaje para el futuro</p>
+        <p className="mt-1 text-sm text-tema-suave">
+          Lo que dejes acá queda sellado y los anfitriones lo abren el <b className="text-tema-texto">{apertura}</b>, a los 11 meses de este día.
+        </p>
+      </div>
+      {evento.abierto && (
+        <form onSubmit={guardar} className="space-y-3 rounded-2xl bg-tema-superficie p-4 shadow-sm">
+          <textarea className="input text-base" rows={4} maxLength={1000} value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="¿Qué les querés decir dentro de un año?" />
+          <div className="flex items-center gap-3">
+            {vistaPrevia ? (
+              <img src={vistaPrevia} alt="" className="h-16 w-16 rounded-xl object-cover" />
+            ) : null}
+            <label className="btn-secundario btn-chico flex cursor-pointer items-center gap-1.5">
+              <IconoDuo nombre="galeria" className="h-4 w-4" /> {foto ? "Cambiar foto" : "Sumar una foto"}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => setFoto(e.target.files?.[0] ?? null)} />
+            </label>
+            {foto && <button type="button" className="text-sm text-tema-suave underline" onClick={() => setFoto(null)}>Quitar</button>}
+          </div>
+          {error && <Aviso tipo="error">{error}</Aviso>}
+          {ok && <Aviso tipo="ok">Guardado en la cápsula. ¡Gracias!</Aviso>}
+          <button className="btn-primario flex w-full items-center justify-center gap-2" disabled={enviando || (!texto.trim() && !foto)}>
+            <IconoDuo nombre="candado" className="h-4 w-4" /> {enviando ? "Sellando…" : "Sellar en la cápsula"}
+          </button>
+        </form>
+      )}
+      {!!mios?.length && (
+        <div className="space-y-2">
+          <p className="text-center text-xs uppercase tracking-[.2em] text-tema-suave">Lo que dejaste ({mios.length})</p>
+          {mios.map((m) => (
+            <div key={m.id} className="flex gap-3 rounded-2xl bg-tema-superficie p-3 shadow-sm">
+              {m.storage_path && urls[m.storage_path] && <img src={urls[m.storage_path]} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />}
+              <p className="min-w-0 flex-1 whitespace-pre-line text-sm">{m.texto}</p>
+              {evento.abierto && (
+                <button
+                  className="self-start text-tema-suave hover:text-rose-600"
+                  aria-label="Borrar"
+                  onClick={async () => {
+                    await supabase.from("capsula_items").delete().eq("id", m.id);
+                    cargar();
+                  }}
+                >
+                  <IconoDuo nombre="cruz" className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -617,7 +730,7 @@ function Trivia({ evento, preguntas }: { evento: EventoPublico; preguntas: Pregu
                     onClick={() => responder(q, i)}
                     className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition enabled:active:scale-[.98] ${estilo}`}
                   >
-                    <span className="w-4 text-xs font-bold opacity-70">{esCorrecta ? "✓" : LETRAS[i]}</span>
+                    <span className="flex w-4 justify-center text-xs font-bold opacity-70">{esCorrecta ? <IconoDuo nombre="check" className="h-4 w-4" trazo={2.6} /> : LETRAS[i]}</span>
                     {o}
                   </button>
                 );
@@ -628,10 +741,10 @@ function Trivia({ evento, preguntas }: { evento: EventoPublico; preguntas: Pregu
                 ? !respondida
                   ? "No respondiste esta pregunta"
                   : mia === correcta
-                    ? `🎉 ¡Acertaste! +${q.puntos} pts`
-                    : "Esta vez no 😅"
+                    ? `¡Acertaste! +${q.puntos} pts`
+                    : "Esta vez no"
                 : respondida
-                  ? "Respuesta enviada. La correcta se revela pronto 👀"
+                  ? "Respuesta enviada. La correcta se revela pronto."
                   : q.estado === "abierta"
                     ? "Elegí una opción"
                     : ""}
@@ -690,7 +803,7 @@ function Votacion({ evento, invitado, categorias }: { evento: EventoPublico; inv
         return (
           <div key={c.id} className={`rounded-2xl bg-tema-superficie p-4 shadow-sm ${c.estado === "abierta" ? "ring-2 ring-tema-acento/40" : ""}`}>
             <p className="text-xs font-semibold uppercase tracking-widest text-tema-suave">
-              {c.estado === "abierta" ? "Votación abierta" : c.estado === "cerrada" ? "Votación cerrada" : "🏆 Ganador"}
+              {c.estado === "abierta" ? "Votación abierta" : c.estado === "cerrada" ? "Votación cerrada" : "Ganador"}
             </p>
             <p className="mt-0.5 text-lg font-semibold" style={{ fontFamily: "var(--t-font-titulo)" }}>{c.titulo}</p>
             {c.estado === "revelada" ? (
@@ -711,12 +824,12 @@ function Votacion({ evento, invitado, categorias }: { evento: EventoPublico; inv
                 )}
               </div>
             )}
-            {c.estado === "cerrada" && <p className="mt-2 text-xs text-tema-suave">El resultado se revela pronto en la pantalla 👀</p>}
+            {c.estado === "cerrada" && <p className="mt-2 text-xs text-tema-suave">El resultado se revela pronto en la pantalla.</p>}
           </div>
         );
       })}
 
-      <Modal abierto={!!eligiendo} onCerrar={() => { setEligiendo(null); setBusqueda(""); setError(""); }} titulo={eligiendo ? `🗳️ ${eligiendo.titulo}` : ""}>
+      <Modal abierto={!!eligiendo} onCerrar={() => { setEligiendo(null); setBusqueda(""); setError(""); }} titulo={eligiendo ? eligiendo.titulo : ""}>
         <div className="space-y-3">
           <input className="input text-base" placeholder="Buscar por nombre" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
           {error && <Aviso tipo="error">{error}</Aviso>}
@@ -785,7 +898,7 @@ function Mensajes({ evento, invitado }: { evento: EventoPublico; invitado: Invit
           <div className="flex gap-1 rounded-xl bg-tema-suave/10 p-1 text-sm">
             {(["nota", "dedicatoria"] as const).map((x) => (
               <button key={x} type="button" onClick={() => setTipo(x)} className={`flex-1 rounded-lg py-1.5 font-medium ${tipo === x ? "bg-tema-superficie shadow" : "text-tema-suave"}`}>
-                {x === "nota" ? "💬 Mensaje en vivo" : "✍️ Dedicatoria"}
+                <span className="flex items-center justify-center gap-1.5"><IconoDuo nombre={x === "nota" ? "mensajes" : "pluma"} className="h-4 w-4" />{x === "nota" ? "Mensaje en vivo" : "Dedicatoria"}</span>
               </button>
             ))}
           </div>
@@ -826,7 +939,6 @@ function Ranking({ evento, invitado }: { evento: EventoPublico; invitado: Invita
   }, [evento.id]);
 
   const [vista, setVista] = useState<"personas" | "mesas">("personas");
-  const medalla = ["🥇", "🥈", "🥉"];
   const yo = filas.findIndex((f) => f.invitado_id === invitado.id);
   const mesas = rankingPorMesa(filas);
   const miMesa = invitado.mesa?.trim().toLowerCase();
@@ -835,9 +947,9 @@ function Ranking({ evento, invitado }: { evento: EventoPublico; invitado: Invita
     <div className="space-y-4">
       {premios.length > 0 && (
         <div className="rounded-2xl bg-tema-acento/10 p-4">
-          <p className="mb-2 font-semibold">🎁 Premios</p>
+          <p className="mb-2 flex items-center gap-2 font-semibold"><IconoDuo nombre="regalo" className="h-5 w-5 text-tema-acento" /> Premios</p>
           {premios.map((p) => (
-            <p key={p.id} className="text-sm">{medalla[p.puesto - 1] ?? `${p.puesto}°`} {p.descripcion}</p>
+            <p key={p.id} className="flex items-center gap-2 py-0.5 text-sm"><Medalla puesto={p.puesto} className="h-6 w-6 shrink-0" /> {p.descripcion}</p>
           ))}
         </div>
       )}
@@ -856,7 +968,7 @@ function Ranking({ evento, invitado }: { evento: EventoPublico; invitado: Invita
           <ol className="divide-y divide-tema-suave/15 rounded-2xl bg-tema-superficie shadow-sm">
             {mesas.map((m, i) => (
               <li key={m.mesa} className={`flex items-center gap-3 px-4 py-3 ${m.mesa.toLowerCase() === miMesa ? "bg-tema-acento/10" : ""}`}>
-                <span className="w-7 text-center text-lg">{medalla[i] ?? i + 1}</span>
+                <span className="flex w-7 justify-center"><Medalla puesto={i + 1} /></span>
                 <span className="flex-1 font-medium">Mesa {m.mesa}<span className="text-xs text-tema-suave"> · {m.invitados} {m.invitados === 1 ? "invitado" : "invitados"}</span></span>
                 <span className="font-bold">{m.puntos}</span>
               </li>
@@ -869,7 +981,7 @@ function Ranking({ evento, invitado }: { evento: EventoPublico; invitado: Invita
       <ol className="divide-y divide-tema-suave/15 rounded-2xl bg-tema-superficie shadow-sm">
         {filas.slice(0, 30).map((f, i) => (
           <li key={f.invitado_id} className={`flex items-center gap-3 px-4 py-3 ${f.invitado_id === invitado.id ? "bg-tema-acento/10" : ""}`}>
-            <span className="w-7 text-center text-lg">{medalla[i] ?? i + 1}</span>
+            <span className="flex w-7 justify-center"><Medalla puesto={i + 1} /></span>
             <span className="flex-1 font-medium">{f.nombre}{f.mesa && <span className="text-xs text-tema-suave"> · mesa {f.mesa}</span>}</span>
             <span className="font-bold">{f.puntos}</span>
           </li>
