@@ -2,14 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Identidad de marca ("noche de gala"). Las temáticas de cada evento redefinen estas variables. */
+/* Identidad de marca (colores del logo). Las temáticas de cada evento redefinen estas variables. */
 :root {
-  --t-fondo: 247 244 238;
+  --t-fondo: 244 246 248;
   --t-superficie: 255 255 255;
-  --t-texto: 21 24 39;
-  --t-suave: 112 105 94;
-  --t-acento: 148 113 58;
-  --t-acento2: 201 169 110;
+  --t-texto: 26 36 45;
+  --t-suave: 107 120 132;
+  --t-acento: 77 97 112;
+  --t-acento2: 151 168 180;
   --t-font-titulo: Fraunces, Georgia, serif;
   --t-font-cuerpo: Manrope, Inter, system-ui, sans-serif;
 }
@@ -64,25 +64,25 @@ body {
 
   /* Cielo nocturno: estrellas finas sobre medianoche */
   .cielo {
-    background-color: #151827;
+    background-color: #1a242d;
     background-image:
       radial-gradient(1px 1px at 12% 18%, rgb(255 255 255 / .55), transparent 60%),
       radial-gradient(1px 1px at 72% 12%, rgb(255 255 255 / .45), transparent 60%),
       radial-gradient(1.5px 1.5px at 38% 62%, rgb(255 255 255 / .35), transparent 60%),
       radial-gradient(1px 1px at 88% 48%, rgb(255 255 255 / .5), transparent 60%),
       radial-gradient(1px 1px at 22% 82%, rgb(255 255 255 / .35), transparent 60%),
-      radial-gradient(1.5px 1.5px at 56% 30%, rgb(201 169 110 / .6), transparent 60%),
+      radial-gradient(1.5px 1.5px at 56% 30%, rgb(151 168 180 / .6), transparent 60%),
       radial-gradient(1px 1px at 64% 86%, rgb(255 255 255 / .4), transparent 60%),
-      radial-gradient(ellipse 60% 50% at 80% 0%, rgb(201 169 110 / .16), transparent 70%),
-      radial-gradient(ellipse 70% 60% at 0% 100%, rgb(88 96 160 / .25), transparent 70%);
+      radial-gradient(ellipse 60% 50% at 80% 0%, rgb(151 168 180 / .16), transparent 70%),
+      radial-gradient(ellipse 70% 60% at 0% 100%, rgb(77 97 112 / .45), transparent 70%);
   }
   .texto-oro {
-    background: linear-gradient(100deg, #e9d3a3 0%, #c9a96e 45%, #f3e3bf 70%, #b8925a 100%);
+    background: linear-gradient(100deg, #dbe5ee 0%, #97a8b4 45%, #dbe5ee 70%, #6a889e 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
-  .hilo-oro { background: linear-gradient(90deg, transparent, rgb(201 169 110 / .7), transparent); height: 1px; }
+  .hilo-oro { background: linear-gradient(90deg, transparent, rgb(151 168 180 / .7), transparent); height: 1px; }
 }
 
 /* Pantalla en vivo */

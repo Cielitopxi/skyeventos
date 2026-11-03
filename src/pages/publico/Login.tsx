@@ -69,7 +69,7 @@ export default function Login() {
           )}
         </div>
         <p className="mt-6 text-center text-xs text-white/45">
-          ¿Sos invitado? <Link to="/e" className="text-[#f3e3bf] underline decoration-oro/50 underline-offset-4">Entrá con el código del evento</Link>
+          ¿Sos invitado? <Link to="/e" className="text-[#dbe5ee] underline decoration-oro/50 underline-offset-4">Entrá con el código del evento</Link>
         </p>
       </div>
     </div>

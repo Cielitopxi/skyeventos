@@ -81,7 +81,7 @@ export default function Contratar() {
                     paso > i + 1
                       ? "bg-sky-500 text-white"
                       : paso === i + 1
-                        ? "bg-noche text-[#f3e3bf] ring-4 ring-sky-200"
+                        ? "bg-noche text-[#dbe5ee] ring-4 ring-sky-200"
                         : "border border-slate-300 text-slate-400"
                   }`}
                 >

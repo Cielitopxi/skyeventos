@@ -117,4 +117,19 @@ await espera_error(sinSesion(`select activar_evento('${ev.id}')`), "anon no ejec
 await espera_error(sinSesion(`select crear_evento('X','boda','elegante','fiesta',null)`), "anon no ejecuta crear_evento");
 await espera_error(sinSesion(`select ranking('${ev.id}')`), "anon no ejecuta ranking");
 await espera_error(como(g1, true, `select tg_fotos_antes()`), "nadie llama triggers por RPC");
+
+// Demo público
+console.log("✓ sin demo, evento_demo vacío:", (await sinSesion(`select count(*)::int n from evento_demo()`)).rows[0].n === 0);
+await db.exec(`update eventos set estado = 'activo', cerrado_at = null`);
+await como(host, false, `update eventos set es_demo = true where id = '${ev.id}'`);
+console.log("✓ el dueño no puede marcar demo:", (await db.query(`select es_demo from eventos`)).rows[0].es_demo === false);
+await db.exec(`update eventos set es_demo = true`);
+const demo = (await sinSesion(`select codigo, token_pantalla from evento_demo()`)).rows[0];
+console.log("✓ anon obtiene el demo:", demo.codigo === ev.codigo && demo.token_pantalla === tok);
+
+// Unirse dos veces no falla (idempotente)
+await como(g1, true, `select unirse_pantalla('${ev.codigo}','${tok}')`);
+await como(g1, true, `select unirse_pantalla('${ev.codigo}','${tok}')`);
+const again = (await como(g1, true, `select nombre, mesa from unirse_evento('${ev.codigo}','Pepe','7')`)).rows[0];
+console.log("✓ unirse dos veces actualiza sin duplicar:", again.mesa === "7", (await db.query(`select count(*)::int n from invitados where user_id = '${g1}'`)).rows[0].n === 1);
 console.log("FIN");

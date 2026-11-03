@@ -5,6 +5,7 @@ import { Cargando } from "../../components/ui";
 import { APP_URL, asegurarSesion, mensajeError, supabase } from "../../lib/supabase";
 import { estiloTematica, tematica } from "../../lib/tematicas";
 import type { Anuncio, EventoPublico, FilaRanking, Foto, Mensaje } from "../../lib/tipos";
+import { rankingPorMesa } from "../../lib/formato";
 import { urlsFirmadas } from "../../lib/urls";
 
 type Escena =
@@ -234,7 +235,8 @@ export default function Pantalla() {
         {escena?.tipo === "ranking" && (
           <div className="entrar flex h-full flex-col items-center justify-center">
             <p className="mb-[4vh] text-[4vw] text-tema-acento" style={{ fontFamily: "var(--t-font-titulo)" }}>🏆 Ranking</p>
-            <ol className="w-[50vw] space-y-[1.5vh]">
+            <div className="flex items-start gap-[3vw]">
+            <ol className={`${rankingPorMesa(ranking).length > 1 ? "w-[34vw]" : "w-[50vw]"} space-y-[1.5vh]`}>
               {ranking.slice(0, 5).map((r, i) => (
                 <li key={r.invitado_id} className="subir flex items-center gap-[2vw] rounded-2xl bg-tema-superficie/90 px-[2vw] py-[1.5vh] text-[2.2vw] shadow" style={{ animationDelay: `${i * 150}ms` }}>
                   <span className="w-[3vw] text-center">{["🥇", "🥈", "🥉"][i] ?? i + 1}</span>
@@ -243,6 +245,21 @@ export default function Pantalla() {
                 </li>
               ))}
             </ol>
+            {rankingPorMesa(ranking).length > 1 && (
+              <div className="w-[24vw]">
+                <p className="mb-[1.5vh] text-center text-[1.3vw] font-semibold uppercase tracking-[.2em] text-tema-suave">Mesas</p>
+                <ol className="space-y-[1.2vh]">
+                  {rankingPorMesa(ranking).slice(0, 5).map((m, i) => (
+                    <li key={m.mesa} className="subir flex items-center gap-[1.5vw] rounded-2xl border border-tema-acento/30 px-[1.5vw] py-[1.2vh] text-[1.8vw]" style={{ animationDelay: `${(i + 5) * 150}ms` }}>
+                      <span className="w-[2.5vw] text-center">{["🥇", "🥈", "🥉"][i] ?? i + 1}</span>
+                      <span className="flex-1 font-semibold">Mesa {m.mesa}</span>
+                      <span className="font-bold text-tema-acento">{m.puntos}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+            </div>
           </div>
         )}
 

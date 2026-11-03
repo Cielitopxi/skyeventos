@@ -14,19 +14,23 @@ const PASOS = [
   { n: "04", t: "Recibí tu fotolibro", d: "Al final, un libro con todas las fotos y dedicatorias, ordenado por invitado." },
 ];
 
-const FUNCIONES = [
-  { i: "qr", t: "Fotos por QR", d: "Sin apps ni cuentas: escanean, escriben su nombre y comparten." },
-  { i: "mensaje", t: "Mensajes en vivo", d: "Notas y dedicatorias que se proyectan mientras sucede la fiesta." },
-  { i: "pantalla", t: "Pantalla gigante", d: "Slideshow, muro de mensajes y ranking en tiempo real." },
-  { i: "diana", t: "Misiones y premios", d: "Desafíos fotográficos, misiones relámpago y un podio al final." },
+const FUNCIONES: { i: string; t: string; d: string; pronto?: boolean }[] = [
+  { i: "qr", t: "Álbum en vivo", d: "Las fotos de los invitados llegan por QR. Vos decidís si se publican directo o con aprobación." },
+  { i: "pantalla", t: "Pantalla del evento", d: "Presentación automática de fotos, mensajes y ranking para el televisor o el proyector." },
+  { i: "diana", t: "Misiones fotográficas", d: "“Una foto con alguien que conociste hoy”, “El mejor paso de baile”, “Tres generaciones juntas”." },
+  { i: "mesas", t: "Competencia por mesas", d: "Cada mesa es un equipo y suma los puntos de sus invitados. Ideal para que todos participen." },
+  { i: "mensaje", t: "Muro de dedicatorias", d: "Mensajes en vivo que después quedan en el fotolibro junto a las fotos." },
   { i: "libro", t: "Fotolibro 21 × 21", d: "Con la estética de tu evento, listo para imprimir o compartir." },
-  { i: "escudo", t: "Moderación", d: "Aprobá antes de mostrar u ocultá lo que no corresponde." },
+  { i: "bingo", t: "Bingo de momentos", d: "Un tablero para completar con fotos: brindis, abrazo, selfie grupal, baile y torta.", pronto: true },
+  { i: "trivia", t: "Trivia personalizada", d: "Preguntas sobre los protagonistas, en rondas breves que se juegan desde el celular.", pronto: true },
+  { i: "premio", t: "Premios por votación", d: "“Foto más divertida”, “Mejor recuerdo”: un voto por participante y categoría.", pronto: true },
+  { i: "capsula", t: "Cápsula del tiempo", d: "Fotos y mensajes que se revelan en una fecha elegida, como el primer aniversario.", pronto: true },
 ];
 
 // Tonos cálidos que imitan fotos en la maqueta del celular
 const FOTOS_DEMO = [
   "linear-gradient(160deg,#e8c9a8,#8a5a44)",
-  "linear-gradient(200deg,#f3e3bf,#b8925a)",
+  "linear-gradient(200deg,#dbe5ee,#6a889e)",
   "linear-gradient(140deg,#c7b6d6,#4a3f6b)",
   "linear-gradient(180deg,#f5d6cf,#a8645a)",
   "linear-gradient(120deg,#d9cbb3,#5c564c)",
@@ -47,12 +51,19 @@ export default function Inicio() {
         <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
           <Logo claro />
           <nav className="flex items-center gap-1 text-sm sm:gap-2">
-            <Link to="/e" className="rounded-full px-3 py-2 font-medium text-white/70 transition hover:text-white">
-              Tengo un código
+            <Link to="/demo" className="hidden rounded-full px-3 py-2 font-medium text-white/70 transition hover:text-white sm:block">
+              Demo
+            </Link>
+            <a href="#planes" className="hidden rounded-full px-3 py-2 font-medium text-white/70 transition hover:text-white sm:block">
+              Planes
+            </a>
+            <Link to="/e" className="whitespace-nowrap rounded-full px-3 py-2 font-medium text-white/70 transition hover:text-white">
+              <span className="sm:hidden">Código</span>
+              <span className="hidden sm:inline">Tengo un código</span>
             </Link>
             <Link
               to={usuario ? "/panel" : "/ingresar?volver=/panel"}
-              className="rounded-full border border-oro/50 px-4 py-2 font-semibold text-[#f3e3bf] transition hover:border-oro hover:bg-oro/10"
+              className="whitespace-nowrap rounded-full border border-oro/50 px-4 py-2 font-semibold text-[#dbe5ee] transition hover:border-oro hover:bg-oro/10"
             >
               {usuario ? "Mis eventos" : "Ingresar"}
             </Link>
@@ -71,13 +82,14 @@ export default function Inicio() {
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <Link
                 to="/contratar"
-                className="rounded-full bg-gradient-to-b from-[#e9d3a3] to-[#c09a5c] px-7 py-3.5 font-semibold text-noche shadow-[0_10px_30px_-10px_rgba(201,169,110,.8)] transition hover:brightness-105"
+                className="rounded-full bg-gradient-to-b from-[#dbe5ee] to-[#8fa5b6] px-7 py-3.5 font-semibold text-noche shadow-[0_10px_30px_-10px_rgba(151,168,180,.8)] transition hover:brightness-105"
               >
                 Crear mi evento
               </Link>
-              <a href="#planes" className="rounded-full px-6 py-3.5 font-semibold text-white/85 ring-1 ring-white/20 transition hover:bg-white/5 hover:ring-white/40">
-                Ver planes
-              </a>
+              <Link to="/demo" className="group flex items-center gap-2 rounded-full px-6 py-3.5 font-semibold text-white/85 ring-1 ring-white/20 transition hover:bg-white/5 hover:ring-white/40">
+                <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-oro opacity-70" /><span className="relative inline-flex h-2 w-2 rounded-full bg-oro" /></span>
+                Probar la demo
+              </Link>
             </div>
             <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-xs tracking-wide text-white/50">
               {["Sin apps para los invitados", "Pago con Mercado Pago", "Listo en minutos"].map((t) => (
@@ -92,21 +104,21 @@ export default function Inicio() {
           {/* Maqueta del celular */}
           <div className="relative mx-auto w-full max-w-[19rem]">
             <div className="absolute -inset-10 rounded-full bg-oro/20 blur-3xl" aria-hidden />
-            <div className="relative rounded-[2.6rem] bg-gradient-to-b from-[#3a3d52] to-[#1b1e2e] p-2 shadow-[0_40px_80px_-30px_rgba(0,0,0,.8)] ring-1 ring-white/10">
-              <div className="overflow-hidden rounded-[2.1rem]" style={{ background: TEMATICAS[0].fondoDecorado }}>
+            <div className="relative rounded-[2.6rem] bg-gradient-to-b from-[#3a4650] to-[#1a242d] p-2 shadow-[0_40px_80px_-30px_rgba(0,0,0,.8)] ring-1 ring-white/10">
+              <div className="overflow-hidden rounded-[2.1rem]" style={{ background: "radial-gradient(circle at 20% 10%, rgba(151,168,180,.35), transparent 45%), radial-gradient(circle at 85% 90%, rgba(106,136,158,.25), transparent 40%), #f4f6f8" }}>
                 <div className="px-6 pb-4 pt-8 text-center">
-                  <p className="text-[9px] font-semibold uppercase tracking-[.3em] text-[#b08940]">12 · 12 · 2026</p>
-                  <p className="mt-2 text-[2.4rem] italic leading-none text-[#3d2e14]" style={{ fontFamily: TEMATICAS[0].fuenteTitulo }}>
+                  <p className="text-[9px] font-semibold uppercase tracking-[.3em] text-[#6a889e]">12 · 12 · 2026</p>
+                  <p className="mt-2 text-[2.4rem] italic leading-none text-[#2f4a5a]" style={{ fontFamily: TEMATICAS[0].fuenteTitulo }}>
                     Ana & Juan
                   </p>
-                  <p className="mt-2 text-[#b08940]">❦</p>
+                  <p className="mt-2 text-[#6a889e]">❦</p>
                 </div>
                 <div className="grid grid-cols-3 gap-1 px-2">
                   {FOTOS_DEMO.map((g, i) => (
                     <div key={i} className="aspect-square rounded-[6px]" style={{ background: g }} />
                   ))}
                 </div>
-                <div className="m-3 mt-4 flex items-center justify-center gap-2 rounded-2xl bg-[#94713a] py-3 text-sm font-semibold text-white">
+                <div className="m-3 mt-4 flex items-center justify-center gap-2 rounded-2xl bg-[#4d6170] py-3 text-sm font-semibold text-white">
                   <Icono nombre="camara" className="h-4 w-4" /> Subir fotos
                 </div>
               </div>
@@ -118,7 +130,7 @@ export default function Inicio() {
               <p className="mt-1 text-white/50">— Lola, mesa 4</p>
             </div>
             <div className="absolute -right-10 bottom-20 hidden items-center gap-2 rounded-full border border-white/10 bg-white/10 py-2 pl-2 pr-4 text-xs text-white shadow-2xl backdrop-blur-md lg:flex">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-b from-[#e9d3a3] to-[#c09a5c] font-display text-sm text-noche">1</span>
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-b from-[#dbe5ee] to-[#8fa5b6] font-display text-sm text-noche">1</span>
               Pepe · 34 pts
             </div>
           </div>
@@ -157,11 +169,14 @@ export default function Inicio() {
               Empezar ahora →
             </Link>
           </div>
-          <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-slate-200 bg-slate-200 sm:grid-cols-2 lg:grid-cols-5">
             {FUNCIONES.map((f) => (
-              <div key={f.t} className="group bg-white p-8 transition hover:bg-slate-50">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full border border-sky-300/70 text-sky-500 transition group-hover:border-sky-500">
-                  <Icono nombre={f.i} className="h-5 w-5" />
+              <div key={f.t} className={`group p-6 transition hover:bg-slate-50 ${f.pronto ? "bg-slate-50/60" : "bg-white"}`}>
+                <span className="flex items-center justify-between">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full border border-sky-300/70 text-sky-500 transition group-hover:border-sky-500">
+                    <Icono nombre={f.i} className="h-5 w-5" />
+                  </span>
+                  {f.pronto && <span className="chip border border-slate-300 text-slate-500">Próximamente</span>}
                 </span>
                 <h3 className="mt-6 text-xl">{f.t}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-slate-600">{f.d}</p>
@@ -212,12 +227,12 @@ export default function Inicio() {
                   key={p.id}
                   className={`relative flex flex-col rounded-3xl p-8 ${
                     destacado
-                      ? "bg-marfil text-noche shadow-[0_30px_80px_-30px_rgba(201,169,110,.6)] ring-1 ring-oro md:-my-4 md:py-12"
+                      ? "bg-marfil text-noche shadow-[0_30px_80px_-30px_rgba(151,168,180,.6)] ring-1 ring-oro md:-my-4 md:py-12"
                       : "border border-white/10 bg-white/[.04] backdrop-blur-sm"
                   }`}
                 >
                   {destacado && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-b from-[#e9d3a3] to-[#c09a5c] px-3 py-1 text-[10px] font-bold uppercase tracking-[.2em] text-noche">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-b from-[#dbe5ee] to-[#8fa5b6] px-3 py-1 text-[10px] font-bold uppercase tracking-[.2em] text-noche">
                       Más elegido
                     </span>
                   )}

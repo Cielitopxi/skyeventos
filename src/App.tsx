@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { supabaseConfigurado } from "./lib/supabase";
 import Inicio from "./pages/publico/Inicio";
 import Contratar from "./pages/publico/Contratar";
+import Demo from "./pages/publico/Demo";
 import Ingresar from "./pages/publico/Ingresar";
 import Login from "./pages/publico/Login";
 import ResultadoPago from "./pages/publico/ResultadoPago";
@@ -22,6 +23,7 @@ export default function App() {
       )}
       <Routes>
         <Route path="/" element={<Inicio />} />
+        <Route path="/demo" element={<Demo />} />
         <Route path="/contratar" element={<RequiereLogin><Contratar /></RequiereLogin>} />
         <Route path="/ingresar" element={<Login />} />
         <Route path="/pago" element={<ResultadoPago />} />

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Aviso, Cargando, ConTema, Modal } from "../../components/ui";
-import { fechaLarga, hora } from "../../lib/formato";
+import { fechaLarga, hora, rankingPorMesa } from "../../lib/formato";
 import { asegurarSesion, mensajeError, supabase } from "../../lib/supabase";
 import { ColaSubida, type TareaSubida } from "../../lib/subida";
 import { estiloTematica, tematica } from "../../lib/tematicas";
@@ -463,8 +463,11 @@ function Ranking({ evento, invitado }: { evento: EventoPublico; invitado: Invita
     return () => clearInterval(t);
   }, [evento.id]);
 
+  const [vista, setVista] = useState<"personas" | "mesas">("personas");
   const medalla = ["🥇", "🥈", "🥉"];
   const yo = filas.findIndex((f) => f.invitado_id === invitado.id);
+  const mesas = rankingPorMesa(filas);
+  const miMesa = invitado.mesa?.trim().toLowerCase();
 
   return (
     <div className="space-y-4">
@@ -476,6 +479,30 @@ function Ranking({ evento, invitado }: { evento: EventoPublico; invitado: Invita
           ))}
         </div>
       )}
+      {mesas.length > 1 && (
+        <div className="mx-auto flex w-fit rounded-full bg-tema-suave/10 p-1 text-sm font-semibold">
+          {(["personas", "mesas"] as const).map((v) => (
+            <button key={v} onClick={() => setVista(v)} className={`rounded-full px-4 py-1.5 transition ${vista === v ? "bg-tema-superficie text-tema-texto shadow-sm" : "text-tema-suave"}`}>
+              {v === "personas" ? "Personas" : "Mesas"}
+            </button>
+          ))}
+        </div>
+      )}
+      {vista === "mesas" && mesas.length > 1 ? (
+        <>
+          {!miMesa && <p className="text-center text-sm text-tema-suave">Cargá tu mesa en la pestaña <b>Yo</b> para sumar puntos a tu equipo.</p>}
+          <ol className="divide-y divide-tema-suave/15 rounded-2xl bg-tema-superficie shadow-sm">
+            {mesas.map((m, i) => (
+              <li key={m.mesa} className={`flex items-center gap-3 px-4 py-3 ${m.mesa.toLowerCase() === miMesa ? "bg-tema-acento/10" : ""}`}>
+                <span className="w-7 text-center text-lg">{medalla[i] ?? i + 1}</span>
+                <span className="flex-1 font-medium">Mesa {m.mesa}<span className="text-xs text-tema-suave"> · {m.invitados} {m.invitados === 1 ? "invitado" : "invitados"}</span></span>
+                <span className="font-bold">{m.puntos}</span>
+              </li>
+            ))}
+          </ol>
+        </>
+      ) : (
+      <>
       {yo >= 0 && <p className="text-center text-sm text-tema-suave">Estás en el puesto <b>{yo + 1}</b> con <b>{filas[yo].puntos}</b> puntos</p>}
       <ol className="divide-y divide-tema-suave/15 rounded-2xl bg-tema-superficie shadow-sm">
         {filas.slice(0, 30).map((f, i) => (
@@ -486,6 +513,8 @@ function Ranking({ evento, invitado }: { evento: EventoPublico; invitado: Invita
           </li>
         ))}
       </ol>
+      </>
+      )}
     </div>
   );
 }
