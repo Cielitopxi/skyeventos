@@ -274,4 +274,13 @@ console.log("✓ el anfitrión ve los emails:", (await como(host, false, `select
 console.log("✓ el invitado ve solo el suyo:", (await como(g1, true, `select email from invitados_contacto`)).rows.map((x) => x.email).join(", ") === "pepe@mail.com");
 console.log("✓ intruso no ve emails:", (await como(intruso, true, `select count(*)::int n from invitados_contacto`)).rows[0].n === 0);
 await espera_error(como(g1, true, `insert into invitados_contacto (invitado_id,evento_id,email) values ('${b2.id}','${ev2.id}','x@y.com')`), "escribir contactos directo");
+
+// Borrado de vencidos: el anfitrión no puede marcar ni desmarcar el contenido borrado
+await como(host, false, `update eventos set contenido_borrado_at = now(), nombre = 'Bingo!' where id='${ev2.id}'`);
+const tras = (await db.query(`select nombre, contenido_borrado_at from eventos where id='${ev2.id}'`)).rows[0];
+console.log("✓ el anfitrión edita el nombre pero no la marca de borrado:", tras.nombre === "Bingo!" && tras.contenido_borrado_at === null);
+await como(host, false, `update eventos set contenido_borrado_at = now() where id='${ev2.id}'`, "service_role");
+console.log("✓ el servicio de limpieza sí la marca:", (await db.query(`select contenido_borrado_at from eventos where id='${ev2.id}'`)).rows[0].contenido_borrado_at !== null);
+await db.exec(`delete from invitados where evento_id='${ev2.id}'`);
+console.log("✓ borrar invitados se lleva fotos, mensajes, votos y emails:", (await db.query(`select (select count(*) from fotos where evento_id='${ev2.id}') + (select count(*) from mensajes where evento_id='${ev2.id}') + (select count(*) from votos where evento_id='${ev2.id}') + (select count(*) from invitados_contacto where evento_id='${ev2.id}') as n`)).rows[0].n == 0);
 console.log("FIN");

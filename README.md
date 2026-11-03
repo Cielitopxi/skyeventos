@@ -69,8 +69,8 @@ src/
     libro/             fotolibro imprimible
     admin/             administración
 supabase/
-  migrations/          esquema, en orden (0001 … 0013)
-  functions/           Edge Functions: mp-crear-preferencia, mp-webhook, avisos-capsula
+  migrations/          esquema, en orden (0001 … 0015)
+  functions/           Edge Functions: mp-crear-preferencia, mp-webhook, avisos-capsula, limpiar-vencidos
   tests/               esquema.test.mjs (pruebas de RLS y reglas de negocio)
 ```
 
@@ -78,7 +78,7 @@ supabase/
 
 Las migraciones de `supabase/migrations` se aplican en orden numérico. Todas las tablas tienen RLS. Las operaciones con reglas de negocio (unirse, votar, responder trivia, activar o cerrar un evento) son funciones `security definer` que validan permisos adentro. Detalle en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
 
-`0009_cron_capsula.sql` usa `pg_cron`, por eso queda fuera de `test:db` (PGlite no lo trae).
+`0009_cron_capsula.sql` y `0015_limpieza_programada.sql` usan `pg_cron`, `pg_net` y Vault, por eso quedan fuera de `test:db` (PGlite no los trae).
 
 ## Pruebas
 

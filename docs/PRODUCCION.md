@@ -4,7 +4,7 @@ Proyecto Supabase: `ryxgalarjcrlwecxishb`. Las casillas marcadas ya están hecha
 
 ## 1. Base de datos
 
-- [x] Migraciones `0001` a `0013` aplicadas (`list_migrations` muestra las 13).
+- [x] Migraciones `0001` a `0013` aplicadas (`list_migrations` muestra las 13). `0014` y `0015` están pendientes (ver punto 5).
 - [x] RLS activo en todas las tablas; advisors de seguridad sin errores.
   - Las advertencias de funciones `security definer` ejecutables son intencionales: validan permisos adentro.
   - Las de "anonymous access" son intencionales: los invitados usan sesión anónima.
@@ -52,7 +52,38 @@ supabase secrets set --project-ref ryxgalarjcrlwecxishb \
 
 Mientras no esté programada, el anfitrión igual ve el aviso en su panel.
 
-## 5. Hosting del frontend
+## 5. Borrado automático de eventos vencidos
+
+Cada plan guarda el contenido `retencion_dias` días desde la fecha del evento (`expira_at`). Una vez vencido el plazo, la función `limpiar-vencidos` hace esto por cada evento:
+
+1. Borra del bucket la carpeta `{evento}/`: fotos, clips, miniaturas, cápsula y portada.
+2. Borra los invitados. En cascada se van sus fotos, mensajes, votos, respuestas, cápsula y emails.
+3. Deja el evento en `archivado` con `contenido_borrado_at`. El evento y el pedido se conservan.
+
+Nunca toca el evento demo ni los que no se pagaron. A los anfitriones el panel les avisa desde 15 días antes, con un link para descargar el ZIP y el fotolibro.
+
+- [x] Migración `0014` (marca de borrado protegida) y función `supabase/functions/limpiar-vencidos` escritas y probadas en `test:db`.
+- [ ] Aplicar `0014_limpieza_vencidos.sql`.
+- [ ] Desplegar la función. Se protege con una clave propia, no con JWT:
+
+```bash
+supabase functions deploy limpiar-vencidos --no-verify-jwt --project-ref ryxgalarjcrlwecxishb
+```
+
+- [ ] Aplicar `0015_limpieza_programada.sql`. Genera la clave en Vault (nadie la ve), activa `pg_net` y programa la llamada diaria a las 03:00 de Argentina.
+- [ ] Probar en modo simulación, que no borra nada y devuelve qué borraría. Desde el SQL Editor:
+
+```sql
+select net.http_post(
+  url := 'https://ryxgalarjcrlwecxishb.supabase.co/functions/v1/limpiar-vencidos',
+  headers := jsonb_build_object('Content-Type','application/json',
+    'x-limpieza-clave', (select decrypted_secret from vault.decrypted_secrets where name = 'limpieza_clave')),
+  body := '{"simular": true}'::jsonb);
+-- unos segundos después:
+select status_code, content from net._http_response order by created desc limit 1;
+```
+
+## 6. Hosting del frontend
 
 Es una SPA estática: `npm run build` genera `dist/`.
 
@@ -67,22 +98,21 @@ Es una SPA estática: `npm run build` genera `dist/`.
   - Grabar un video y un audio.
   - Ver la pantalla en vivo en una TV.
 
-## 6. Contenido y legales
+## 7. Contenido y legales
 
 - [ ] Política de privacidad y términos, con link en la landing y en el registro del invitado. Ahora se juntan **emails** de invitados (Ley 25.326 de Protección de Datos Personales): indicar para qué se usan y cómo pedir la baja. El registro ya pide aceptar que los anfitriones reciban nombre y email.
 - [ ] Revisar el evento de demostración `DEMO26`. Tiene datos de prueba ocultos (fotos de prueba y un invitado "Prueba Votación").
 
-## 7. Pendientes conocidos (no bloquean el lanzamiento)
+## 8. Pendientes conocidos (no bloquean el lanzamiento)
 
 | Tema | Estado | Impacto |
 |---|---|---|
-| Borrado automático al vencer `expira_at` | **No implementado.** Los archivos quedan en Storage. | Costo de almacenamiento y la promesa de "retención" de cada plan. Conviene una Edge Function diaria que borre del bucket `{evento}/` los eventos vencidos y los pase a `archivado`. |
 | Cola de subida persistente | En memoria | Si el invitado cierra la pestaña sin conexión, pierde las fotos que no se subieron. |
 | PDF del fotolibro en servidor | Se genera en el navegador con "Guardar como PDF" | Depende del navegador del anfitrión. |
 | Archivos huérfanos | Si se rechaza el registro de una foto (por ejemplo, se llegó al máximo del plan), el archivo ya subido queda en Storage. | Bajo. |
 | Moderación automática | No hay | El anfitrión modera a mano (moderación previa o posterior). |
 
-## 8. Antes de cada despliegue
+## 9. Antes de cada despliegue
 
 ```bash
 npm run typecheck

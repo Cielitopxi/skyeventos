@@ -56,7 +56,8 @@ export interface Evento {
   token_pantalla: string;
   premios_activos: boolean;
   cerrado_at: string | null;
-  expira_at: string | null;
+  expira_at: string | null; // hasta cuándo se guarda el contenido (fecha + retención del plan)
+  contenido_borrado_at?: string | null; // lo marca limpiar-vencidos al borrar el contenido
   created_at: string;
 }
 

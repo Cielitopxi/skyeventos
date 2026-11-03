@@ -29,7 +29,7 @@ Las funciones `es_organizador`, `es_miembro`, `mi_invitado` y `es_admin` son la 
 2. **Pago:** `mp-crear-preferencia` arma el checkout. Mercado Pago llama a `mp-webhook`, que consulta el pago en la API de MP, controla monto y moneda, y ejecuta **`activar_evento`** (solo `service_role` o admin). Esto pasa el evento a `activo` y calcula `expira_at = fecha + retencion_dias del plan`.
 3. **`activo`:** los invitados suben contenido.
 4. **`cerrar_evento`:** pasa a `cerrado`. Durante 48 h se sigue aceptando contenido (`evento_abierto`).
-5. **`archivado`:** lo marca el admin.
+5. **`archivado`:** lo marca el admin a mano, o la función `limpiar-vencidos` al pasar `expira_at`. En ese caso borra los archivos y los datos personales y marca `contenido_borrado_at`. Corre una vez por día desde `pg_cron` y valida una clave guardada en Vault.
 
 ## Datos
 

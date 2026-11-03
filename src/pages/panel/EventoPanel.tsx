@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Aviso, Cargando } from "../../components/ui";
+import { fechaLarga } from "../../lib/formato";
 import { mensajeError, supabase } from "../../lib/supabase";
 import type { Evento, Plan } from "../../lib/tipos";
 import { BarraPanel, ESTADOS } from "./MisEventos";
@@ -98,6 +99,7 @@ export default function EventoPanel() {
             </Aviso>
           </div>
         )}
+        <AvisoVencimiento evento={evento} />
         {tab === "resumen" && <TabResumen {...props} />}
         {tab === "personalizar" && <TabPersonalizar {...props} />}
         {tab === "moderar" && <TabModerar {...props} />}
@@ -109,6 +111,28 @@ export default function EventoPanel() {
         {tab === "qr" && <TabQr {...props} />}
         {tab === "libro" && <TabFotolibro {...props} />}
       </main>
+    </div>
+  );
+}
+
+/** Avisa al anfitrión que el contenido se borra al vencer el plazo de su plan, y si ya se borró. */
+function AvisoVencimiento({ evento }: { evento: Evento }) {
+  if (evento.contenido_borrado_at)
+    return (
+      <div className="no-imprimir mb-5">
+        <Aviso>El plazo de guardado terminó y las fotos, videos y mensajes de este evento se borraron el {fechaLarga(evento.contenido_borrado_at)}.</Aviso>
+      </div>
+    );
+  if (!evento.expira_at || evento.estado === "pendiente_pago") return null;
+  const dias = Math.ceil((new Date(evento.expira_at).getTime() - Date.now()) / 86_400_000);
+  if (dias > 15) return null;
+  return (
+    <div className="no-imprimir mb-5">
+      <Aviso tipo="error">
+        {dias > 0 ? <>Quedan <b>{dias} {dias === 1 ? "día" : "días"}</b>: </> : "Hoy vence el plazo de guardado: "}
+        el {fechaLarga(evento.expira_at)} se borran las fotos, videos y mensajes del evento.{" "}
+        <Link to={`/panel/${evento.id}?tab=libro`} className="font-semibold underline">Descargá el ZIP y el fotolibro</Link> antes.
+      </Aviso>
     </div>
   );
 }
