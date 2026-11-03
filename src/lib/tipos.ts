@@ -10,10 +10,10 @@ export interface Personalizacion {
   portada_path?: string;
   portada?: DisenoPortada; // solo planes con portada personalizada
   juegos?: Partial<Record<JuegoId, boolean>>; // ausente = activo
-  marco?: MarcoFoto | null; // marco instantánea sugerido al subir (cada invitado puede cambiarlo)
+  marco?: MarcoFoto | null; // marco instantánea de todas las fotos del evento, lo elige el anfitrión
 }
 
-export type MarcoFoto = "blanco" | "negro" | "crema";
+export type MarcoFoto = "blanco" | "negro" | "crema" | "dorado" | "rosa" | "celeste" | "kraft";
 
 export type JuegoId = "misiones" | "bingo" | "trivia" | "votacion" | "capsula";
 

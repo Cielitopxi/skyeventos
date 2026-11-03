@@ -4,7 +4,7 @@ import QRCode from "qrcode";
 import { Cargando } from "../../components/ui";
 import { IconoDuo, Medalla } from "../../components/Iconos";
 import { MarcaClip } from "../../components/MarcaClip";
-import { giro, Instantanea, PROPORCION_MARCO } from "../../components/Instantanea";
+import { giro, Instantanea, marcoDe, PROPORCION_MARCO } from "../../components/Instantanea";
 import { fuentePortada } from "../../components/Portada";
 import { APP_URL, asegurarSesion, mensajeError, supabase } from "../../lib/supabase";
 import { estiloTematica, tematica } from "../../lib/tematicas";
@@ -271,9 +271,9 @@ export default function Pantalla() {
             {urls[escena.foto.storage_path] && escena.foto.medio === "foto" && (
               <>
                 <img src={urls[escena.foto.storage_path]} alt="" className="absolute inset-0 h-full w-full scale-110 object-cover opacity-40 blur-2xl" />
-                {escena.foto.marco ? (
+                {marcoDe(escena.foto, p) ? (
                   <Instantanea
-                    marco={escena.foto.marco}
+                    marco={marcoDe(escena.foto, p)!}
                     pie={escena.foto.caption || p.titulo || evento.nombre}
                     inclinar={giro(escena.foto.id, 3)}
                     className="relative"
@@ -292,7 +292,7 @@ export default function Pantalla() {
                 <IconoDuo nombre={escena.foto.medio === "video" ? "video" : escena.foto.medio === "audio" ? "microfono" : "camara"} className="h-[2vw] w-[2vw] shrink-0 opacity-80" />
                 {escena.foto.medio === "audio" ? `Mensaje de voz de ${nombres[escena.foto.invitado_id] ?? "un invitado"}` : nombres[escena.foto.invitado_id] ?? "Invitado"}
               </p>
-              {escena.foto.caption && !escena.foto.marco && <p className="mt-1 text-[1.4vw] italic leading-snug text-white/85" style={{ fontFamily: titulo }}>{escena.foto.caption}</p>}
+              {escena.foto.caption && !marcoDe(escena.foto, p) && <p className="mt-1 text-[1.4vw] italic leading-snug text-white/85" style={{ fontFamily: titulo }}>{escena.foto.caption}</p>}
             </div>
           </div>
         )}

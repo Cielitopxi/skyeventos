@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Aviso } from "../../components/ui";
 import { IconoDuo } from "../../components/Iconos";
 import { MarcaClip } from "../../components/MarcaClip";
-import { giro, Instantanea } from "../../components/Instantanea";
+import { giro, Instantanea, marcoDe } from "../../components/Instantanea";
 import { hora } from "../../lib/formato";
 import { mensajeError, supabase } from "../../lib/supabase";
 import type { Foto, Invitado, Mensaje, Mision } from "../../lib/tipos";
@@ -104,9 +104,9 @@ export default function TabModerar({ evento }: PropsTab) {
             return (
               <div key={f.id} className={`overflow-hidden rounded-xl border bg-white ${f.estado === "oculta" ? "opacity-50" : ""}`}>
                 <button className="relative block aspect-square w-full bg-slate-100" onClick={() => setAmpliada(f)}>
-                  {f.marco ? (
+                  {marcoDe(f, evento.personalizacion) ? (
                     <span className="flex h-full items-center justify-center bg-slate-50 py-[6%]">
-                      <Instantanea marco={f.marco} mini inclinar={giro(f.id, 2)} className="h-full">
+                      <Instantanea marco={marcoDe(f, evento.personalizacion)!} mini inclinar={giro(f.id, 2)} className="h-full">
                         {urls[f.thumb_path] && <img src={urls[f.thumb_path]} alt="" loading="lazy" />}
                       </Instantanea>
                     </span>
@@ -167,8 +167,8 @@ export default function TabModerar({ evento }: PropsTab) {
                 {urls[ampliada.thumb_path] && <img src={urls[ampliada.thumb_path]} alt="" className="w-full rounded-xl" />}
                 <audio src={urlAmpliada[ampliada.storage_path]} autoPlay controls className="w-full" />
               </div>
-            ) : ampliada.marco ? (
-              <Instantanea marco={ampliada.marco} pie={ampliada.caption || evento.personalizacion.titulo || evento.nombre} style={{ width: "min(88vw, calc(80vh / 1.19))" }}>
+            ) : marcoDe(ampliada, evento.personalizacion) ? (
+              <Instantanea marco={marcoDe(ampliada, evento.personalizacion)!} pie={ampliada.caption || evento.personalizacion.titulo || evento.nombre} style={{ width: "min(88vw, calc(80vh / 1.19))" }}>
                 <img src={urlAmpliada[ampliada.storage_path]} alt="" />
               </Instantanea>
             ) : (

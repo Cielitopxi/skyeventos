@@ -1,7 +1,6 @@
 import { medioDe, procesarClip } from "./clip";
 import { procesarImagen } from "./imagen";
 import { BUCKET, supabase } from "./supabase";
-import type { MarcoFoto } from "./tipos";
 
 export interface TareaSubida {
   id: string;
@@ -14,7 +13,6 @@ export interface TareaSubida {
   bingoId?: string | null;
   caption?: string;
   duracion?: number; // la que midió el grabador (clips)
-  marco?: MarcoFoto | null; // marco instantánea (solo fotos)
 }
 
 type Oyente = (tareas: TareaSubida[]) => void;
@@ -45,7 +43,7 @@ export class ColaSubida {
     this.oyentes.forEach((f) => f(copia));
   }
 
-  agregar(archivos: File[], opciones: { misionId?: string | null; bingoId?: string | null; caption?: string; duracion?: number; marco?: MarcoFoto | null } = {}) {
+  agregar(archivos: File[], opciones: { misionId?: string | null; bingoId?: string | null; caption?: string; duracion?: number } = {}) {
     for (const archivo of archivos) {
       this.tareas.push({
         id: crypto.randomUUID(),
@@ -57,7 +55,6 @@ export class ColaSubida {
         bingoId: opciones.bingoId ?? null,
         caption: opciones.caption,
         duracion: opciones.duracion,
-        marco: opciones.marco ?? null,
       });
     }
     this.avisar();
@@ -122,7 +119,6 @@ export class ColaSubida {
         alto: m.alto,
         medio,
         duracion: m.duracion,
-        marco: medio === "foto" ? t.marco ?? null : null,
         mision_id: t.misionId || null,
         bingo_id: t.bingoId || null,
         caption: t.caption?.trim() || null,

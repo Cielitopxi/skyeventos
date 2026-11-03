@@ -264,4 +264,14 @@ const conMarco = (marco, medio = "foto", dur = "null") =>
 console.log("✓ foto con marco blanco:", (await como(g1, true, conMarco("'blanco'"))).rows[0].marco === "blanco");
 await espera_error(como(g1, true, conMarco("'arcoiris'")), "marco inexistente");
 await espera_error(como(g1, true, conMarco("'negro'", "video", 5)), "un video con marco");
+
+// Registro con email (sin confirmación: la sesión sigue siendo anónima)
+await espera_error(como(g1, true, `select registrar_invitado('${ev2.codigo}','Pepe','pepe-sin-arroba','1')`), "email inválido");
+const r1 = (await como(g1, true, `select * from registrar_invitado('${ev2.codigo}','Pepe','  Pepe@Mail.com ','1')`)).rows[0];
+console.log("✓ registro con email reusa el invitado:", r1.id === b1.id);
+await como(g2, true, `select registrar_invitado('${ev2.codigo}','Lola','lola@mail.com','2')`);
+console.log("✓ el anfitrión ve los emails:", (await como(host, false, `select email from invitados_contacto where evento_id='${ev2.id}' order by email`)).rows.map((x) => x.email).join(", "));
+console.log("✓ el invitado ve solo el suyo:", (await como(g1, true, `select email from invitados_contacto`)).rows.map((x) => x.email).join(", ") === "pepe@mail.com");
+console.log("✓ intruso no ve emails:", (await como(intruso, true, `select count(*)::int n from invitados_contacto`)).rows[0].n === 0);
+await espera_error(como(g1, true, `insert into invitados_contacto (invitado_id,evento_id,email) values ('${b2.id}','${ev2.id}','x@y.com')`), "escribir contactos directo");
 console.log("FIN");

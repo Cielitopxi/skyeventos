@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Aviso, Cargando } from "../../components/ui";
 import { IconoDuo, Medalla } from "../../components/Iconos";
-import { giro, Instantanea, PROPORCION_MARCO } from "../../components/Instantanea";
+import { giro, Instantanea, marcoDe, PROPORCION_MARCO } from "../../components/Instantanea";
 import { formatoDuracion } from "../../lib/clip";
 import { fechaLarga, hora, nombreTipo } from "../../lib/formato";
 import { APP_URL, supabase } from "../../lib/supabase";
@@ -63,7 +63,8 @@ export default function Fotolibro() {
         supabase.rpc("ranking", { p_evento: id }),
         supabase.from("premios").select("*").eq("evento_id", id!).order("puesto"),
       ]);
-      const todas = (fo.data as Foto[]) ?? [];
+      const p = (ev.data as Evento).personalizacion;
+      const todas = ((fo.data as Foto[]) ?? []).map((f) => ({ ...f, marco: marcoDe(f, p) }));
       const clips = todas.filter((f) => f.medio !== "foto");
       const QRCode = (await import("qrcode")).default;
       const qrs = Object.fromEntries(

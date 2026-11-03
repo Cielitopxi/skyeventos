@@ -1,12 +1,23 @@
 import type { CSSProperties, ReactNode } from "react";
-import type { MarcoFoto } from "../lib/tipos";
+import type { Foto, MarcoFoto, Personalizacion } from "../lib/tipos";
 
-/** Marcos de foto instantánea: cuadro cuadrado, borde parejo y franja ancha abajo para escribir. */
-export const MARCOS: { id: MarcoFoto; nombre: string; fondo: string; texto: string }[] = [
-  { id: "blanco", nombre: "Blanco", fondo: "#fbfaf6", texto: "#3d3a33" },
-  { id: "negro", nombre: "Negro", fondo: "#161616", texto: "#efece4" },
-  { id: "crema", nombre: "Crema", fondo: "#efe3c8", texto: "#5a4730" },
+/**
+ * Marcos de foto instantánea: cuadro cuadrado, borde parejo y franja ancha abajo para escribir.
+ * `tematicas`: estéticas para las que se sugiere en Personalizar.
+ */
+export const MARCOS: { id: MarcoFoto; nombre: string; fondo: string; texto: string; tematicas: string[] }[] = [
+  { id: "blanco", nombre: "Blanco", fondo: "#fbfaf6", texto: "#3d3a33", tematicas: ["corporativo", "fiesta"] },
+  { id: "negro", nombre: "Negro", fondo: "#161616", texto: "#efece4", tematicas: ["elegante", "fiesta"] },
+  { id: "crema", nombre: "Crema", fondo: "#efe3c8", texto: "#5a4730", tematicas: ["romantico"] },
+  { id: "dorado", nombre: "Dorado", fondo: "linear-gradient(135deg, #e9d59a, #c9a55a 45%, #ecd9a2 70%, #b8914a)", texto: "#3b2a0e", tematicas: ["glam", "elegante"] },
+  { id: "rosa", nombre: "Rosa", fondo: "#f3d9d6", texto: "#6e3b41", tematicas: ["romantico", "infantil"] },
+  { id: "celeste", nombre: "Celeste", fondo: "#d3e8f3", texto: "#284a5d", tematicas: ["infantil"] },
+  { id: "kraft", nombre: "Kraft", fondo: "#c7a57a", texto: "#3a2a17", tematicas: ["romantico", "corporativo"] },
 ];
+
+/** El marco lo define el anfitrión para todo el evento; los videos y audios no llevan. */
+export const marcoDe = (f: Pick<Foto, "medio">, p: Pick<Personalizacion, "marco"> | undefined): MarcoFoto | null =>
+  f.medio === "foto" && p?.marco && MARCOS.some((m) => m.id === p.marco) ? p.marco : null;
 
 /** Proporción alto/ancho del marco (como las instantáneas cuadradas). */
 export const PROPORCION_MARCO = 1.19;
@@ -60,7 +71,7 @@ export function Instantanea({ marco, children, pie, mini = false, inclinar = 0, 
   );
 }
 
-/** Muestra de un marco para elegirlo (selector al subir y en Personalizar). */
+/** Muestra de un marco para elegirlo en Personalizar. */
 export function MuestraMarco({ marco, activo, onClick, etiqueta }: { marco: MarcoFoto | null; activo: boolean; onClick: () => void; etiqueta: string }) {
   const m = marco ? MARCOS.find((x) => x.id === marco)! : null;
   return (

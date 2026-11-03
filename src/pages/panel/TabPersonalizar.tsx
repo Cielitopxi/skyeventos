@@ -220,13 +220,16 @@ export default function TabPersonalizar({ evento, plan, recargar }: PropsTab) {
           <div>
             <h2 className="font-bold">Marco de foto instantánea</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Cada invitado elige si su foto va con marco al subirla. Acá definís cuál aparece sugerido. La foto original no se toca: el marco se ve en la galería, la pantalla y el fotolibro.
+              Elegí el marco que va con la estética de tu fiesta: se aplica a todas las fotos del evento en la galería, la pantalla y el fotolibro. Lo podés cambiar cuando quieras y la foto original no se toca.
             </p>
           </div>
-          <div className="flex flex-wrap items-end gap-6 text-sky-600">
+          <div className="flex flex-wrap items-end gap-x-5 gap-y-4 text-sky-600">
             <MuestraMarco marco={null} activo={!p.marco} onClick={() => setP((x) => ({ ...x, marco: null }))} etiqueta="Sin marco" />
-            {MARCOS.map((m) => (
-              <MuestraMarco key={m.id} marco={m.id} activo={p.marco === m.id} onClick={() => setP((x) => ({ ...x, marco: m.id }))} etiqueta={m.nombre} />
+            {[...MARCOS].sort((a, b) => Number(b.tematicas.includes(tematicaId)) - Number(a.tematicas.includes(tematicaId))).map((m) => (
+              <div key={m.id} className="relative">
+                {m.tematicas.includes(tematicaId) && <span className="absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-amber-100 px-1.5 text-[9px] font-semibold uppercase tracking-wide text-amber-800">Sugerido</span>}
+                <MuestraMarco marco={m.id} activo={p.marco === m.id} onClick={() => setP((x) => ({ ...x, marco: m.id }))} etiqueta={m.nombre} />
+              </div>
             ))}
             {p.marco && (
               <Instantanea marco={p.marco} pie={p.titulo || nombre || "Nuestro evento"} inclinar={-2} className="ml-auto w-36">
