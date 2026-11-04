@@ -1,0 +1,12 @@
+// Publicación en Cloudflare Workers (Workers Builds la usa en cada push a main).
+// Es un sitio estático: el Worker solo sirve los archivos de dist/. Las rutas de la app
+// (/panel, /e/ABC123, …) que no son archivos devuelven index.html (single-page-application).
+// Headers de seguridad y caché: public/_headers.
+{
+  "name": "skyeventos",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

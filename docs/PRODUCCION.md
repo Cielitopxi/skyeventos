@@ -93,22 +93,17 @@ select status_code, content from net._http_response order by created desc limit 
 Es una SPA estática: `npm run build` genera `dist/`.
 
 - [x] Código en GitHub: `https://github.com/Cielitopxi/skyeventos` (rama `main`).
-- [ ] **Cloudflare Pages.** Es gratis y permite uso comercial, y `skystudio.ar` ya está en Cloudflare. Los headers de seguridad y la caché de `assets/` ya están en `public/_headers`.
-  1. Cloudflare → **Workers & Pages → Create → Pages → Connect to Git**. Autorizar GitHub y elegir `Cielitopxi/skyeventos`.
-  2. Configuración del build:
-     - Production branch: `main`
-     - Framework preset: `Vite` (o `None`)
-     - Build command: `npm run build`
-     - Build output directory: `dist`
-  3. **Environment variables** (Production):
-     - `VITE_SUPABASE_URL` = `https://ryxgalarjcrlwecxishb.supabase.co`
-     - `VITE_SUPABASE_ANON_KEY` = la clave pública `sb_publishable_…` (Supabase → Settings → API Keys)
-     - `VITE_APP_URL` = `https://eventos.skystudio.ar`
-     - `NODE_VERSION` = `20`
-  4. **Save and Deploy.** Desde ahí, cada push a `main` publica solo. Las ramas que no son `main` generan una vista previa con su propia URL.
-  5. En el proyecto → **Custom domains → Set up a custom domain** → `eventos.skystudio.ar`. Como la zona está en Cloudflare, crea el CNAME y el certificado HTTPS solos. La cámara y el micrófono del grabador **solo funcionan con HTTPS**.
-- Las variables `VITE_*` quedan dentro del build. Si se cambia alguna, hay que volver a publicar (Deployments → Retry deployment).
-- `public/_redirects` sirve si algún día se usa Netlify. Cloudflare Pages ya devuelve `index.html` en las rutas de la app y puede avisar que ignora esa regla: es normal.
+- [x] **Cloudflare Workers**, proyecto `skyeventos` (Workers Builds conectado a GitHub). Es gratis y permite uso comercial: los archivos estáticos no cuentan para el límite de pedidos. `skystudio.ar` ya está en Cloudflare.
+  - `wrangler.jsonc` publica `dist/` como sitio. Las rutas de la app que no son archivos devuelven `index.html` (`single-page-application`).
+  - Los headers de seguridad y la caché de `assets/` están en `public/_headers`.
+  - Build command `npm run build`; deploy command `npx wrangler deploy` (el que viene por defecto).
+- [ ] **Variables del build:** Worker → Settings → **Build → Variables and secrets**. Tienen que ir en *Build*, no en las variables del Worker, porque Vite las mete en el sitio al compilar.
+  - `VITE_SUPABASE_URL` = `https://ryxgalarjcrlwecxishb.supabase.co`
+  - `VITE_SUPABASE_ANON_KEY` = la clave pública `sb_publishable_…` (Supabase → Settings → API Keys)
+  - `VITE_APP_URL` = `https://eventos.skystudio.ar`
+  - `NODE_VERSION` = `20`
+- Cada push a `main` publica solo. Si se cambia una variable, hay que volver a publicar (Deployments → Retry build).
+- [ ] **Dominio:** Worker → Settings → **Domains & Routes → Add → Custom domain** → `eventos.skystudio.ar`. Como la zona está en Cloudflare, crea el DNS y el certificado HTTPS solos. La cámara y el micrófono del grabador **solo funcionan con HTTPS**.
 - [ ] Probar en un celular real (iOS Safari y Android Chrome):
   - Entrar por QR.
   - Sacar una foto.
