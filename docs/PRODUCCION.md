@@ -18,8 +18,8 @@ Proyecto Supabase: `ryxgalarjcrlwecxishb`. Las casillas marcadas ya están hecha
 - [ ] **Anonymous sign-ins** activado (ya lo usan invitados y pantallas).
 - [ ] **Rate limits → anonymous users:** subirlo. Viene en 30 por hora por IP, y en un salón todos los invitados comparten el wifi: a partir del invitado 31 en esa hora no se puede entrar. Un valor razonable es 500 o más por hora.
 - [ ] **URL Configuration:**
-  - Site URL = dominio de producción (por ejemplo, `https://skyeventos.com`).
-  - Redirect URLs = `https://skyeventos.com/**`. Quitar los `localhost` cuando ya no se usen.
+  - Site URL = dominio de producción (`https://eventos.skystudio.ar`).
+  - Redirect URLs = `https://eventos.skystudio.ar/**`. Quitar los `localhost` cuando ya no se usen.
 - [ ] Los invitados **no** confirman email: se registran con sesión anónima y el email queda como dato de contacto. No hace falta tocar "Confirm email", que aplica a cuentas con contraseña y no se usa.
 
 ## 3. Pagos (Mercado Pago)
@@ -30,7 +30,7 @@ Las funciones están escritas pero **no desplegadas**: hacen falta las credencia
 supabase functions deploy mp-crear-preferencia --project-ref ryxgalarjcrlwecxishb
 supabase functions deploy mp-webhook --no-verify-jwt --project-ref ryxgalarjcrlwecxishb
 supabase secrets set --project-ref ryxgalarjcrlwecxishb \
-  MP_ACCESS_TOKEN=APP_USR-... APP_URL=https://skyeventos.com MP_WEBHOOK_SECRET=...
+  MP_ACCESS_TOKEN=APP_USR-... APP_URL=https://eventos.skystudio.ar MP_WEBHOOK_SECRET=...
 ```
 
 - [ ] Probar primero con un token `TEST-...`: usa el checkout de prueba.
@@ -45,7 +45,7 @@ supabase secrets set --project-ref ryxgalarjcrlwecxishb \
 ```bash
 supabase functions deploy avisos-capsula --project-ref ryxgalarjcrlwecxishb
 supabase secrets set --project-ref ryxgalarjcrlwecxishb \
-  RESEND_API_KEY=re_... AVISOS_REMITENTE="SkyEventos <hola@skyeventos.com>" APP_URL=https://skyeventos.com AVISOS_CLAVE=<clave larga al azar>
+  RESEND_API_KEY=re_... AVISOS_REMITENTE="SkyEventos <eventos@skystudio.ar>" APP_URL=https://eventos.skystudio.ar AVISOS_CLAVE=<clave larga al azar>
 ```
 
 - [ ] Programarla una vez por día (Edge Functions → la función → Schedules) enviando el header `x-avisos-clave: <AVISOS_CLAVE>`.
@@ -92,11 +92,17 @@ select status_code, content from net._http_response order by created desc limit 
 
 Es una SPA estática: `npm run build` genera `dist/`.
 
-- [ ] Elegir el hosting. Ya está configurado para:
-  - **Vercel:** `vercel.json`, con rewrites a `index.html` y headers de seguridad.
-  - **Netlify o Cloudflare Pages:** `public/_redirects` y `public/_headers`.
-- [ ] Variables de entorno del build: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_APP_URL=https://skyeventos.com`.
-- [ ] Dominio con HTTPS. La cámara y el micrófono del grabador **solo funcionan con HTTPS**.
+- [x] Código en GitHub: `https://github.com/Cielitopxi/skyeventos` (rama `main`).
+- [ ] **Vercel** (ya configurado con `vercel.json`: rewrites a `index.html` y headers de seguridad):
+  1. vercel.com → Add New → Project → importar `Cielitopxi/skyeventos`. Vercel detecta Vite solo: build `npm run build`, carpeta `dist`.
+  2. Environment Variables (Production):
+     - `VITE_SUPABASE_URL` = `https://ryxgalarjcrlwecxishb.supabase.co`
+     - `VITE_SUPABASE_ANON_KEY` = la clave pública (Supabase → Settings → API)
+     - `VITE_APP_URL` = `https://eventos.skystudio.ar`
+  3. Deploy. Desde ahí, cada push a `main` publica solo.
+  4. Settings → Domains → agregar `eventos.skystudio.ar`.
+- [ ] **DNS** (donde está administrado `skystudio.ar`): registro `CNAME` con nombre `eventos` y valor el que indique Vercel (hoy suele ser `cname.vercel-dns.com`). Vercel emite el certificado HTTPS solo. La cámara y el micrófono del grabador **solo funcionan con HTTPS**.
+- Alternativa: Netlify o Cloudflare Pages, con `public/_redirects` y `public/_headers`.
 - [ ] Probar en un celular real (iOS Safari y Android Chrome):
   - Entrar por QR.
   - Sacar una foto.

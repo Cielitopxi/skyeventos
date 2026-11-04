@@ -1,6 +1,6 @@
 // Manda por mail los avisos de "su cápsula del tiempo ya se puede abrir".
 // Encola los que falten (encolar_avisos_capsula) y envía los pendientes con Resend.
-// Secretos: RESEND_API_KEY, AVISOS_REMITENTE (ej. "SkyEventos <hola@skyeventos.com>") y APP_URL.
+// Secretos: RESEND_API_KEY, AVISOS_REMITENTE (ej. "SkyEventos <eventos@skystudio.ar>") y APP_URL.
 // Programarla una vez por día (Supabase → Edge Functions → Schedules o pg_cron + pg_net).
 // Opcional: AVISOS_CLAVE. Si está, la llamada debe traer el header x-avisos-clave con ese valor
 // (así nadie más puede dispararla con la clave pública del proyecto).
