@@ -283,7 +283,11 @@ export default function Inicio() {
           <Isotipo className="h-6 w-6" />
           <span className="font-display text-base text-noche">SkyEventos</span>
         </span>
-        <span>© {new Date().getFullYear()} SkyEventos · Hecho en Argentina</span>
+        <span className="text-center sm:text-right">
+          © {new Date().getFullYear()} SkyEventos es un servicio de{" "}
+          <a href="https://skystudio.ar" target="_blank" rel="noopener" className="font-medium text-noche underline decoration-oro/50 underline-offset-4 hover:decoration-oro">SkyStudio</a>
+          {" "}· Hecho en Argentina
+        </span>
       </footer>
     </div>
   );
