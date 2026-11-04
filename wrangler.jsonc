@@ -5,6 +5,8 @@
 {
   "name": "skyeventos",
   "compatibility_date": "2026-10-01",
+  // Dominio propio: como skystudio.ar está en esta cuenta de Cloudflare, el deploy crea el DNS y el certificado.
+  "routes": [{ "pattern": "eventos.skystudio.ar", "custom_domain": true }],
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
