@@ -93,16 +93,22 @@ select status_code, content from net._http_response order by created desc limit 
 Es una SPA estática: `npm run build` genera `dist/`.
 
 - [x] Código en GitHub: `https://github.com/Cielitopxi/skyeventos` (rama `main`).
-- [ ] **Vercel** (ya configurado con `vercel.json`: rewrites a `index.html` y headers de seguridad):
-  1. vercel.com → Add New → Project → importar `Cielitopxi/skyeventos`. Vercel detecta Vite solo: build `npm run build`, carpeta `dist`.
-  2. Environment Variables (Production):
+- [ ] **Cloudflare Pages.** Es gratis y permite uso comercial, y `skystudio.ar` ya está en Cloudflare. Los headers de seguridad y la caché de `assets/` ya están en `public/_headers`.
+  1. Cloudflare → **Workers & Pages → Create → Pages → Connect to Git**. Autorizar GitHub y elegir `Cielitopxi/skyeventos`.
+  2. Configuración del build:
+     - Production branch: `main`
+     - Framework preset: `Vite` (o `None`)
+     - Build command: `npm run build`
+     - Build output directory: `dist`
+  3. **Environment variables** (Production):
      - `VITE_SUPABASE_URL` = `https://ryxgalarjcrlwecxishb.supabase.co`
-     - `VITE_SUPABASE_ANON_KEY` = la clave pública (Supabase → Settings → API)
+     - `VITE_SUPABASE_ANON_KEY` = la clave pública `sb_publishable_…` (Supabase → Settings → API Keys)
      - `VITE_APP_URL` = `https://eventos.skystudio.ar`
-  3. Deploy. Desde ahí, cada push a `main` publica solo.
-  4. Settings → Domains → agregar `eventos.skystudio.ar`.
-- [ ] **DNS** (donde está administrado `skystudio.ar`): registro `CNAME` con nombre `eventos` y valor el que indique Vercel (hoy suele ser `cname.vercel-dns.com`). Vercel emite el certificado HTTPS solo. La cámara y el micrófono del grabador **solo funcionan con HTTPS**.
-- Alternativa: Netlify o Cloudflare Pages, con `public/_redirects` y `public/_headers`.
+     - `NODE_VERSION` = `20`
+  4. **Save and Deploy.** Desde ahí, cada push a `main` publica solo. Las ramas que no son `main` generan una vista previa con su propia URL.
+  5. En el proyecto → **Custom domains → Set up a custom domain** → `eventos.skystudio.ar`. Como la zona está en Cloudflare, crea el CNAME y el certificado HTTPS solos. La cámara y el micrófono del grabador **solo funcionan con HTTPS**.
+- Las variables `VITE_*` quedan dentro del build. Si se cambia alguna, hay que volver a publicar (Deployments → Retry deployment).
+- `public/_redirects` sirve si algún día se usa Netlify. Cloudflare Pages ya devuelve `index.html` en las rutas de la app y puede avisar que ignora esa regla: es normal.
 - [ ] Probar en un celular real (iOS Safari y Android Chrome):
   - Entrar por QR.
   - Sacar una foto.
