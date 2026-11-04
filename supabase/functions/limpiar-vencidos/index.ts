@@ -1,5 +1,5 @@
 // Borra el contenido de los eventos cuyo plazo de guardado (expira_at) ya pasó.
-// La llama pg_cron una vez por día (migración 0014) con el header x-limpieza-clave, que se valida contra Vault.
+// La llama pg_cron una vez por día (migración 0015) con el header x-limpieza-clave, que se valida contra Vault.
 // Desplegar con verify_jwt = false: la protege esa clave, no un JWT.
 //
 // Por evento, en este orden (si algo falla, el evento se reintenta al día siguiente):
@@ -9,6 +9,7 @@
 // Nunca toca el evento demo ni los que no se activaron.
 //
 // Cuerpo opcional: {"simular": true} devuelve qué se borraría sin borrar nada. {"limite": n} (máx. 50).
+// Con {"simular": true, "codigo": "ABC123"} inspecciona ese evento aunque no esté vencido (solo lectura).
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 const BUCKET = "fotos";
@@ -43,15 +44,17 @@ Deno.serve(async (req) => {
   const simular = cuerpo?.simular === true;
   const limite = Math.min(Math.max(Number(cuerpo?.limite) || 20, 1), 50);
 
-  const { data: eventos, error } = await db
-    .from("eventos")
-    .select("id, codigo, nombre, expira_at, personalizacion")
-    .lt("expira_at", new Date().toISOString())
-    .is("contenido_borrado_at", null)
-    .eq("es_demo", false)
-    .neq("estado", "pendiente_pago")
-    .order("expira_at")
-    .limit(limite);
+  const inspeccionar = simular && typeof cuerpo?.codigo === "string" ? cuerpo.codigo.toUpperCase() : null;
+  const consulta = db.from("eventos").select("id, codigo, nombre, expira_at, personalizacion");
+  const { data: eventos, error } = await (inspeccionar
+    ? consulta.eq("codigo", inspeccionar)
+    : consulta
+        .lt("expira_at", new Date().toISOString())
+        .is("contenido_borrado_at", null)
+        .eq("es_demo", false)
+        .neq("estado", "pendiente_pago")
+        .order("expira_at")
+        .limit(limite));
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
   const resultado: { codigo: string; archivos: number; invitados: number; ok: boolean; error?: string }[] = [];

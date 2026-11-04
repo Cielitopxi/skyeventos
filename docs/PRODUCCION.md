@@ -4,7 +4,7 @@ Proyecto Supabase: `ryxgalarjcrlwecxishb`. Las casillas marcadas ya están hecha
 
 ## 1. Base de datos
 
-- [x] Migraciones `0001` a `0013` aplicadas (`list_migrations` muestra las 13). `0014` y `0015` están pendientes (ver punto 5).
+- [x] Migraciones `0001` a `0015` aplicadas (`list_migrations` muestra las 15).
 - [x] RLS activo en todas las tablas; advisors de seguridad sin errores.
   - Las advertencias de funciones `security definer` ejecutables son intencionales: validan permisos adentro.
   - Las de "anonymous access" son intencionales: los invitados usan sesión anónima.
@@ -62,16 +62,21 @@ Cada plan guarda el contenido `retencion_dias` días desde la fecha del evento (
 
 Nunca toca el evento demo ni los que no se pagaron. A los anfitriones el panel les avisa desde 15 días antes, con un link para descargar el ZIP y el fotolibro.
 
-- [x] Migración `0014` (marca de borrado protegida) y función `supabase/functions/limpiar-vencidos` escritas y probadas en `test:db`.
-- [ ] Aplicar `0014_limpieza_vencidos.sql`.
-- [ ] Desplegar la función. Se protege con una clave propia, no con JWT:
+- [x] `0014_limpieza_vencidos.sql` aplicada (marca de borrado protegida; probada en `test:db`).
+- [x] Función `limpiar-vencidos` desplegada con `verify_jwt = false`. La protege una clave propia, no un JWT.
+- [x] `0015_limpieza_programada.sql` aplicada: la clave está en Vault (nadie la ve), `pg_net` está activo y la tarea `limpiar-eventos-vencidos` corre todos los días a las 03:00 de Argentina.
+- [x] Probada el 4/11/2026:
+  - Sin clave responde 401.
+  - La simulación general no encontró eventos vencidos.
+  - La inspección de `DEMO26` contó 22 archivos y 3 invitados, igual que Storage, sin borrar nada.
+
+Para volver a desplegar la función después de cambiarla:
 
 ```bash
 supabase functions deploy limpiar-vencidos --no-verify-jwt --project-ref ryxgalarjcrlwecxishb
 ```
 
-- [ ] Aplicar `0015_limpieza_programada.sql`. Genera la clave en Vault (nadie la ve), activa `pg_net` y programa la llamada diaria a las 03:00 de Argentina.
-- [ ] Probar en modo simulación, que no borra nada y devuelve qué borraría. Desde el SQL Editor:
+Para ver qué borraría hoy, sin borrar nada, desde el SQL Editor (agregar `"codigo": "ABC123"` al cuerpo para inspeccionar un evento puntual aunque no esté vencido):
 
 ```sql
 select net.http_post(
