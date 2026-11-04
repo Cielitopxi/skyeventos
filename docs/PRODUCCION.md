@@ -97,13 +97,10 @@ Es una SPA estática: `npm run build` genera `dist/`.
   - `wrangler.jsonc` publica `dist/` como sitio. Las rutas de la app que no son archivos devuelven `index.html` (`single-page-application`).
   - Los headers de seguridad y la caché de `assets/` están en `public/_headers`.
   - Build command `npm run build`; deploy command `npx wrangler deploy` (el que viene por defecto).
-- [ ] **Variables del build:** Worker → Settings → **Build → Variables and secrets**. Tienen que ir en *Build*, no en las variables del Worker, porque Vite las mete en el sitio al compilar.
-  - `VITE_SUPABASE_URL` = `https://ryxgalarjcrlwecxishb.supabase.co`
-  - `VITE_SUPABASE_ANON_KEY` = la clave pública `sb_publishable_…` (Supabase → Settings → API Keys)
-  - `VITE_APP_URL` = `https://eventos.skystudio.ar`
-  - `NODE_VERSION` = `20`
-- Cada push a `main` publica solo. Si se cambia una variable, hay que volver a publicar (Deployments → Retry build).
-- [ ] **Dominio:** Worker → Settings → **Domains & Routes → Add → Custom domain** → `eventos.skystudio.ar`. Como la zona está en Cloudflare, crea el DNS y el certificado HTTPS solos. La cámara y el micrófono del grabador **solo funcionan con HTTPS**.
+- [x] **Variables:** van en `.env.production`, dentro del repo: la URL de Supabase, la clave publicable y la URL de la app. Son públicas por diseño, así que no hace falta cargar nada en el panel de Cloudflare. **Nunca** poner ahí claves secretas (`service_role`, tokens).
+- Cada push a `main` publica solo, en uno o dos minutos.
+- [x] **Dominio:** `eventos.skystudio.ar` está declarado en `routes` de `wrangler.jsonc`. Como la zona está en esta cuenta de Cloudflare, el deploy crea el DNS y el certificado HTTPS. La cámara y el micrófono del grabador **solo funcionan con HTTPS**.
+- Dirección provisoria del Worker: `https://skyeventos.cuenta-skystudio.workers.dev`.
 - [ ] Probar en un celular real (iOS Safari y Android Chrome):
   - Entrar por QR.
   - Sacar una foto.
