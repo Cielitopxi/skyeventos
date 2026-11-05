@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Aviso, Cargando, Icono, Logo } from "../../components/ui";
+import { esAppPlay } from "../../lib/appPlay";
 import { asegurarSesion, mensajeError, supabase } from "../../lib/supabase";
 
 interface InfoDemo {
@@ -44,9 +45,9 @@ export default function Demo() {
       <section className="cielo relative overflow-hidden text-white">
         <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
           <Logo claro />
-          <Link to="/contratar" className="rounded-full border border-oro/50 px-4 py-2 text-sm font-semibold text-[#dbe5ee] transition hover:border-oro hover:bg-oro/10">
+          {!esAppPlay && <Link to="/contratar" className="rounded-full border border-oro/50 px-4 py-2 text-sm font-semibold text-[#dbe5ee] transition hover:border-oro hover:bg-oro/10">
             Crear mi evento
-          </Link>
+          </Link>}
         </header>
         <div className="mx-auto max-w-6xl px-5 pb-12 pt-6 text-center md:pb-16">
           <p className="rotulo justify-center text-oro">Demo en vivo</p>
@@ -121,7 +122,7 @@ export default function Demo() {
             </div>
           ))}
         </div>
-        <div className="mt-16 flex flex-col items-center justify-between gap-6 rounded-3xl bg-noche px-8 py-10 text-white md:flex-row">
+        {!esAppPlay && <div className="mt-16 flex flex-col items-center justify-between gap-6 rounded-3xl bg-noche px-8 py-10 text-white md:flex-row">
           <div>
             <h2 className="text-3xl">¿Te imaginás tu evento así?</h2>
             <p className="mt-2 text-white/60">Elegí la temática, cargá tus misiones y en minutos lo tenés listo.</p>
@@ -129,7 +130,7 @@ export default function Demo() {
           <Link to="/contratar" className="shrink-0 rounded-full bg-gradient-to-b from-[#dbe5ee] to-[#8fa5b6] px-7 py-3.5 font-semibold text-noche">
             Crear mi evento
           </Link>
-        </div>
+        </div>}
         <p className="mt-6 text-center text-xs text-slate-500">
           La demo es pública: no subas fotos personales. El contenido se limpia periódicamente.
         </p>

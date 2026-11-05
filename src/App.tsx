@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { esAppPlay } from "./lib/appPlay";
 import { supabaseConfigurado } from "./lib/supabase";
 import { RequiereLogin } from "./components/RequiereLogin";
 import { Cargando } from "./components/ui";
@@ -32,9 +33,10 @@ export default function App() {
       )}
       <Suspense fallback={<Cargando />}>
         <Routes>
-          <Route path="/" element={<Inicio />} />
+          {/* En la app de Google Play no se vende: la portada es la entrada con código y no hay contratar ni regalar. */}
+          <Route path="/" element={esAppPlay ? <Ingresar /> : <Inicio />} />
           <Route path="/demo" element={<Demo />} />
-          <Route path="/contratar" element={<RequiereLogin><Contratar /></RequiereLogin>} />
+          <Route path="/contratar" element={esAppPlay ? <Navigate to="/panel" replace /> : <RequiereLogin><Contratar /></RequiereLogin>} />
           <Route path="/ingresar" element={<Login />} />
           <Route path="/pago" element={<ResultadoPago />} />
           <Route path="/panel" element={<RequiereLogin><MisEventos /></RequiereLogin>} />
@@ -42,7 +44,7 @@ export default function App() {
           <Route path="/panel/:id/libro" element={<RequiereLogin><Fotolibro /></RequiereLogin>} />
           <Route path="/admin" element={<RequiereLogin><Admin /></RequiereLogin>} />
           <Route path="/c/:id" element={<Clip />} />
-          <Route path="/regalar" element={<Regalar />} />
+          <Route path="/regalar" element={esAppPlay ? <Navigate to="/" replace /> : <Regalar />} />
           <Route path="/baja" element={<Baja />} />
           <Route path="/libro/:token" element={<LibroPublico />} />
           <Route path="/e" element={<Ingresar />} />

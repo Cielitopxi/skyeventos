@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Aviso, Logo } from "../../components/ui";
 import { supabase } from "../../lib/supabase";
 
@@ -48,6 +48,10 @@ export default function Ingresar() {
         </button>
         <p className="text-xs leading-relaxed text-white/45">El código está en el QR de tu mesa o te lo pasaron los anfitriones.</p>
       </form>
+      <p className="mt-10 text-xs text-white/45">
+        ¿Organizás un evento?{" "}
+        <Link to="/ingresar" className="text-[#dbe5ee] underline decoration-oro/50 underline-offset-4">Ingresá como anfitrión</Link>
+      </p>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Aviso, Campo, Logo } from "../../components/ui";
 import { useUsuario } from "../../components/useUsuario";
 import { APP_URL, mensajeError, supabase } from "../../lib/supabase";
+import { esAppPlay } from "../../lib/appPlay";
 
 /** El botón de Google aparece cuando el proveedor está activo en Supabase (VITE_LOGIN_GOOGLE=1). */
 const CON_GOOGLE = import.meta.env.VITE_LOGIN_GOOGLE === "1";
@@ -18,7 +19,7 @@ export default function Login() {
   const volver = /^\/(?![/\\])/.test(pedido) ? pedido : "/panel";
   const { usuario } = useUsuario();
   const nav = useNavigate();
-  const [modo, setModo] = useState<"ingresar" | "crear" | "olvide">(params.get("registro") === "1" ? "crear" : "ingresar");
+  const [modo, setModo] = useState<"ingresar" | "crear" | "olvide">(params.get("registro") === "1" && !esAppPlay ? "crear" : "ingresar");
   const [email, setEmail] = useState("");
   const [clave, setClave] = useState("");
   const [repetir, setRepetir] = useState("");
@@ -101,7 +102,8 @@ export default function Login() {
             </div>
           ) : (
             <form onSubmit={enviar} className="space-y-5">
-              <div className="grid grid-cols-2 rounded-full bg-slate-200/70 p-1 text-sm font-semibold">
+              {/* En la app de Play no se crean cuentas: Play pediría además poder borrarlas desde la app. */}
+              <div className={esAppPlay ? "hidden" : "grid grid-cols-2 rounded-full bg-slate-200/70 p-1 text-sm font-semibold"}>
                 {(["ingresar", "crear"] as const).map((m) => (
                   <button
                     key={m}
@@ -117,7 +119,7 @@ export default function Login() {
                 <p className="rotulo text-sky-500">Anfitriones</p>
                 <h1 className="mt-3 text-[1.9rem] leading-tight">{modo === "crear" ? "Creá tu cuenta" : "Ingresá a tu cuenta"}</h1>
                 <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                  {modo === "crear" ? "Con tu email y una contraseña. Entrás al instante, sin confirmar nada por mail." : "Para crear y administrar tus eventos."}
+                  {modo === "crear" ? "Con tu email y una contraseña. Entrás al instante, sin confirmar nada por mail." : esAppPlay ? "Para administrar tus eventos." : "Para crear y administrar tus eventos."}
                 </p>
               </div>
               {CON_GOOGLE && (

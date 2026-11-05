@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Aviso, Cargando } from "../../components/ui";
 import { fechaLarga } from "../../lib/formato";
 import { mensajeError, supabase } from "../../lib/supabase";
+import { esAppPlay } from "../../lib/appPlay";
 import type { Evento, Plan } from "../../lib/tipos";
 import { BarraPanel, ESTADOS } from "./MisEventos";
 import TabResumen from "./TabResumen";
@@ -95,7 +96,7 @@ export default function EventoPanel() {
           <div className="no-imprimir mb-5">
             <Aviso>
               Este evento está <b>pendiente de pago</b>: podés personalizarlo, pero los invitados van a poder entrar cuando se acredite el pago.{" "}
-              <Link to="/panel" className="font-semibold underline">Pagar desde Mis eventos</Link>
+              {!esAppPlay && <Link to="/panel" className="font-semibold underline">Pagar desde Mis eventos</Link>}
             </Aviso>
           </div>
         )}

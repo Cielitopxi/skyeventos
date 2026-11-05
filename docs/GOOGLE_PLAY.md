@@ -22,7 +22,7 @@ Lo que ya está listo en el repo:
 2. Opciones:
    - **Package ID**: `ar.skystudio.eventos` (si usás otro, cambialo también en `assetlinks.json`).
    - **App name**: SkyEventos · **Launcher name**: SkyEventos
-   - **Start URL**: `/` · **Theme / background color**: `#1a242d`
+   - **Start URL**: `/e?app=play` (arranca en el código de evento; el `?app=play` oculta contratar y regalar) · **Theme / background color**: `#1a242d`
    - **Signing key**: "Create new". Descargás un `.keystore` con su contraseña: **guardalo en un lugar seguro**
      (sin él no se pueden publicar actualizaciones del paquete). No lo subas al repositorio.
 3. Descargás un zip con el `.aab` (para Play) y un `.apk` (para probar en un celular).
@@ -51,8 +51,12 @@ Alternativa por línea de comandos: [Bubblewrap](https://github.com/GoogleChrome
 Google Play exige su propio sistema de facturación para vender **bienes o servicios digitales** dentro de las apps,
 y SkyEventos (planes y tarjetas de regalo) probablemente entre en esa categoría. Antes de publicar en producción, definí una de estas opciones:
 
-- **App sin venta**: la app de Play sirve para invitados y anfitriones (subir fotos, panel, pantalla, fotolibro),
-  y la contratación se hace en la web. Requiere ocultar "Contratar" y "Regalar" cuando la web corre dentro de la TWA.
+- **App sin venta (elegida e implementada)**: la app de Play sirve para invitados y anfitriones (subir fotos, panel, pantalla, fotolibro),
+  y la contratación se hace en la web. Dentro de la TWA (`src/lib/appPlay.ts`: referrer `android-app://` o `?app=play`):
+  - la portada es la entrada con código de evento, sin landing ni precios;
+  - `/contratar` y `/regalar` redirigen, y no hay botones de "Nuevo evento" ni "Pagar";
+  - en `/ingresar` solo se ingresa: no se crean cuentas (Play pediría también poder borrarlas desde la app).
+  La web y la PWA instalada desde el navegador siguen igual, con contratar y regalar.
 - **Facturación alternativa / de elección del usuario**: Google la habilita en algunos países con comisión reducida; revisá si aplica a Argentina.
 - **Play Billing**: integrar la Digital Goods API en la TWA (más trabajo y comisión de Google).
 

@@ -7,6 +7,7 @@ import { fechaLarga, nombreTipo } from "../../lib/formato";
 import { mensajeError, supabase } from "../../lib/supabase";
 import { tematica } from "../../lib/tematicas";
 import { MiContrasena } from "../../components/MiContrasena";
+import { esAppPlay } from "../../lib/appPlay";
 import type { EstadoCapsula, Evento } from "../../lib/tipos";
 
 export const ESTADOS: Record<string, { t: string; c: string }> = {
@@ -83,7 +84,7 @@ export default function MisEventos() {
       <main className="mx-auto max-w-6xl px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Mis eventos</h1>
-          <Link to="/contratar" className="btn-primario">+ Nuevo evento</Link>
+          {!esAppPlay && <Link to="/contratar" className="btn-primario">+ Nuevo evento</Link>}
         </div>
         {error && <div className="mb-4"><Aviso tipo="error">{error}</Aviso></div>}
         {capsulas.map((e) => (
@@ -102,7 +103,11 @@ export default function MisEventos() {
           <div className="tarjeta text-center">
             <IconoDuo nombre="chispa" className="mx-auto h-12 w-12 text-sky-500" />
             <p className="mt-2 font-semibold">Todavía no tenés eventos</p>
-            <Link to="/contratar" className="btn-primario mt-4">Crear mi primer evento</Link>
+            {esAppPlay ? (
+              <p className="mt-2 text-sm text-slate-600">Cuando tengas un evento, lo vas a ver acá.</p>
+            ) : (
+              <Link to="/contratar" className="btn-primario mt-4">Crear mi primer evento</Link>
+            )}
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -126,7 +131,7 @@ export default function MisEventos() {
                     </p>
                     <div className="flex flex-wrap gap-2 pt-1">
                       <Link to={`/panel/${ev.id}`} className="btn-secundario btn-chico">Administrar</Link>
-                      {ev.estado === "pendiente_pago" && (
+                      {ev.estado === "pendiente_pago" && !esAppPlay && (
                         <button className="btn-primario btn-chico" onClick={() => pagar(ev.id)}>Pagar</button>
                       )}
                       {ev.estado === "pendiente_pago" && esAdmin && (
