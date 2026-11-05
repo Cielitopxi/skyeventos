@@ -29,7 +29,10 @@ Proyecto Supabase: `ryxgalarjcrlwecxishb`. Las casillas marcadas ya están hecha
 
 ## 3. Pagos (Mercado Pago)
 
-Las funciones están escritas pero **no desplegadas**: hacen falta las credenciales.
+- [x] `mp-crear-preferencia` (verify_jwt) y `mp-webhook` (verify_jwt = false) desplegadas el 5/11/2026. Sin `MP_ACCESS_TOKEN` responden "Mercado Pago no está configurado".
+- [ ] Cargar los secretos en Supabase → Edge Functions → Secrets (nunca en el repo): `MP_ACCESS_TOKEN`, `APP_URL=https://eventos.skystudio.ar` y `MP_WEBHOOK_SECRET`.
+
+Para volver a desplegarlas desde la terminal:
 
 ```bash
 supabase functions deploy mp-crear-preferencia --project-ref ryxgalarjcrlwecxishb
