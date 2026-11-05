@@ -74,7 +74,7 @@ export default function TabCapsula({ evento, plan }: PropsTab) {
       {!estado.abierta && (
         <div className="grid gap-4 md:grid-cols-3">
           {[
-            { i: "pluma", t: "Los invitados escriben", d: "Desde el celular, durante la fiesta y hasta 48 h después, dejan un mensaje y una foto para el futuro." },
+            { i: "pluma", t: "Los invitados escriben", d: "Desde el celular, durante el evento y hasta 48 h después, dejan un mensaje y una foto para el futuro." },
             { i: "candado", t: "Queda sellada", d: "Nadie, ni ustedes, puede leer el contenido hasta la fecha de apertura." },
             { i: "regalo", t: "A los 11 meses, la abren", d: "Les llega un mail para abrirla antes del primer aniversario. El contenido se guarda un año." },
           ].map((x) => (

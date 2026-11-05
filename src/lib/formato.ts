@@ -16,8 +16,10 @@ export const TIPOS_EVENTO: { id: string; nombre: string }[] = [
   { id: "cumple", nombre: "Cumpleaños" },
   { id: "infantil", nombre: "Cumpleaños infantil" },
   { id: "corporativo", nombre: "Corporativo" },
-  { id: "egresados", nombre: "Egresados" },
+  { id: "egresados", nombre: "Egresados o graduación" },
   { id: "baby_shower", nombre: "Baby shower" },
+  { id: "religioso", nombre: "Bautismo o comunión" },
+  { id: "aniversario", nombre: "Aniversario" },
   { id: "otro", nombre: "Otro" },
 ];
 

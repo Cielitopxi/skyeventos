@@ -154,7 +154,7 @@ export default function TabVotacion({ evento, plan }: PropsTab) {
           <button className="btn-primario btn-chico shrink-0">Agregar</button>
         </form>
         <p className="text-xs leading-relaxed text-slate-500">
-          Sugerencia: abrí cada categoría en un momento distinto de la fiesta y revelá a los ganadores juntos al final, para la entrega de premios.
+          Sugerencia: abrí cada categoría en un momento distinto del evento y revelá a los ganadores juntos al final, para la entrega de premios.
         </p>
       </div>
     </div>

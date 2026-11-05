@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Aviso, Cargando } from "../../components/ui";
+import { CompartirRedes } from "../../components/CompartirRedes";
+import { Aviso, Cargando, Modal } from "../../components/ui";
 import { marcoDe } from "../../components/Instantanea";
 import { DISENOS, disenoDe, FORMATOS, formatoDe, type DisenoLibro, type FormatoLibro } from "../../lib/libro";
 import { APP_URL, mensajeError, supabase } from "../../lib/supabase";
@@ -20,6 +21,7 @@ export default function Fotolibro() {
   const [formato, setFormato] = useState<FormatoLibro>("a4h");
   const [diseno, setDiseno] = useState<DisenoLibro>("clasico");
   const [error, setError] = useState("");
+  const [compartir, setCompartir] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -88,6 +90,7 @@ export default function Fotolibro() {
           <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-3">
             <Link to={`/panel/${id}?tab=libro`} className="btn-chico rounded-full border border-white/20 px-3 py-1.5 text-sm hover:bg-white/10">← Volver</Link>
             <p className="mr-auto text-sm text-white/70">{estado}</p>
+            <button className="btn-chico rounded-full border border-white/20 px-4 py-2 text-sm hover:bg-white/10" onClick={() => setCompartir(true)}>Compartir</button>
             <button className="btn-primario" disabled={!estado.startsWith("listo")} onClick={() => window.print()}>Descargar PDF</button>
           </div>
           <div className="mx-auto flex max-w-6xl flex-wrap gap-x-8 gap-y-3 px-4 pb-3">
@@ -98,9 +101,51 @@ export default function Fotolibro() {
             En la ventana de impresión elegí <b>Destino: Guardar como PDF</b>, márgenes <b>Ninguno</b> y activá <b>Gráficos de fondo</b>. Formato {FORMATOS[formato].detalle}.
           </p>
           {error && <div className="mx-auto max-w-6xl px-4 pb-3"><Aviso tipo="error">{error}</Aviso></div>}
+          <ModalCompartir abierto={compartir} onCerrar={() => setCompartir(false)} evento={datos.evento} alCambiar={(libro_token) => setDatos({ ...datos, evento: { ...datos.evento, libro_token } })} />
         </div>
       )}
     />
+  );
+}
+
+/** Link público del fotolibro para mandar por WhatsApp o publicar en redes. Se puede desactivar cuando se quiera. */
+function ModalCompartir({ abierto, onCerrar, evento, alCambiar }: { abierto: boolean; onCerrar: () => void; evento: Evento; alCambiar: (t: string | null) => void }) {
+  const [procesando, setProcesando] = useState(false);
+  const [error, setError] = useState("");
+  const token = evento.libro_token;
+  const nombre = evento.personalizacion?.titulo || evento.nombre;
+
+  async function cambiar(activo: boolean) {
+    setProcesando(true);
+    setError("");
+    const { data, error } = await supabase.rpc("compartir_libro", { p_evento: evento.id, p_activo: activo });
+    setProcesando(false);
+    if (error) return setError(mensajeError(error));
+    alCambiar((data as string | null) ?? null);
+  }
+
+  return (
+    <Modal abierto={abierto} onCerrar={onCerrar} titulo="Compartir el fotolibro">
+      <div className="space-y-4 text-slate-700">
+        {!token ? (
+          <>
+            <p className="text-sm">
+              Creá un link para que cualquiera vea el fotolibro sin descargar nada: ideal para mandarlo al grupo de la familia o publicarlo en redes.
+              Solo se ven las fotos y mensajes que incluiste en el libro.
+            </p>
+            <button className="btn-primario w-full" disabled={procesando} onClick={() => cambiar(true)}>{procesando ? "Creando…" : "Crear link público"}</button>
+          </>
+        ) : (
+          <>
+            <input className="input font-mono text-xs" readOnly value={`${APP_URL}/libro/${token}`} onFocus={(e) => e.target.select()} />
+            <CompartirRedes url={`${APP_URL}/libro/${token}`} titulo={`Fotolibro de ${nombre}`} texto={`¡Ya está el fotolibro de ${nombre}! 📸`} />
+            <p className="text-xs text-slate-500">Para Instagram: usá “Instagram y más…” desde el celular, o descargá el PDF y subí las páginas como carrusel.</p>
+            <button className="text-sm text-red-600 underline" disabled={procesando} onClick={() => cambiar(false)}>Dejar de compartir (el link deja de funcionar)</button>
+          </>
+        )}
+        {error && <Aviso tipo="error">{error}</Aviso>}
+      </div>
+    </Modal>
   );
 }
 
@@ -125,8 +170,9 @@ function Selector<K extends string>({ titulo, valor, opciones, onChange }: { tit
 }
 
 /** Las hojas con su tamaño de página. Se usa también para probar el armado con datos de muestra. */
-export function HojasLibro({ datos, urls, formato, diseno, barra }: {
+export function HojasLibro({ datos, urls, formato, diseno, barra, ajustarPantalla = false }: {
   datos: DatosLibro;
+  ajustarPantalla?: boolean;
   urls: Record<string, string>;
   formato: FormatoLibro;
   diseno: DisenoLibro;
@@ -147,6 +193,15 @@ export function HojasLibro({ datos, urls, formato, diseno, barra }: {
   const listo = cargadas >= totalImgs;
   const fotos = datos.fotos.length;
   const estado = `${listo ? "listo" : `cargando imágenes ${cargadas}/${totalImgs}…`} · ${paginas.length} páginas · ${fotos} foto${fotos === 1 ? "" : "s"}`;
+  // En el celular las hojas A4 no entran: se achican para que se vean enteras (no afecta la impresión).
+  const [escala, setEscala] = useState(1);
+  useEffect(() => {
+    if (!ajustarPantalla) return;
+    const medir = () => setEscala(Math.min(1, (window.innerWidth - 16) / (f.w * 3.7795)));
+    medir();
+    window.addEventListener("resize", medir);
+    return () => window.removeEventListener("resize", medir);
+  }, [ajustarPantalla, f.w]);
   const estilo = { ...estiloTematica(datos.evento.tematica, datos.evento.personalizacion), ...DISENOS[diseno].vars } as CSSProperties;
 
   return (
@@ -160,7 +215,7 @@ export function HojasLibro({ datos, urls, formato, diseno, barra }: {
         [data-diseno=moderno] .titulo { text-transform: uppercase; letter-spacing: .06em; font-weight: 800; color: rgb(var(--t-texto)); }
         [data-diseno=moderno] .cifra { color: rgb(var(--t-acento)); }
         [data-diseno=minimal] .titulo { font-weight: 400; color: rgb(var(--t-texto)); }
-        @media screen { .pagina { margin: 0 auto 10mm; box-shadow: 0 20px 50px rgba(0,0,0,.45); } }
+        @media screen { .pagina { margin: 0 auto 10mm; box-shadow: 0 20px 50px rgba(0,0,0,.45); zoom: ${escala}; } }
         @media print { .pagina:last-child { break-after: auto; page-break-after: auto; } }
       `}</style>
       {barra(estado)}

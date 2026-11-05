@@ -4,7 +4,7 @@ Proyecto Supabase: `ryxgalarjcrlwecxishb`. Las casillas marcadas ya están hecha
 
 ## 1. Base de datos
 
-- [x] Migraciones `0001` a `0015` aplicadas (`list_migrations` muestra las 15).
+- [x] Migraciones `0001` a `0016` aplicadas. La `0016` suma códigos de descuento, tarjetas de regalo y fotolibro compartido.
 - [x] RLS activo en todas las tablas; advisors de seguridad sin errores.
   - Las advertencias de funciones `security definer` ejecutables son intencionales: validan permisos adentro.
   - Las de "anonymous access" son intencionales: los invitados usan sesión anónima.
@@ -29,7 +29,7 @@ Proyecto Supabase: `ryxgalarjcrlwecxishb`. Las casillas marcadas ya están hecha
 
 ## 3. Pagos (Mercado Pago)
 
-- [x] `mp-crear-preferencia` (verify_jwt) y `mp-webhook` (verify_jwt = false) desplegadas el 5/11/2026. Sin `MP_ACCESS_TOKEN` responden "Mercado Pago no está configurado".
+- [x] `mp-crear-preferencia` (verify_jwt) y `mp-webhook` (verify_jwt = false) desplegadas el 5/11/2026 (versión 2: cobran también tarjetas de regalo, con `external_reference = regalo:<id>`). Sin `MP_ACCESS_TOKEN` responden "Mercado Pago no está configurado".
 - [ ] Cargar los secretos en Supabase → Edge Functions → Secrets (nunca en el repo): `MP_ACCESS_TOKEN`, `APP_URL=https://eventos.skystudio.ar` y `MP_WEBHOOK_SECRET`.
 
 Para volver a desplegarlas desde la terminal:
@@ -44,6 +44,8 @@ supabase secrets set --project-ref ryxgalarjcrlwecxishb \
 - [ ] Probar primero con un token `TEST-...`: usa el checkout de prueba.
 - [ ] En Mercado Pago → Tus integraciones → Webhooks: URL `https://ryxgalarjcrlwecxishb.supabase.co/functions/v1/mp-webhook`, evento **Pagos**. Copiar la clave secreta a `MP_WEBHOOK_SECRET`.
 - [ ] Hacer una compra real de punta a punta: el evento tiene que pasar a `activo` solo.
+- [ ] Probar una tarjeta de regalo (`/regalar`): al acreditarse el pago, el código aparece en "Mis regalos" y se canjea en el último paso de `/contratar`.
+- Códigos de descuento: se crean en `/admin → Códigos` (porcentaje o monto, por plan, con usos máximos y vencimiento). Si un código cubre el 100 %, el evento se activa sin pasar por Mercado Pago. Link directo para campañas: `https://eventos.skystudio.ar/contratar?cupon=CODIGO`.
 
 ## 4. Avisos de la cápsula (Resend)
 
@@ -115,6 +117,8 @@ Es una SPA estática: `npm run build` genera `dist/`.
   - Sacar una foto.
   - Grabar un video y un audio.
   - Ver la pantalla en vivo en una TV.
+- [ ] **App en Google Play:** pasos en [GOOGLE_PLAY.md](GOOGLE_PLAY.md). Falta la cuenta de Play Console, generar el paquete y pegar la huella SHA-256 en `public/.well-known/assetlinks.json`.
+- Fotolibro compartido: desde el fotolibro, "Compartir" genera `https://eventos.skystudio.ar/libro/<token>` (se ve sin cuenta y se puede desactivar). La vista previa en WhatsApp o Facebook muestra la imagen y el texto generales de SkyEventos, no la portada del evento.
 
 ## 7. Contenido y legales
 

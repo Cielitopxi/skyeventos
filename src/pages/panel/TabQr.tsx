@@ -9,7 +9,7 @@ type Formato = "tarjetas" | "cartel";
 export default function TabQr({ evento }: PropsTab) {
   const [qr, setQr] = useState("");
   const [formato, setFormato] = useState<Formato>("tarjetas");
-  const [texto, setTexto] = useState("¡Compartí tus fotos de la noche!");
+  const [texto, setTexto] = useState("¡Compartí tus fotos del evento!");
   const link = `${APP_URL}/e/${evento.codigo}`;
   const t = tematica(evento.tematica);
   const p = evento.personalizacion;

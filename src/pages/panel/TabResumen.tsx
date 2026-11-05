@@ -109,7 +109,7 @@ export default function TabResumen({ evento, plan, recargar }: PropsTab) {
           <h2 className="font-bold">Estado del evento</h2>
           {evento.estado === "activo" && (
             <>
-              <p className="text-sm text-slate-600">Cuando termine la fiesta, cerralo. Los invitados podrán subir fotos 48 h más.</p>
+              <p className="text-sm text-slate-600">Cuando termine el evento, cerralo. Los invitados podrán subir fotos 48 h más.</p>
               <button className="btn-peligro w-full" onClick={() => cambiarEstado(true)}>Cerrar evento</button>
             </>
           )}

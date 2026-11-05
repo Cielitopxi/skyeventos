@@ -12,6 +12,8 @@ const Ingresar = lazy(() => import("./pages/publico/Ingresar"));
 const Login = lazy(() => import("./pages/publico/Login"));
 const ResultadoPago = lazy(() => import("./pages/publico/ResultadoPago"));
 const Clip = lazy(() => import("./pages/publico/Clip"));
+const Regalar = lazy(() => import("./pages/publico/Regalar"));
+const LibroPublico = lazy(() => import("./pages/libro/LibroPublico"));
 const MisEventos = lazy(() => import("./pages/panel/MisEventos"));
 const EventoPanel = lazy(() => import("./pages/panel/EventoPanel"));
 const EventoInvitado = lazy(() => import("./pages/invitado/EventoInvitado"));
@@ -39,6 +41,8 @@ export default function App() {
           <Route path="/panel/:id/libro" element={<RequiereLogin><Fotolibro /></RequiereLogin>} />
           <Route path="/admin" element={<RequiereLogin><Admin /></RequiereLogin>} />
           <Route path="/c/:id" element={<Clip />} />
+          <Route path="/regalar" element={<Regalar />} />
+          <Route path="/libro/:token" element={<LibroPublico />} />
           <Route path="/e" element={<Ingresar />} />
           <Route path="/e/:codigo" element={<EventoInvitado />} />
           <Route path="/pantalla/:codigo" element={<Pantalla />} />

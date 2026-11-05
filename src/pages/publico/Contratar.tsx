@@ -5,7 +5,7 @@ import { VistaPrevia } from "../../components/VistaPrevia";
 import { pesos, TIPOS_EVENTO } from "../../lib/formato";
 import { mensajeError, supabase } from "../../lib/supabase";
 import { TEMATICAS } from "../../lib/tematicas";
-import type { Evento, Plan } from "../../lib/tipos";
+import type { Cupon, Evento, Plan } from "../../lib/tipos";
 
 /** Contratación online: datos → temática → plan → pago con Mercado Pago. */
 export default function Contratar() {
@@ -21,6 +21,10 @@ export default function Contratar() {
   const [error, setError] = useState("");
   const [procesando, setProcesando] = useState(false);
   const [creado, setCreado] = useState<Evento | null>(null);
+  const [codigo, setCodigo] = useState(params.get("cupon") || params.get("codigo") || "");
+  const [cupon, setCupon] = useState<Cupon | null>(null);
+  const [cuponError, setCuponError] = useState("");
+  const [cuponAplicado, setCuponAplicado] = useState(false);
 
   useEffect(() => {
     supabase.from("planes").select("*").eq("activo", true).order("orden").then(({ data }) => setPlanes((data as Plan[]) ?? []));
@@ -33,6 +37,24 @@ export default function Contratar() {
   }, [tipo]);
 
   const plan = planes.find((p) => p.id === planId);
+
+  // Si cambia el plan, el descuento calculado deja de valer.
+  useEffect(() => {
+    if (!cuponAplicado) setCupon(null);
+  }, [planId, cuponAplicado]);
+
+  async function probarCodigo() {
+    setCuponError("");
+    if (!codigo.trim()) return;
+    const { data, error } = await supabase.rpc("cupon_evaluar", { p_codigo: codigo, p_plan: planId });
+    const r = (data as Cupon[] | null)?.[0];
+    if (error || !r) return setCuponError(mensajeError(error));
+    if (!r.valido) {
+      setCupon(null);
+      return setCuponError(r.mensaje);
+    }
+    setCupon(r);
+  }
 
   async function pagar() {
     setError("");
@@ -52,6 +74,18 @@ export default function Contratar() {
         ev = data as Evento;
         setCreado(ev);
       }
+      if (cupon && !cuponAplicado) {
+        const { data, error } = await supabase.rpc("aplicar_cupon", { p_evento: ev.id, p_codigo: cupon.codigo });
+        if (error) {
+          setCupon(null);
+          throw error;
+        }
+        setCuponAplicado(true);
+        if ((data as { activado: boolean }).activado) {
+          nav(`/panel/${ev.id}`);
+          return;
+        }
+      }
       const { data, error } = await supabase.functions.invoke("mp-crear-preferencia", { body: { evento_id: ev.id } });
       if (error) throw new Error("No se pudo iniciar el pago con Mercado Pago. Tu evento quedó guardado: podés pagarlo desde tu panel.");
       window.location.href = (data as { init_point: string }).init_point;
@@ -61,6 +95,7 @@ export default function Contratar() {
     }
   }
 
+  const gratis = !!cupon && Number(cupon.total) <= 0;
   const puedeSeguir = paso === 1 ? nombre.trim().length >= 2 : true;
 
   return (
@@ -189,19 +224,49 @@ export default function Contratar() {
                       <dd className="font-medium">{v}</dd>
                     </div>
                   ))}
+                  {cupon && (
+                    <div className="flex justify-between px-4 py-2.5 text-emerald-700">
+                      <dt>{cupon.mensaje} <span className="mono text-xs">{cupon.codigo}</span></dt>
+                      <dd className="font-medium">−{pesos(cupon.descuento)}</dd>
+                    </div>
+                  )}
                   <div className="flex justify-between px-4 py-3 text-base">
                     <dt className="font-semibold">Total</dt>
-                    <dd className="font-bold">{plan ? pesos(plan.precio_ars) : "—"}</dd>
+                    <dd className="font-bold">
+                      {cupon && <s className="mr-2 text-sm font-normal text-slate-400">{plan ? pesos(plan.precio_ars) : ""}</s>}
+                      {cupon ? pesos(cupon.total) : plan ? pesos(plan.precio_ars) : "—"}
+                    </dd>
                   </div>
                 </dl>
+                <Campo label="¿Tenés un código de descuento o de regalo?">
+                  <div className="flex gap-2">
+                    <input
+                      className="input mono uppercase"
+                      value={codigo}
+                      maxLength={24}
+                      disabled={cuponAplicado}
+                      onChange={(e) => {
+                        setCodigo(e.target.value);
+                        setCupon(null);
+                        setCuponError("");
+                      }}
+                      onKeyDown={(e) => e.key === "Enter" && probarCodigo()}
+                      placeholder="REGALO-XXXXXX"
+                    />
+                    <button type="button" className="btn-secundario shrink-0" onClick={probarCodigo} disabled={!codigo.trim() || cuponAplicado || procesando}>
+                      Aplicar
+                    </button>
+                  </div>
+                  {cuponError && <p className="mt-1.5 text-sm text-red-600">{cuponError}</p>}
+                </Campo>
                 {error && <Aviso tipo="error">{error}</Aviso>}
                 {creado && error && (
                   <button className="btn-secundario w-full" onClick={() => nav(`/panel/${creado.id}`)}>Ir al panel del evento</button>
                 )}
-                <button className="btn-primario w-full bg-[#009ee3] py-3.5 text-base" onClick={pagar} disabled={procesando || !plan}>
-                  {procesando ? "Redirigiendo a Mercado Pago…" : "Pagar con Mercado Pago"}
+                <button className={`btn-primario w-full py-3.5 text-base ${gratis ? "" : "bg-[#009ee3]"}`} onClick={pagar} disabled={procesando || !plan}>
+                  {procesando ? (gratis ? "Activando tu evento…" : "Redirigiendo a Mercado Pago…") : gratis ? "Activar mi evento" : "Pagar con Mercado Pago"}
                 </button>
-                <p className="text-center text-xs text-slate-500">El evento se activa automáticamente cuando se acredita el pago.</p>
+                <p className="text-center text-xs text-slate-500">{gratis ? "Tu código cubre el total: no hace falta pagar." : "El evento se activa automáticamente cuando se acredita el pago."}</p>
               </>
             )}
 

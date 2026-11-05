@@ -59,6 +59,7 @@ export interface Evento {
   cerrado_at: string | null;
   expira_at: string | null; // hasta cuándo se guarda el contenido (fecha + retención del plan)
   contenido_borrado_at?: string | null; // lo marca limpiar-vencidos al borrar el contenido
+  libro_token?: string | null; // link público del fotolibro (compartir_libro)
   created_at: string;
 }
 
@@ -215,4 +216,43 @@ export interface EstadoCapsula {
   abre_at: string;
   abierta: boolean;
   habilitada: boolean;
+}
+
+/** Resultado de cupon_evaluar: cuánto descuenta un código para un plan. */
+export interface Cupon {
+  valido: boolean;
+  mensaje: string;
+  codigo: string;
+  precio: number;
+  descuento: number;
+  total: number;
+}
+
+/** Código de descuento o tarjeta de regalo (tabla cupones). */
+export interface CodigoDescuento {
+  codigo: string;
+  tipo: "porcentaje" | "monto" | "regalo";
+  valor: number;
+  plan_id: string | null;
+  usos_max: number | null;
+  usos: number;
+  vence_at: string | null;
+  activo: boolean;
+  nota: string | null;
+  comprador_id: string | null;
+  para: string | null;
+  mensaje: string | null;
+  created_at: string;
+}
+
+/** Compra de una tarjeta de regalo. */
+export interface PedidoRegalo {
+  id: string;
+  cupon: string;
+  owner_id: string;
+  plan_id: string;
+  monto: number;
+  estado: "pendiente" | "aprobado" | "rechazado" | "cancelado";
+  created_at: string;
+  pagado_at: string | null;
 }

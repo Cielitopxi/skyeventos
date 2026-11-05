@@ -1,4 +1,4 @@
-// Crea la preferencia de Checkout Pro de Mercado Pago para el pedido pendiente de un evento.
+// Crea la preferencia de Checkout Pro de Mercado Pago para el pedido pendiente de un evento o una compra de regalo.
 // Secretos: MP_ACCESS_TOKEN, APP_URL. (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY los inyecta Supabase.)
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
@@ -26,36 +26,55 @@ Deno.serve(async (req) => {
   const { data: u } = await usuarioCli.auth.getUser();
   if (!u.user || u.user.is_anonymous) return json({ error: "No autorizado" }, 401);
 
-  const { evento_id } = await req.json().catch(() => ({}));
-  if (!evento_id) return json({ error: "Falta evento_id" }, 400);
+  const { evento_id, regalo_id } = await req.json().catch(() => ({}));
+  if (!evento_id && !regalo_id) return json({ error: "Falta evento_id o regalo_id" }, 400);
 
   const admin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const { data: pedido } = await admin
-    .from("pedidos")
-    .select("id, monto, plan_id, owner_id, eventos(nombre, codigo), planes(nombre)")
-    .eq("evento_id", evento_id)
-    .eq("estado", "pendiente")
-    .maybeSingle();
-  if (!pedido || pedido.owner_id !== u.user.id) return json({ error: "No hay un pago pendiente para este evento" }, 404);
-
   // deno-lint-ignore no-explicit-any
-  const p = pedido as any;
-  const volver = (estado: string) => `${appUrl}/pago?estado=${estado}&evento=${evento_id}`;
+  let p: any;
+  let titulo: string;
+  let referencia: string;
+  let volver: (estado: string) => string;
+  let tabla: "pedidos" | "pedidos_regalo";
+
+  if (regalo_id) {
+    // Tarjeta de regalo: quien regala paga un plan y recibe un código para compartir.
+    const { data } = await admin
+      .from("pedidos_regalo")
+      .select("id, monto, plan_id, owner_id, cupon, planes(nombre), cupones(para)")
+      .eq("id", regalo_id)
+      .eq("estado", "pendiente")
+      .maybeSingle();
+    if (!data || data.owner_id !== u.user.id) return json({ error: "No hay un regalo pendiente de pago" }, 404);
+    p = data;
+    titulo = `Regalo SkyEventos ${p.planes?.nombre ?? ""}${p.cupones?.para ? ` para ${p.cupones.para}` : ""}`;
+    referencia = `regalo:${p.id}`;
+    volver = (estado) => `${appUrl}/regalar?regalo=${p.id}&estado=${estado}`;
+    tabla = "pedidos_regalo";
+  } else {
+    const { data } = await admin
+      .from("pedidos")
+      .select("id, monto, plan_id, owner_id, eventos(nombre, codigo), planes(nombre)")
+      .eq("evento_id", evento_id)
+      .eq("estado", "pendiente")
+      .maybeSingle();
+    if (!data || data.owner_id !== u.user.id) return json({ error: "No hay un pago pendiente para este evento" }, 404);
+    p = data;
+    titulo = `SkyEventos ${p.planes?.nombre ?? ""} — ${p.eventos?.nombre ?? ""}`.trim();
+    referencia = p.id;
+    volver = (estado) => `${appUrl}/pago?estado=${estado}&evento=${evento_id}`;
+    tabla = "pedidos";
+  }
+  if (!(Number(p.monto) > 0)) return json({ error: "Este pedido no tiene nada para pagar" }, 400);
+
   const r = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "X-Idempotency-Key": pedido.id },
+    // El monto va en la clave: si se aplica un código de descuento, MP no devuelve la preferencia vieja.
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "X-Idempotency-Key": `${p.id}-${p.monto}` },
     body: JSON.stringify({
-      items: [
-        {
-          id: pedido.plan_id,
-          title: `SkyEventos ${p.planes?.nombre ?? ""} — ${p.eventos?.nombre ?? ""}`.trim(),
-          quantity: 1,
-          unit_price: Number(pedido.monto),
-          currency_id: "ARS",
-        },
-      ],
+      items: [{ id: p.plan_id, title: titulo, quantity: 1, unit_price: Number(p.monto), currency_id: "ARS" }],
       payer: { email: u.user.email },
-      external_reference: pedido.id,
+      external_reference: referencia,
       back_urls: { success: volver("ok"), pending: volver("pendiente"), failure: volver("error") },
       auto_return: "approved",
       notification_url: `${supabaseUrl}/functions/v1/mp-webhook`,
@@ -68,7 +87,7 @@ Deno.serve(async (req) => {
     return json({ error: "Mercado Pago rechazó la preferencia" }, 502);
   }
 
-  await admin.from("pedidos").update({ mp_preference_id: pref.id }).eq("id", pedido.id);
+  await admin.from(tabla).update({ mp_preference_id: pref.id }).eq("id", p.id);
   // En modo prueba (token TEST-...) se usa sandbox_init_point.
   const init_point = token.startsWith("TEST-") ? pref.sandbox_init_point : pref.init_point;
   return json({ init_point });

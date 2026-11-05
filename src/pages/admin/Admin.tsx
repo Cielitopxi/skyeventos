@@ -4,7 +4,7 @@ import { IconoDuo } from "../../components/Iconos";
 import { Aviso, Cargando } from "../../components/ui";
 import { fechaLarga, nombreTipo, pesos } from "../../lib/formato";
 import { mensajeError, supabase } from "../../lib/supabase";
-import type { Plan } from "../../lib/tipos";
+import type { CodigoDescuento, Plan } from "../../lib/tipos";
 import { BarraPanel, ESTADOS } from "../panel/MisEventos";
 
 interface Resumen {
@@ -70,11 +70,12 @@ interface FilaAviso {
   error: string | null;
 }
 
-type Seccion = "resumen" | "eventos" | "pagos" | "usuarios" | "planes" | "avisos";
+type Seccion = "resumen" | "eventos" | "pagos" | "cupones" | "usuarios" | "planes" | "avisos";
 const SECCIONES: { id: Seccion; t: string; i: string }[] = [
   { id: "resumen", t: "Resumen", i: "ranking" },
   { id: "eventos", t: "Eventos", i: "chispa" },
   { id: "pagos", t: "Pagos", i: "regalo" },
+  { id: "cupones", t: "Códigos", i: "rayo" },
   { id: "usuarios", t: "Usuarios", i: "perfil" },
   { id: "planes", t: "Planes", i: "premio" },
   { id: "avisos", t: "Avisos", i: "mensajes" },
@@ -150,6 +151,7 @@ export default function Admin() {
         {seccion === "resumen" && <SeccionResumen r={resumen} eventos={eventos} pedidos={pedidos} />}
         {seccion === "eventos" && <SeccionEventos eventos={eventos} recargar={cargar} setError={setError} />}
         {seccion === "pagos" && <SeccionPagos pedidos={pedidos} />}
+        {seccion === "cupones" && <SeccionCupones planes={planes} />}
         {seccion === "usuarios" && <SeccionUsuarios usuarios={usuarios} recargar={cargar} />}
         {seccion === "planes" && <SeccionPlanes planes={planes} recargar={cargar} />}
         {seccion === "avisos" && <SeccionAvisos avisos={avisos} />}
@@ -499,6 +501,156 @@ function SeccionPlanes({ planes, recargar }: { planes: Plan[]; recargar: () => v
             <button className="btn-primario w-full" disabled={!Object.keys(edit[p.id] ?? {}).length} onClick={() => guardar(p)}>Guardar cambios</button>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+interface FilaRegalo {
+  id: string;
+  cupon: string;
+  monto: number;
+  estado: string;
+  created_at: string;
+}
+
+/** Códigos de descuento (los crea el admin) y tarjetas de regalo (nacen de una compra). */
+function SeccionCupones({ planes }: { planes: Plan[] }) {
+  const [cupones, setCupones] = useState<CodigoDescuento[]>([]);
+  const [regalos, setRegalos] = useState<Record<string, FilaRegalo>>({});
+  const [msj, setMsj] = useState("");
+  const [nuevo, setNuevo] = useState({ codigo: "", tipo: "porcentaje", valor: "10", plan_id: "", usos_max: "", vence_at: "", nota: "" });
+
+  const cargar = useCallback(async () => {
+    const [c, r] = await Promise.all([
+      supabase.from("cupones").select("*").order("created_at", { ascending: false }),
+      supabase.from("pedidos_regalo").select("id, cupon, monto, estado, created_at"),
+    ]);
+    setCupones((c.data as CodigoDescuento[]) ?? []);
+    setRegalos(Object.fromEntries(((r.data as FilaRegalo[]) ?? []).map((x) => [x.cupon, x])));
+  }, []);
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  async function crear(e: React.FormEvent) {
+    e.preventDefault();
+    setMsj("");
+    const codigo = nuevo.codigo.toUpperCase().replace(/\s/g, "");
+    const { error } = await supabase.from("cupones").insert({
+      codigo,
+      tipo: nuevo.tipo,
+      valor: Number(nuevo.valor),
+      plan_id: nuevo.plan_id || null,
+      usos_max: nuevo.usos_max ? Number(nuevo.usos_max) : null,
+      vence_at: nuevo.vence_at ? new Date(nuevo.vence_at + "T23:59:59").toISOString() : null,
+      nota: nuevo.nota.trim() || null,
+    });
+    if (error) return setMsj(error.code === "23505" ? "Ya existe un código con ese nombre." : error.code === "23514" ? "Revisá el código (4 a 24 letras, números o guiones) y el valor." : mensajeError(error));
+    setMsj(`Código ${codigo} creado.`);
+    setNuevo({ ...nuevo, codigo: "", nota: "" });
+    cargar();
+  }
+
+  async function alternar(c: CodigoDescuento) {
+    const { error } = await supabase.from("cupones").update({ activo: !c.activo }).eq("codigo", c.codigo);
+    setMsj(error ? mensajeError(error) : `${c.codigo} ${c.activo ? "desactivado" : "activado"}.`);
+    cargar();
+  }
+
+  async function marcarPagado(r: FilaRegalo) {
+    if (!confirm(`¿Marcar como pagado el regalo ${r.cupon}? Usalo solo si cobraste por fuera de Mercado Pago.`)) return;
+    const { error } = await supabase.rpc("activar_regalo", { p_pedido: r.id, p_payment_id: "manual" });
+    setMsj(error ? mensajeError(error) : `Regalo ${r.cupon} activado.`);
+    cargar();
+  }
+
+  const valorTxt = (c: CodigoDescuento) => (c.tipo === "porcentaje" ? `${c.valor}%` : pesos(c.valor));
+  const set = (k: keyof typeof nuevo) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setNuevo({ ...nuevo, [k]: e.target.value });
+
+  return (
+    <div className="space-y-5">
+      {msj && <Aviso>{msj}</Aviso>}
+      <form onSubmit={crear} className="tarjeta grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <p className="font-display text-xl sm:col-span-2 lg:col-span-4">Nuevo código de descuento</p>
+        <label className="block">
+          <span className="etiqueta">Código</span>
+          <input className="input font-mono uppercase" required minLength={4} maxLength={24} pattern="[A-Za-z0-9-]+" value={nuevo.codigo} onChange={set("codigo")} placeholder="VERANO25" />
+        </label>
+        <label className="block">
+          <span className="etiqueta">Tipo</span>
+          <select className="input" value={nuevo.tipo} onChange={set("tipo")}>
+            <option value="porcentaje">Porcentaje</option>
+            <option value="monto">Monto fijo (ARS)</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className="etiqueta">{nuevo.tipo === "porcentaje" ? "Descuento (%)" : "Descuento (ARS)"}</span>
+          <input className="input tabular-nums" type="number" required min={1} max={nuevo.tipo === "porcentaje" ? 100 : undefined} value={nuevo.valor} onChange={set("valor")} />
+        </label>
+        <label className="block">
+          <span className="etiqueta">Plan</span>
+          <select className="input" value={nuevo.plan_id} onChange={set("plan_id")}>
+            <option value="">Todos</option>
+            {planes.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+          </select>
+        </label>
+        <label className="block">
+          <span className="etiqueta">Usos máximos</span>
+          <input className="input tabular-nums" type="number" min={1} value={nuevo.usos_max} onChange={set("usos_max")} placeholder="Sin límite" />
+        </label>
+        <label className="block">
+          <span className="etiqueta">Vence</span>
+          <input className="input" type="date" value={nuevo.vence_at} onChange={set("vence_at")} />
+        </label>
+        <label className="block sm:col-span-2 lg:col-span-1">
+          <span className="etiqueta">Nota interna</span>
+          <input className="input" value={nuevo.nota} maxLength={120} onChange={set("nota")} placeholder="Campaña Instagram" />
+        </label>
+        <div className="flex items-end">
+          <button className="btn-primario w-full">Crear código</button>
+        </div>
+      </form>
+
+      <div className="tarjeta overflow-x-auto p-0">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-left text-xs uppercase tracking-wider text-slate-500">
+            <tr>
+              <th className="px-4 py-3">Código</th>
+              <th className="px-4 py-3">Descuento</th>
+              <th className="px-4 py-3">Usos</th>
+              <th className="px-4 py-3">Detalle</th>
+              <th className="px-4 py-3" />
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {cupones.map((c) => {
+              const r = regalos[c.codigo];
+              return (
+                <tr key={c.codigo} className={c.activo ? "" : "text-slate-400"}>
+                  <td className="px-4 py-3 font-mono font-semibold">{c.codigo}</td>
+                  <td className="px-4 py-3">{c.tipo === "regalo" ? `Regalo · ${pesos(c.valor)}` : valorTxt(c)}</td>
+                  <td className="px-4 py-3 tabular-nums">{c.usos}{c.usos_max ? ` / ${c.usos_max}` : ""}</td>
+                  <td className="px-4 py-3 text-xs">
+                    {c.tipo === "regalo" ? `Para ${c.para ?? "—"} · ${r ? (r.estado === "pendiente" ? "sin pagar" : r.estado) : ""}` : [c.plan_id && `Solo ${c.plan_id}`, c.vence_at && `Vence ${fechaLarga(c.vence_at)}`, c.nota].filter(Boolean).join(" · ")}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {c.tipo === "regalo" && r?.estado === "pendiente" ? (
+                      <button className="btn-secundario px-3 py-1.5 text-xs" onClick={() => marcarPagado(r)}>Marcar pagado</button>
+                    ) : (
+                      <button className="btn-secundario px-3 py-1.5 text-xs" onClick={() => alternar(c)}>{c.activo ? "Desactivar" : "Activar"}</button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+            {!cupones.length && (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">Todavía no hay códigos.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

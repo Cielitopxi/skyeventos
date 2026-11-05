@@ -125,7 +125,7 @@ export default function TabPersonalizar({ evento, plan, recargar }: PropsTab) {
           <Campo label="Título"><input className="input" value={p.titulo ?? ""} maxLength={60} onChange={(e) => set("titulo", e.target.value)} placeholder="Ana & Juan" /></Campo>
           <Campo label="Subtítulo"><input className="input" value={p.subtitulo ?? ""} maxLength={60} onChange={(e) => set("subtitulo", e.target.value)} placeholder="Nuestra boda" /></Campo>
           <Campo label="Mensaje de bienvenida (página de invitados)">
-            <textarea className="input" rows={2} maxLength={300} value={p.bienvenida ?? ""} onChange={(e) => set("bienvenida", e.target.value)} placeholder="¡Gracias por acompañarnos! Compartí tus fotos de la noche." />
+            <textarea className="input" rows={2} maxLength={300} value={p.bienvenida ?? ""} onChange={(e) => set("bienvenida", e.target.value)} placeholder="¡Gracias por acompañarnos! Compartí tus fotos del evento." />
           </Campo>
           <Campo label="Dedicatoria (primera página del fotolibro)">
             <textarea className="input" rows={3} maxLength={800} value={p.dedicatoria ?? ""} onChange={(e) => set("dedicatoria", e.target.value)} />
@@ -220,7 +220,7 @@ export default function TabPersonalizar({ evento, plan, recargar }: PropsTab) {
           <div>
             <h2 className="font-bold">Marco de foto instantánea</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Elegí el marco que va con la estética de tu fiesta: se aplica a todas las fotos del evento en la galería, la pantalla y el fotolibro. Lo podés cambiar cuando quieras y la foto original no se toca.
+              Elegí el marco que va con la estética de tu evento: se aplica a todas las fotos del evento en la galería, la pantalla y el fotolibro. Lo podés cambiar cuando quieras y la foto original no se toca.
             </p>
           </div>
           <div className="flex flex-wrap items-end gap-x-5 gap-y-4 text-sky-600">

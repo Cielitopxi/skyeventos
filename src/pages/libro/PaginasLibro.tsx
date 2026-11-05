@@ -105,13 +105,13 @@ export function armarPaginas(
     });
   }
 
-  // 3. La noche en números
+  // 3. El evento en números
   const participantes = new Set([...fotos.map((x) => x.invitado_id), ...d.mensajes.map((m) => m.invitado_id)]);
   paginas.push({
     decorada: cfg.decorar,
     contenido: (
       <div className="flex h-full flex-col items-center justify-center px-[20mm] text-center">
-        <h2 className="titulo text-[28pt]">La noche en números</h2>
+        <h2 className="titulo text-[28pt]">El evento en números</h2>
         <div className={`mt-10 grid gap-[10mm] ${ctx.horizontal ? "grid-cols-4" : "grid-cols-2"}`}>
           {[
             [fotos.length, "fotos"],
@@ -184,7 +184,7 @@ export function armarPaginas(
     .map((m) => ({ m, fotos: fotos.filter((x) => x.mision_id === m.id && x.mision_estado === "aprobada") }))
     .filter((x) => x.fotos.length);
   if (conMision.length) {
-    paginas.push({ decorada: cfg.decorar, contenido: <Separador orn={orn} t="Misiones cumplidas" s={`${conMision.length} desafíos de la noche`} /> });
+    paginas.push({ decorada: cfg.decorar, contenido: <Separador orn={orn} t="Misiones cumplidas" s={`${conMision.length} desafíos cumplidos`} /> });
     for (const { m, fotos: fm } of conMision) {
       const elegidas = [...fm.filter((x) => x.destacada), ...fm.filter((x) => !x.destacada)].slice(0, 4);
       paginas.push({
@@ -208,7 +208,7 @@ export function armarPaginas(
       decorada: cfg.decorar && i === 0,
       contenido: (
         <div className="flex h-full flex-col p-[14mm]">
-          {i === 0 && <h2 className="titulo mb-[6mm] text-center text-[26pt]">Mensajes de la noche</h2>}
+          {i === 0 && <h2 className="titulo mb-[6mm] text-center text-[26pt]">Mensajes de los invitados</h2>}
           <div className={`grid flex-1 content-start gap-[5mm] ${ctx.horizontal ? "grid-cols-3" : "grid-cols-2"}`}>
             {grupo.map((m) => (
               <div key={m.id} className="rounded-[3mm] p-[4mm]" style={{ background: "rgb(var(--t-superficie) / .85)" }}>

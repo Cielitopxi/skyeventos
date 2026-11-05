@@ -10,31 +10,42 @@ import type { Plan } from "../../lib/tipos";
 const PASOS = [
   { n: "01", t: "Contratá online", d: "Elegí plan y temática, pagá con Mercado Pago y tu evento queda activo al instante." },
   { n: "02", t: "Personalizá", d: "Colores, textos, portada, misiones y premios. Imprimí los QR para cada mesa." },
-  { n: "03", t: "Viví la noche", d: "Los invitados suben fotos y mensajes desde el celular y aparecen en la pantalla." },
-  { n: "04", t: "Recibí tu fotolibro", d: "Al final, un libro con todas las fotos y dedicatorias, ordenado por invitado." },
+  { n: "03", t: "Vivilo en vivo", d: "De día o de noche, en un salón o al aire libre: los invitados suben fotos y mensajes desde el celular y aparecen en la pantalla." },
+  { n: "04", t: "Guardalo y compartilo", d: "Un fotolibro con todas las fotos y dedicatorias, para imprimir o mandar por WhatsApp y redes con un link." },
 ];
 
 const FUNCIONES: { i: string; t: string; d: string; pronto?: boolean; premium?: boolean }[] = [
   { i: "qr", t: "Álbum en vivo", d: "Las fotos de los invitados llegan por QR. Vos decidís si se publican directo o con aprobación." },
   { i: "pantalla", t: "Pantalla del evento", d: "Presentación automática de fotos, mensajes y ranking para el televisor o el proyector." },
-  { i: "diana", t: "Misiones fotográficas", d: "“Una foto con alguien que conociste hoy”, “El mejor paso de baile”, “Tres generaciones juntas”." },
+  { i: "diana", t: "Misiones fotográficas", d: "“Una foto con alguien que conociste hoy”, “El mejor brindis”, “Tres generaciones juntas”." },
   { i: "mesas", t: "Competencia por mesas", d: "Cada mesa es un equipo y suma los puntos de sus invitados. Ideal para que todos participen." },
   { i: "mensaje", t: "Muro de dedicatorias", d: "Mensajes en vivo que después quedan en el fotolibro junto a las fotos." },
-  { i: "libro", t: "Fotolibro A4", d: "A4 horizontal, vertical o cuadrado, en diseño clásico, moderno o minimal. Listo para imprimir o compartir." },
+  { i: "libro", t: "Fotolibro A4", d: "A4 horizontal, vertical o cuadrado, en diseño clásico, moderno o minimal. Para imprimir o compartir en redes con un link." },
   { i: "bingo", t: "Bingo de momentos", d: "Un cartón de 3x3 que se completa con fotos: brindis, abrazo, selfie grupal, baile y torta. Línea y cartón lleno suman puntos." },
   { i: "trivia", t: "Trivia personalizada", d: "Preguntas sobre los protagonistas que se responden desde el celular; la pantalla revela la respuesta y quién acertó." },
-  { i: "premio", t: "Premios por votación", d: "“Mejor look”, “Alma de la fiesta”: cada invitado vota en secreto y el ganador se revela en la pantalla." },
+  { i: "premio", t: "Premios por votación", d: "“Mejor look”, “Alma del evento”: cada invitado vota en secreto y el ganador se revela en la pantalla." },
   { i: "capsula", t: "Cápsula del tiempo", d: "Mensajes y fotos de los invitados, sellados un año. A los 11 meses les llega el aviso para abrirla.", premium: true },
 ];
 
-// Tonos cálidos que imitan fotos en la maqueta del celular
-const FOTOS_DEMO = [
-  "linear-gradient(160deg,#e8c9a8,#8a5a44)",
-  "linear-gradient(200deg,#dbe5ee,#6a889e)",
-  "linear-gradient(140deg,#c7b6d6,#4a3f6b)",
-  "linear-gradient(180deg,#f5d6cf,#a8645a)",
-  "linear-gradient(120deg,#d9cbb3,#5c564c)",
-  "linear-gradient(220deg,#b9c6d9,#2f3b5c)",
+// Fotos de muestra (generadas para promoción, no son clientes reales)
+const FOTOS_DEMO = ["/landing/brindis.jpg", "/landing/baby-shower.jpg", "/landing/amigas.jpg", "/landing/infantil.jpg", "/landing/torta.jpg", "/landing/corporativo.jpg"];
+
+const OCASIONES: { t: string; d: string; foto?: string }[] = [
+  { t: "Bodas", d: "Las fotos que el fotógrafo no llega a sacar, las dedicatorias y la competencia por mesas.", foto: "/landing/novios.jpg" },
+  { t: "15 años y cumpleaños", d: "Misiones, bingo de momentos y premios por votación para que todos participen.", foto: "/landing/amigas.jpg" },
+  { t: "Infantiles", d: "Los papás suben las fotos del festejo y queda un libro para el recuerdo.", foto: "/landing/infantil.jpg" },
+  { t: "Baby shower, bautismo y comunión", d: "Encuentros de día, en casa o en un jardín, con mensajes de la familia para guardar.", foto: "/landing/baby-shower.jpg" },
+  { t: "Graduaciones y egresados", d: "Trivia sobre el grupo, votación de “el más…” y el álbum de todos en un solo lugar.", foto: "/landing/brindis.jpg" },
+  { t: "Empresas y lanzamientos", d: "Convenciones, after office o fin de año: muro en vivo, trivia de la marca y versión sin marca SkyEventos.", foto: "/landing/corporativo.jpg" },
+];
+
+const PREGUNTAS = [
+  { p: "¿Los invitados tienen que descargar una app?", r: "No. Escanean el QR, escriben su nombre y listo. Si quieren, pueden agregar el evento a la pantalla de inicio del celular." },
+  { p: "¿Sirve para eventos de día o al aire libre?", r: "Sí. Funciona con los datos del celular, en un salón, una casa, un jardín o una oficina. La pantalla en vivo es opcional: alcanza con un televisor, un proyector o una notebook." },
+  { p: "¿Puedo controlar lo que se publica?", r: "Sí. Elegís si las fotos aparecen al instante o después de que las apruebes, y podés ocultar cualquier foto o mensaje desde tu panel." },
+  { p: "¿Cómo comparto el fotolibro?", r: "Lo descargás en PDF para imprimir, o generás un link para mandarlo por WhatsApp o publicarlo en Facebook, X o Instagram. Lo podés dejar de compartir cuando quieras." },
+  { p: "¿Puedo regalárselo a alguien?", r: "Sí. Comprás una tarjeta de regalo y le llega un código para canjear cuando contrate. Si elige un plan más grande, paga solo la diferencia." },
+  { p: "¿Cuánto tiempo quedan guardadas las fotos?", r: "Depende del plan: lo ves en cada uno. Antes de que se borren te avisamos para que descargues todo." },
 ];
 
 export default function Inicio() {
@@ -57,6 +68,9 @@ export default function Inicio() {
             <a href="#planes" className="hidden rounded-full px-3 py-2 font-medium text-white/70 transition hover:text-white sm:block">
               Planes
             </a>
+            <Link to="/regalar" className="hidden rounded-full px-3 py-2 font-medium text-white/70 transition hover:text-white md:block">
+              Regalar
+            </Link>
             <Link to="/e" className="whitespace-nowrap rounded-full px-3 py-2 font-medium text-white/70 transition hover:text-white">
               <span className="sm:hidden">Código</span>
               <span className="hidden sm:inline">Tengo un código</span>
@@ -72,12 +86,12 @@ export default function Inicio() {
 
         <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-14 px-5 pb-24 pt-10 md:grid-cols-[1.15fr_1fr] md:pb-32 md:pt-16">
           <div>
-            <p className="rotulo text-oro">Bodas · 15 años · Cumpleaños · Corporativos</p>
+            <p className="rotulo text-oro">Para cualquier evento · de día o de noche</p>
             <h1 className="mt-6 text-[2.6rem] leading-[1.05] sm:text-5xl md:text-[4rem]">
-              Cada momento de tu fiesta, <em className="texto-oro font-normal">contado por tus invitados.</em>
+              Cada momento de tu evento, <em className="texto-oro font-normal">contado por tus invitados.</em>
             </h1>
             <p className="mt-6 max-w-lg text-[1.05rem] leading-relaxed text-white/70">
-              Fotos y mensajes que llegan por QR, se proyectan en vivo y terminan en un fotolibro con la estética de tu evento.
+              Bodas, cumpleaños, bautismos, baby showers, graduaciones o el evento de tu empresa: las fotos y mensajes llegan por QR, se proyectan en vivo y terminan en un fotolibro para compartir.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <Link
@@ -115,7 +129,7 @@ export default function Inicio() {
                 </div>
                 <div className="grid grid-cols-3 gap-1 px-2">
                   {FOTOS_DEMO.map((g, i) => (
-                    <div key={i} className="aspect-square rounded-[6px]" style={{ background: g }} />
+                    <img key={i} src={g} alt="" loading="lazy" className="aspect-square w-full rounded-[6px] object-cover" />
                   ))}
                 </div>
                 <div className="m-3 mt-4 flex items-center justify-center gap-2 rounded-2xl bg-[#4d6170] py-3 text-sm font-semibold text-white">
@@ -126,7 +140,7 @@ export default function Inicio() {
             {/* Tarjetas flotantes */}
             <div className="absolute -left-14 top-24 hidden w-48 rounded-2xl border border-white/10 bg-white/10 p-3 text-xs text-white shadow-2xl backdrop-blur-md lg:block">
               <p className="text-[10px] uppercase tracking-[.2em] text-oro">Mensaje en vivo</p>
-              <p className="mt-1 leading-snug text-white/90">“¡Los queremos! Que esta noche no termine nunca.”</p>
+              <p className="mt-1 leading-snug text-white/90">“¡Qué día hermoso! Gracias por hacernos parte.”</p>
               <p className="mt-1 text-white/50">— Lola, mesa 4</p>
             </div>
             <div className="absolute -right-10 bottom-20 hidden items-center gap-2 rounded-full border border-white/10 bg-white/10 py-2 pl-2 pr-4 text-xs text-white shadow-2xl backdrop-blur-md lg:flex">
@@ -143,7 +157,7 @@ export default function Inicio() {
         <div className="max-w-2xl">
           <p className="rotulo text-sky-500">Cómo funciona</p>
           <h2 className="mt-4 text-4xl leading-tight md:text-5xl">
-            Del primer brindis al <em className="text-sky-500">último recuerdo.</em>
+            Del primer saludo al <em className="text-sky-500">último recuerdo.</em>
           </h2>
         </div>
         <div className="mt-14 grid gap-10 md:grid-cols-4 md:gap-8">
@@ -155,6 +169,30 @@ export default function Inicio() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* ───────────── Para cada ocasión ───────────── */}
+      <section className="mx-auto max-w-6xl px-5 pb-24">
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <div className="max-w-2xl">
+            <p className="rotulo text-sky-500">Para cada ocasión</p>
+            <h2 className="mt-4 text-4xl leading-tight md:text-5xl">Una boda, un bautismo o la convención de tu empresa.</h2>
+            <p className="mt-4 text-slate-600">Cambiás la temática, los textos y los juegos, y SkyEventos se adapta al tono de tu evento.</p>
+          </div>
+        </div>
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {OCASIONES.map((o) => (
+            <div key={o.t} className="group relative h-72 overflow-hidden rounded-3xl bg-noche text-white shadow-suave">
+              {o.foto && <img src={o.foto} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-80 transition duration-700 group-hover:scale-105" />}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-6">
+                <h3 className="text-2xl">{o.t}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-white/80">{o.d}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-xs text-slate-400">Fotos ilustrativas.</p>
       </section>
 
       {/* ───────────── Funciones ───────────── */}
@@ -275,6 +313,42 @@ export default function Inicio() {
             })}
             {!planes.length && <p className="col-span-3 text-center text-white/40">Cargando planes…</p>}
           </div>
+        </div>
+      </section>
+
+      {/* ───────────── Regalo ───────────── */}
+      <section className="mx-auto max-w-6xl px-5 pt-24">
+        <div className="tech relative grid items-center gap-8 overflow-hidden rounded-3xl bg-noche px-8 py-12 text-white md:grid-cols-[1.4fr_1fr] md:px-14">
+          <div className="relative z-10">
+            <p className="rotulo text-oro">Tarjeta de regalo</p>
+            <h2 className="mt-4 text-3xl leading-tight md:text-4xl">¿Tenés un casamiento o unos 15 en puerta? <em className="texto-oro">Regalá SkyEventos.</em></h2>
+            <p className="mt-4 max-w-lg text-white/70">Pagás el plan, le mandás el código por WhatsApp y lo canjea cuando arme su evento. Un regalo original que se convierte en recuerdo.</p>
+          </div>
+          <div className="relative z-10 flex flex-col gap-3 md:items-end">
+            <Link to="/regalar" className="btn-luz rounded-full bg-gradient-to-b from-[#dbe5ee] to-[#8fa5b6] px-7 py-3.5 text-center font-semibold text-noche">Regalar un evento</Link>
+            <Link to="/contratar" className="text-center text-sm text-white/60 underline underline-offset-4 hover:text-white">Ya tengo un código</Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ───────────── Preguntas ───────────── */}
+      <section className="mx-auto max-w-3xl px-5 py-24">
+        <p className="rotulo justify-center text-center text-sky-500">Preguntas frecuentes</p>
+        <h2 className="mt-4 text-center text-4xl leading-tight">Lo que todos preguntan</h2>
+        <div className="mt-10 divide-y divide-slate-200 border-y border-slate-200">
+          {PREGUNTAS.map((q) => (
+            <details key={q.p} className="group py-5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-medium">
+                {q.p}
+                <span className="text-sky-500 transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-3 leading-relaxed text-slate-600">{q.r}</p>
+            </details>
+          ))}
+        </div>
+        <div className="mt-12 flex flex-wrap justify-center gap-3">
+          <Link to="/contratar" className="btn-primario btn-luz px-7 py-3.5">Crear mi evento</Link>
+          <Link to="/demo" className="btn-secundario px-7 py-3.5">Probar la demo</Link>
         </div>
       </section>
 

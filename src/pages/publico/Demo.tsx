@@ -54,7 +54,7 @@ export default function Demo() {
             Probalo como <em className="texto-oro">un invitado más.</em>
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-white/65">
-            Este es un evento de prueba real. Lo que subas se ve en la pantalla al instante, igual que en tu fiesta.
+            Este es un evento de prueba real. Lo que subas se ve en la pantalla al instante, igual que en tu evento.
           </p>
         </div>
 

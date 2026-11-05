@@ -83,7 +83,7 @@ export default function EventoInvitado() {
   );
 }
 
-/** Invita a instalar la app del evento: queda un ícono en el teléfono que abre directo esta fiesta. */
+/** Invita a instalar la app del evento: queda un ícono en el teléfono que abre directo este evento. */
 function AvisoInstalar() {
   const { puede, ios, instalar } = useInstalar();
   const [cerrado, setCerrado] = useState(() => {
@@ -98,7 +98,7 @@ function AvisoInstalar() {
     <div className="fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-noche/95 p-3 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur">
       <img src="/icono-192.png" alt="" className="h-10 w-10 shrink-0 rounded-xl" />
       <p className="flex-1 text-xs leading-snug text-white/85">
-        {ios ? <>Para tenerla a mano: tocá <b>Compartir</b> y después <b>Agregar a inicio</b>.</> : <>Instalá la app del evento y volvé a la fiesta con un toque.</>}
+        {ios ? <>Para tenerla a mano: tocá <b>Compartir</b> y después <b>Agregar a inicio</b>.</> : <>Instalá la app del evento y volvé al evento con un toque.</>}
       </p>
       {puede && <button className="btn-primario btn-chico" onClick={instalar}>Instalar</button>}
       <button className="px-1 text-lg leading-none text-white/50 hover:text-white" onClick={cerrar} aria-label="Cerrar">×</button>

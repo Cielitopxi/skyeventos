@@ -283,4 +283,37 @@ await como(host, false, `update eventos set contenido_borrado_at = now() where i
 console.log("✓ el servicio de limpieza sí la marca:", (await db.query(`select contenido_borrado_at from eventos where id='${ev2.id}'`)).rows[0].contenido_borrado_at !== null);
 await db.exec(`delete from invitados where evento_id='${ev2.id}'`);
 console.log("✓ borrar invitados se lleva fotos, mensajes, votos y emails:", (await db.query(`select (select count(*) from fotos where evento_id='${ev2.id}') + (select count(*) from mensajes where evento_id='${ev2.id}') + (select count(*) from votos where evento_id='${ev2.id}') + (select count(*) from invitados_contacto where evento_id='${ev2.id}') as n`)).rows[0].n == 0);
+// Cupones y regalos
+await como(adm, false, `insert into cupones (codigo,tipo,valor) values ('PROMO20','porcentaje',20),('GRATIS','porcentaje',100)`);
+await espera_error(como(host, false, `insert into cupones (codigo,tipo,valor) values ('TRUCHO','porcentaje',100)`), "solo el admin crea cupones");
+const evc = (await como(host, false, `select * from crear_evento('Cupón','boda','romantico','basico','2026-12-12')`)).rows[0];
+const ev1 = (await como(host, false, `select * from cupon_evaluar(' promo20 ','basico')`)).rows[0];
+console.log("✓ evaluar PROMO20:", ev1.valido, ev1.descuento, ev1.total);
+const ap = (await como(host, false, `select aplicar_cupon('${evc.id}','promo20') r`)).rows[0].r;
+console.log("✓ aplicado:", ap.total, "activado", ap.activado, "monto pedido", (await db.query(`select monto from pedidos where evento_id='${evc.id}'`)).rows[0].monto);
+await espera_error(como(host, false, `select aplicar_cupon('${evc.id}','GRATIS')`), "dos códigos en el mismo pedido");
+await espera_error(como(intruso, true, `select aplicar_cupon('${evc.id}','GRATIS')`), "aplicar código a evento ajeno");
+const evg = (await como(host, false, `select * from crear_evento('Gratis','boda','romantico','basico','2026-12-12')`)).rows[0];
+console.log("✓ 100% activa sin pago:", (await como(host, false, `select aplicar_cupon('${evg.id}','GRATIS') r`)).rows[0].r.activado, (await db.query(`select estado from eventos where id='${evg.id}'`)).rows[0].estado);
+const reg = (await como(host, false, `select * from crear_regalo('fiesta','Sofi','¡Feliz casamiento!')`)).rows[0];
+console.log("✓ regalo creado:", reg.cupon, reg.estado);
+const evr = (await como(host, false, `select * from crear_evento('Regalo','boda','romantico','premium','2026-12-12')`)).rows[0];
+await espera_error(como(host, false, `select aplicar_cupon('${evr.id}','${reg.cupon}')`), "regalo sin pagar");
+await espera_error(como(host, false, `select activar_regalo('${reg.id}')`), "el comprador no activa su regalo");
+await como(host, false, `select activar_regalo('${reg.id}','pago-9')`, "service_role");
+const apr = (await como(host, false, `select aplicar_cupon('${evr.id}','${reg.cupon}') r`)).rows[0].r;
+console.log("✓ regalo de Fiesta aplicado a Premium: paga la diferencia", apr.total, "activado", apr.activado);
+console.log("✓ el comprador ve su código:", (await como(host, false, `select count(*)::int n from cupones where codigo='${reg.cupon}'`)).rows[0].n === 1);
+console.log("✓ otro usuario no lo ve:", (await como(intruso, true, `select count(*)::int n from cupones`)).rows[0].n === 0);
+
+// Fotolibro compartido
+await espera_error(como(intruso, true, `select compartir_libro('${ev.id}', true)`), "compartir libro ajeno");
+const tokL = (await como(host, false, `select compartir_libro('${ev.id}', true) t`)).rows[0].t;
+const lib = (await como(intruso, true, `select libro_compartido('${tokL}') l`)).rows[0].l;
+console.log("✓ libro público:", lib.evento.nombre, "fotos", lib.fotos.length);
+console.log("✓ archivo del libro visible:", lib.fotos.length === 0 || (await como(intruso, true, `select libro_archivo_publico('${lib.fotos[0]?.storage_path}') v`)).rows[0].v);
+await como(host, false, `update eventos set libro_token = gen_random_uuid() where id='${ev.id}'`);
+console.log("✓ el anfitrión no puede elegir el token:", (await db.query(`select libro_token from eventos where id='${ev.id}'`)).rows[0].libro_token === tokL);
+await como(host, false, `select compartir_libro('${ev.id}', false)`);
+console.log("✓ al dejar de compartir, el link no muestra nada:", (await como(intruso, true, `select libro_compartido('${tokL}') l`)).rows[0].l === null);
 console.log("FIN");

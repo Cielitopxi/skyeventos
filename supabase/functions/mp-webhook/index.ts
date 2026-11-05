@@ -1,4 +1,4 @@
-// Webhook de Mercado Pago: confirma el pago consultando la API y activa el evento.
+// Webhook de Mercado Pago: confirma el pago consultando la API y activa el evento (o el código de regalo).
 // Secretos: MP_ACCESS_TOKEN y (recomendado) MP_WEBHOOK_SECRET para validar la firma x-signature.
 // Desplegar con verify_jwt = false (Mercado Pago no envía JWT de Supabase).
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -50,21 +50,32 @@ Deno.serve(async (req) => {
   const pago = await r.json();
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const { data: pedido } = await admin.from("pedidos").select("id, evento_id, monto, estado").eq("id", pago.external_reference).maybeSingle();
+  const ref = String(pago.external_reference ?? "");
+  const esRegalo = ref.startsWith("regalo:");
+  const tabla = esRegalo ? "pedidos_regalo" : "pedidos";
+  const { data: pedido } = await admin
+    .from(tabla)
+    .select(esRegalo ? "id, monto, estado" : "id, evento_id, monto, estado")
+    .eq("id", esRegalo ? ref.slice(7) : ref)
+    .maybeSingle();
   if (!pedido) return new Response("pedido desconocido", { status: 200 });
+  // deno-lint-ignore no-explicit-any
+  const ped = pedido as any;
 
   if (pago.status === "approved") {
-    if (pago.currency_id !== "ARS" || Number(pago.transaction_amount) + 0.01 < Number(pedido.monto)) {
-      console.error("Monto menor al esperado", pago.id, pago.transaction_amount, pedido.monto);
+    if (pago.currency_id !== "ARS" || Number(pago.transaction_amount) + 0.01 < Number(ped.monto)) {
+      console.error("Monto menor al esperado", pago.id, pago.transaction_amount, ped.monto);
       return new Response("monto incorrecto", { status: 200 });
     }
-    const { error } = await admin.rpc("activar_evento", { p_evento: pedido.evento_id, p_payment_id: String(pago.id) });
+    const { error } = esRegalo
+      ? await admin.rpc("activar_regalo", { p_pedido: ped.id, p_payment_id: String(pago.id) })
+      : await admin.rpc("activar_evento", { p_evento: ped.evento_id, p_payment_id: String(pago.id) });
     if (error) {
       console.error(error);
       return new Response("error", { status: 500 }); // MP reintenta
     }
-  } else if (["rejected", "cancelled"].includes(pago.status) && pedido.estado === "pendiente") {
-    await admin.from("pedidos").update({ mp_payment_id: String(pago.id) }).eq("id", pedido.id);
+  } else if (["rejected", "cancelled"].includes(pago.status) && ped.estado === "pendiente") {
+    await admin.from(tabla).update({ mp_payment_id: String(pago.id) }).eq("id", ped.id);
   }
   return new Response("ok", { status: 200 });
 });
