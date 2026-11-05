@@ -202,6 +202,19 @@ console.log("✓ cerrada, el invitado ve la respuesta:", (await como(g1, true, `
 console.log("✓ acierto suma 10, error no suma:", (await ptsDe(b2.id)) === antesLola + 10, (await ptsDe(b1.id)) === antesPepe);
 await espera_error(como(u3, true, `select responder_trivia('${pre.id}',2)`), "no se responde una pregunta cerrada");
 
+// Al terminar el evento, las preguntas que quedaron abiertas se revelan solas y suman al ranking
+const pre2 = (await como(host, false, `insert into trivia_preguntas (evento_id,texto,opciones,puntos,estado) values ('${ev2.id}','¿Quién dio el primer paso?','{Ella,Él}',20,'abierta') returning id`)).rows[0];
+await como(host, false, `insert into trivia_claves (pregunta_id,evento_id,correcta) values ('${pre2.id}','${ev2.id}',1)`);
+await como(g2, true, `select responder_trivia('${pre2.id}',1)`);
+const lola2 = await ptsDe(b2.id);
+console.log("✓ abierta y sin terminar, no se ve la respuesta:", (await como(g1, true, `select count(*)::int n from trivia_claves where pregunta_id='${pre2.id}'`)).rows[0].n === 0);
+await db.query(`update eventos set estado='cerrado', cerrado_at=now() where id='${ev2.id}'`);
+console.log("✓ evento terminado: se revela sola:", (await como(g1, true, `select correcta from trivia_claves where pregunta_id='${pre2.id}'`)).rows[0]?.correcta === 1);
+console.log("✓ evento terminado: el acierto suma 20:", (await ptsDe(b2.id)) === lola2 + 20);
+console.log("✓ evento terminado: el invitado ve el resumen:", (await como(g1, true, `select count(*)::int n from trivia_resumen('${ev2.id}') where pregunta_id='${pre2.id}'`)).rows[0].n === 1);
+await espera_error(como(g1, true, `select responder_trivia('${pre2.id}',0)`), "no se responde una pregunta revelada");
+await db.query(`update eventos set estado='activo', cerrado_at=null where id='${ev2.id}'`);
+
 // Juegos activables: el anfitrión apaga la trivia y el bingo
 await como(host, false, `update trivia_preguntas set estado='abierta' where id='${pre.id}'`);
 await como(host, false, `update eventos set personalizacion = personalizacion || '{"juegos":{"trivia":false,"bingo":false}}' where id='${ev2.id}'`);

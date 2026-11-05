@@ -4,10 +4,11 @@ Proyecto Supabase: `ryxgalarjcrlwecxishb`. Las casillas marcadas ya están hecha
 
 ## 1. Base de datos
 
-- [x] Migraciones `0001` a `0018` aplicadas.
+- [x] Migraciones `0001` a `0019` aplicadas.
   - `0016`: códigos de descuento, tarjetas de regalo y fotolibro compartido.
   - `0017`: horario de cada evento (`inicio_at`, `fin_at`, máximo 24 h) y consentimiento de novedades de los invitados.
   - `0018`: tabla `ajustes` con los márgenes de habilitación: por defecto 3 h antes del inicio y 24 h después del fin. Se cambian desde `/admin → Horarios`.
+  - `0019`: la trivia se completa sola: al terminar el evento, las preguntas abiertas se revelan y suman al ranking.
 - [x] RLS activo en todas las tablas; advisors de seguridad sin errores.
   - Las advertencias de funciones `security definer` ejecutables son intencionales: validan permisos adentro.
   - Las de "anonymous access" son intencionales: los invitados usan sesión anónima.

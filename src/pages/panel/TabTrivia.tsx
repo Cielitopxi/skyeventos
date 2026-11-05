@@ -13,7 +13,7 @@ const ESTADO: Record<EstadoTrivia, { t: string; c: string }> = {
 };
 
 const LETRAS = ["A", "B", "C", "D"];
-const vacia = { texto: "", opciones: ["", "", "", ""], correcta: 0, puntos: 10 };
+const vacia = { texto: "", opciones: ["", "", "", ""], correcta: 0, puntos: 10, abrir: false };
 
 export default function TabTrivia({ evento, plan }: PropsTab) {
   const [preguntas, setPreguntas] = useState<PreguntaTrivia[]>([]);
@@ -60,12 +60,18 @@ export default function TabTrivia({ evento, plan }: PropsTab) {
     if (usadas.length < 2) return setError("Cargá al menos dos opciones.");
     if (correcta < 0) return setError("Marcá una opción completa como correcta.");
     const fila = { evento_id: evento.id, texto: form.texto.trim(), opciones: usadas.map((x) => x.o), puntos: form.puntos };
+    // Se crea preparada y con su respuesta; si hay que abrirla, se abre recién cuando la respuesta ya está guardada.
     const r = editando
       ? await supabase.from("trivia_preguntas").update(fila).eq("id", editando).select("id").single()
-      : await supabase.from("trivia_preguntas").insert({ ...fila, orden: preguntas.length }).select("id").single();
+      : await supabase.from("trivia_preguntas").insert({ ...fila, orden: Math.max(-1, ...preguntas.map((q) => q.orden)) + 1 }).select("id").single();
     if (r.error) return setError(mensajeError(r.error));
     const k = await supabase.from("trivia_claves").upsert({ pregunta_id: r.data.id, evento_id: evento.id, correcta });
     if (k.error) return setError(mensajeError(k.error));
+    if (!editando && form.abrir) {
+      const a = await supabase.from("trivia_preguntas").update({ estado: "abierta" }).eq("id", r.data.id);
+      if (a.error) return setError(mensajeError(a.error));
+      await supabase.from("anuncios").insert({ evento_id: evento.id, texto: `Trivia: ${fila.texto}` });
+    }
     setForm(null);
     setEditando(null);
     cargar();
@@ -88,22 +94,54 @@ export default function TabTrivia({ evento, plan }: PropsTab) {
 
   function editar(p: PreguntaTrivia) {
     setEditando(p.id);
-    setForm({ texto: p.texto, opciones: [...p.opciones, "", "", ""].slice(0, 4), correcta: claves[p.id] ?? 0, puntos: p.puntos });
+    setForm({ texto: p.texto, opciones: [...p.opciones, "", "", ""].slice(0, 4), correcta: claves[p.id] ?? 0, puntos: p.puntos, abrir: false });
+  }
+
+  /** Abre o revela varias preguntas juntas (un solo anuncio en la pantalla). */
+  async function todas(de: EstadoTrivia, a: EstadoTrivia) {
+    const ids = preguntas.filter((p) => p.estado === de).map((p) => p.id);
+    if (!ids.length) return;
+    setError("");
+    const r = await supabase.from("trivia_preguntas").update({ estado: a }).in("id", ids);
+    if (r.error) return setError(mensajeError(r.error));
+    if (a === "abierta") await supabase.from("anuncios").insert({ evento_id: evento.id, texto: `¡Trivia! ${ids.length === 1 ? "Hay 1 pregunta nueva" : `Hay ${ids.length} preguntas nuevas`} para responder` });
+    cargar();
   }
 
   const abierto = evento.estado === "activo" || evento.estado === "cerrado";
+  const preparadas = preguntas.filter((p) => p.estado === "preparada").length;
+  const abiertas = preguntas.filter((p) => p.estado === "abierta").length;
+  // Si la trivia ya arrancó, lo natural es que la pregunta nueva quede disponible enseguida.
+  const nueva = () => ({ ...vacia, opciones: [...vacia.opciones], abrir: abierto && preguntas.some((p) => p.estado !== "preparada") });
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <h2 className="mr-auto text-lg font-bold">Trivia</h2>
-          <button className="btn-primario btn-chico" onClick={() => { setForm({ ...vacia, opciones: [...vacia.opciones] }); setEditando(null); }}>+ Nueva pregunta</button>
+          <button className="btn-primario btn-chico" onClick={() => { setForm(nueva()); setEditando(null); }}>+ Nueva pregunta</button>
         </div>
         <p className="text-sm text-slate-600">
-          Preguntas sobre ustedes para los invitados. Abrí cada una en el momento que quieras: se anuncia en la pantalla y cada invitado responde una sola vez. Al
-          revelar la respuesta, la pantalla muestra cuántos acertaron y los aciertos suman puntos al ranking.
+          Preguntas sobre ustedes para los invitados. Abrilas de a una, en el momento que quieras, o todas juntas: se anuncia en la pantalla y cada invitado
+          responde una sola vez. Al revelar la respuesta, la pantalla muestra cuántos acertaron y los aciertos suman puntos al ranking. Las que sigan abiertas
+          se revelan solas cuando termina el evento.
         </p>
+        {preparadas > 0 && (
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
+            <p className="min-w-0 flex-1">
+              <b>{preparadas === 1 ? "1 pregunta preparada" : `${preparadas} preguntas preparadas`}</b>: los invitados todavía no la{preparadas === 1 ? "" : "s"} ven.
+              {!abierto && " Se pueden abrir cuando el evento esté activo."}
+            </p>
+            <button className="btn-primario btn-chico" disabled={!abierto} onClick={() => todas("preparada", "abierta")}>
+              {preparadas === 1 ? "Abrirla" : "Abrir todas"}
+            </button>
+          </div>
+        )}
+        {abiertas > 1 && (
+          <div className="flex justify-end">
+            <button className="btn-secundario btn-chico" onClick={() => todas("abierta", "cerrada")}>Revelar todas las abiertas</button>
+          </div>
+        )}
         {error && !form && <Aviso tipo="error">{error}</Aviso>}
         {!preguntas.length && <div className="tarjeta text-center text-slate-500">Sin preguntas todavía.</div>}
         {preguntas.map((p) => {
@@ -156,7 +194,7 @@ export default function TabTrivia({ evento, plan }: PropsTab) {
         <h2 className="font-bold">Ideas de preguntas</h2>
         <div className="flex flex-wrap gap-2">
           {preguntasSugeridas(evento.tipo).map((t) => (
-            <button key={t} className="chip bg-slate-100 text-slate-700 hover:bg-sky-100" onClick={() => { setEditando(null); setForm({ ...vacia, opciones: [...vacia.opciones], texto: t }); }}>
+            <button key={t} className="chip bg-slate-100 text-slate-700 hover:bg-sky-100" onClick={() => { setEditando(null); setForm({ ...nueva(), texto: t }); }}>
               {t}
             </button>
           ))}
@@ -188,6 +226,12 @@ export default function TabTrivia({ evento, plan }: PropsTab) {
             <Campo label="Puntos por acertar">
               <input className="input" type="number" min={0} max={1000} value={form.puntos} onChange={(e) => setForm({ ...form, puntos: Number(e.target.value) })} />
             </Campo>
+            {!editando && (
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={form.abrir} disabled={!abierto} onChange={(e) => setForm({ ...form, abrir: e.target.checked })} />
+                Abrirla ya para los invitados
+              </label>
+            )}
             {error && <Aviso tipo="error">{error}</Aviso>}
             <button className="btn-primario w-full" onClick={guardar}>Guardar</button>
           </div>

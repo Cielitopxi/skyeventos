@@ -172,9 +172,19 @@ export default function Login() {
             </form>
           )}
         </div>
-        <p className="mt-6 text-center text-xs text-white/45">
-          ¿Sos invitado? <Link to="/e" className="text-[#dbe5ee] underline decoration-oro/50 underline-offset-4">Entrá con el código del evento</Link>
-        </p>
+        <div className="mt-6">
+          <Link
+            to="/e"
+            className="group flex items-center gap-4 rounded-2xl bg-white/[.07] p-4 text-left text-white ring-1 ring-oro/40 transition hover:bg-white/[.12] hover:ring-oro"
+          >
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-oro/20 text-2xl" aria-hidden>📷</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-lg font-semibold leading-tight">¿Sos invitado?</span>
+              <span className="mt-0.5 block text-sm text-white/70">Entrá con el código del evento para subir tus fotos</span>
+            </span>
+            <span className="text-2xl text-oro transition group-hover:translate-x-1" aria-hidden>→</span>
+          </Link>
+        </div>
       </div>
     </div>
   );

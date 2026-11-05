@@ -105,6 +105,19 @@ export default function Inicio() {
                 Probar la demo
               </Link>
             </div>
+            <div className="mt-6 max-w-md">
+              <Link
+            to="/e"
+            className="group flex items-center gap-4 rounded-2xl bg-white/[.07] p-4 text-left text-white ring-1 ring-oro/40 transition hover:bg-white/[.12] hover:ring-oro"
+          >
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-oro/20 text-2xl" aria-hidden>📷</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-lg font-semibold leading-tight">¿Sos invitado?</span>
+              <span className="mt-0.5 block text-sm text-white/70">Entrá con el código del evento para subir tus fotos</span>
+            </span>
+            <span className="text-2xl text-oro transition group-hover:translate-x-1" aria-hidden>→</span>
+          </Link>
+            </div>
             <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-xs tracking-wide text-white/50">
               {["Sin apps para los invitados", "Pago con Mercado Pago", "Listo en minutos"].map((t) => (
                 <li key={t} className="flex items-center gap-2">

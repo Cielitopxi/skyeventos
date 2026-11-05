@@ -215,6 +215,7 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
   const [carton, setCarton] = useState<CasillaBingo[]>([]);
   const [categorias, setCategorias] = useState<CategoriaVoto[]>([]);
   const [preguntas, setPreguntas] = useState<PreguntaTrivia[]>([]);
+  const [porVenir, setPorVenir] = useState(0);
   const [capsula, setCapsula] = useState<EstadoCapsula | null>(null);
   const [tareas, setTareas] = useState<TareaSubida[]>([]);
   const cola = useMemo(() => new ColaSubida(evento.id, invitado.id), [evento.id, invitado.id]);
@@ -264,11 +265,15 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
     supabase.rpc("capsula_estado", { p_evento: evento.id }).then(({ data }) => setCapsula((data as EstadoCapsula[] | null)?.[0] ?? null));
   }, [evento.id]);
 
-  // Preguntas de trivia: aparecen a medida que el organizador las abre.
+  // Preguntas de trivia: aparecen a medida que el organizador las abre. Las preparadas solo se cuentan ("hay más por venir").
   useEffect(() => {
     const cargar = () =>
-      supabase.from("trivia_preguntas").select("*").eq("evento_id", evento.id).neq("estado", "preparada").order("orden").order("created_at")
-        .then(({ data }) => setPreguntas((data as PreguntaTrivia[]) ?? []));
+      supabase.from("trivia_preguntas").select("*").eq("evento_id", evento.id).order("orden").order("created_at")
+        .then(({ data }) => {
+          const todas = (data as PreguntaTrivia[]) ?? [];
+          setPreguntas(todas.filter((q) => q.estado !== "preparada"));
+          setPorVenir(todas.filter((q) => q.estado === "preparada").length);
+        });
     cargar();
     const canal = supabase
       .channel(`inv-trivia-${evento.id}`)
@@ -384,7 +389,7 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
             )}
             {juegoActual === "misiones" && <Misiones evento={evento} invitado={invitado} onCumplir={elegir} />}
             {juegoActual === "bingo" && <Bingo evento={evento} invitado={invitado} carton={carton} onMarcar={elegirCasilla} />}
-            {juegoActual === "trivia" && <Trivia evento={evento} preguntas={preguntas} />}
+            {juegoActual === "trivia" && <Trivia evento={evento} preguntas={preguntas} porVenir={porVenir} />}
             {juegoActual === "votar" && <Votacion evento={evento} invitado={invitado} categorias={categorias} />}
             {juegoActual === "capsula" && capsula && <Capsula evento={evento} invitado={invitado} estado={capsula} />}
           </>
@@ -806,7 +811,7 @@ function Capsula({ evento, invitado, estado }: { evento: EventoPublico; invitado
 
 const LETRAS = ["A", "B", "C", "D"];
 
-function Trivia({ evento, preguntas }: { evento: EventoPublico; preguntas: PreguntaTrivia[] }) {
+function Trivia({ evento, preguntas, porVenir }: { evento: EventoPublico; preguntas: PreguntaTrivia[]; porVenir: number }) {
   const [mias, setMias] = useState<Record<string, number> | null>(null);
   const [claves, setClaves] = useState<Record<string, number>>({});
   const [enviando, setEnviando] = useState<string | null>(null);
@@ -817,13 +822,20 @@ function Trivia({ evento, preguntas }: { evento: EventoPublico; preguntas: Pregu
       .then(({ data }) => setMias(Object.fromEntries((data ?? []).map((r: { pregunta_id: string; opcion: number }) => [r.pregunta_id, r.opcion]))));
   }, [evento.id]);
 
-  // Las respuestas correctas solo son legibles cuando la pregunta está cerrada.
+  // La base devuelve solo las respuestas correctas ya reveladas: por el anfitrión o porque terminó el evento.
+  // Mientras quede alguna sin revelar, se vuelve a consultar cada minuto.
   const clave = preguntas.map((q) => q.id + q.estado).join();
+  const sinRevelar = preguntas.some((q) => claves[q.id] === undefined);
   useEffect(() => {
-    if (!preguntas.some((q) => q.estado === "cerrada")) return;
-    supabase.from("trivia_claves").select("pregunta_id, correcta").eq("evento_id", evento.id)
-      .then(({ data }) => setClaves(Object.fromEntries((data ?? []).map((k: { pregunta_id: string; correcta: number }) => [k.pregunta_id, k.correcta]))));
-  }, [clave]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!preguntas.length) return;
+    const cargar = () =>
+      supabase.from("trivia_claves").select("pregunta_id, correcta").eq("evento_id", evento.id)
+        .then(({ data }) => setClaves(Object.fromEntries((data ?? []).map((k: { pregunta_id: string; correcta: number }) => [k.pregunta_id, k.correcta]))));
+    cargar();
+    if (!sinRevelar) return;
+    const t = setInterval(cargar, 60_000);
+    return () => clearInterval(t);
+  }, [clave, sinRevelar]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function responder(q: PreguntaTrivia, opcion: number) {
     setError("");
@@ -835,22 +847,48 @@ function Trivia({ evento, preguntas }: { evento: EventoPublico; preguntas: Pregu
   }
 
   if (!mias) return <Cargando />;
-  const cerradas = preguntas.filter((q) => q.estado === "cerrada");
-  const aciertos = cerradas.filter((q) => mias[q.id] !== undefined && mias[q.id] === claves[q.id]);
+  const reveladas = preguntas.filter((q) => claves[q.id] !== undefined);
+  const aciertos = reveladas.filter((q) => mias[q.id] !== undefined && mias[q.id] === claves[q.id]);
   const puntos = aciertos.reduce((s, q) => s + q.puntos, 0);
+  const total = preguntas.length + porVenir;
+  const respondidas = preguntas.filter((q) => mias[q.id] !== undefined).length;
+  // Se puede responder la que está abierta, sin revelar y sin respuesta propia.
+  const pendiente = (q: PreguntaTrivia) => q.estado === "abierta" && claves[q.id] === undefined && mias[q.id] === undefined;
+  const completa = preguntas.length > 0 && !preguntas.some(pendiente) && porVenir === 0;
+  // Primero las que faltan responder, en el orden que armaron los anfitriones.
+  const lista = [...preguntas].sort((a, b) => Number(pendiente(b)) - Number(pendiente(a)));
 
   return (
     <div className="space-y-3">
-      <p className="text-center text-sm text-tema-suave">
-        {cerradas.length ? `Acertaste ${aciertos.length} de ${cerradas.length} · ${puntos} pts` : "Una sola respuesta por pregunta. ¿Cuánto conocés a los anfitriones?"}
-      </p>
+      <div className="rounded-2xl bg-tema-superficie p-4 text-center shadow-sm">
+        <p className="text-sm font-semibold">
+          Respondiste {respondidas} de {total}
+        </p>
+        <div className="mx-auto mt-2 h-2 max-w-xs overflow-hidden rounded-full bg-tema-fondo">
+          <div className="h-full rounded-full bg-tema-acento transition-all" style={{ width: `${(respondidas / Math.max(1, total)) * 100}%` }} />
+        </div>
+        <p className="mt-2 text-xs text-tema-suave">
+          {reveladas.length ? `Acertaste ${aciertos.length} de ${reveladas.length} reveladas · ${puntos} pts` : "Una sola respuesta por pregunta. ¿Cuánto conocés a los anfitriones?"}
+        </p>
+        {porVenir > 0 && <p className="mt-1 text-xs text-tema-suave">Hay {porVenir === 1 ? "1 pregunta más" : `${porVenir} preguntas más`} por venir.</p>}
+      </div>
+      {completa && (
+        <div className="rounded-2xl bg-tema-acento p-4 text-center text-white shadow-sm">
+          <p className="font-display text-xl">¡Completaste la trivia!</p>
+          <p className="mt-1 text-sm text-white/85">
+            {reveladas.length === preguntas.length
+              ? `Sumaste ${puntos} pts al ranking.`
+              : "Las respuestas correctas se revelan en la pantalla o cuando termina el evento, y los aciertos suman al ranking."}
+          </p>
+        </div>
+      )}
       {error && <Aviso tipo="error">{error}</Aviso>}
-      {[...preguntas].reverse().map((q) => {
+      {lista.map((q) => {
         const mia = mias[q.id];
-        const correcta = q.estado === "cerrada" ? claves[q.id] : undefined;
+        const correcta = claves[q.id];
         const respondida = mia !== undefined;
         return (
-          <div key={q.id} className={`rounded-2xl bg-tema-superficie p-4 shadow-sm ${q.estado === "abierta" && !respondida ? "ring-2 ring-tema-acento/40" : ""}`}>
+          <div key={q.id} className={`rounded-2xl bg-tema-superficie p-4 shadow-sm ${pendiente(q) ? "ring-2 ring-tema-acento/40" : ""}`}>
             <div className="flex items-start gap-3">
               <p className="min-w-0 flex-1 text-base font-semibold">{q.texto}</p>
               <span className="chip shrink-0 bg-tema-acento/15 text-tema-acento">{q.puntos} pts</span>
@@ -872,7 +910,7 @@ function Trivia({ evento, preguntas }: { evento: EventoPublico; preguntas: Pregu
                 return (
                   <button
                     key={i}
-                    disabled={respondida || q.estado !== "abierta" || !evento.abierto || enviando === q.id}
+                    disabled={!pendiente(q) || !evento.abierto || enviando === q.id}
                     onClick={() => responder(q, i)}
                     className={`flex items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition enabled:active:scale-[.98] ${estilo}`}
                   >
