@@ -14,6 +14,11 @@ Proyecto Supabase: `ryxgalarjcrlwecxishb`. Las casillas marcadas ya están hecha
 ## 2. Auth (Supabase → Authentication)
 
 - [ ] **SMTP propio** (Settings → SMTP; por ejemplo, el de Resend). **Imprescindible.** El servidor de correo que trae Supabase manda muy pocos mails por hora y solo a direcciones del equipo: sin SMTP propio los anfitriones no reciben el enlace para entrar.
+- [ ] **Ingreso con Google** (para que los anfitriones no reciban ningún mail ni tengan que crear contraseña):
+  1. En Google Cloud Console → APIs y servicios → Credenciales: crear un ID de cliente OAuth (aplicación web).
+     URI de redirección autorizada: `https://ryxgalarjcrlwecxishb.supabase.co/auth/v1/callback`.
+  2. En Supabase → Authentication → Sign In / Providers → Google: activar y pegar el Client ID y el Client Secret.
+  3. Agregar `VITE_LOGIN_GOOGLE=1` en `.env.production` y hacer push: aparece el botón "Continuar con Google" en `/ingresar`.
 - [ ] Personalizar la plantilla "Magic Link" (Emails → Templates) con la marca, en español.
 - [ ] **Anonymous sign-ins** activado (ya lo usan invitados y pantallas).
 - [ ] **Rate limits → anonymous users:** subirlo. Viene en 30 por hora por IP, y en un salón todos los invitados comparten el wifi: a partir del invitado 31 en esa hora no se puede entrar. Un valor razonable es 500 o más por hora.
@@ -101,6 +106,7 @@ Es una SPA estática: `npm run build` genera `dist/`.
 - Cada push a `main` publica solo, en uno o dos minutos.
 - [x] **Dominio:** `eventos.skystudio.ar` está declarado en `routes` de `wrangler.jsonc`. Como la zona está en esta cuenta de Cloudflare, el deploy crea el DNS y el certificado HTTPS. La cámara y el micrófono del grabador **solo funcionan con HTTPS**.
 - Dirección provisoria del Worker: `https://skyeventos.cuenta-skystudio.workers.dev`.
+- [x] **PWA de invitados:** íconos PNG, `public/sw.js` (abre sin conexión) y manifest por evento: el ícono instalado abre directo `/e/CODIGO`. En Android aparece el botón "Instalar"; en iPhone, la indicación de Compartir → Agregar a inicio.
 - [ ] Probar en un celular real (iOS Safari y Android Chrome):
   - Entrar por QR.
   - Sacar una foto.

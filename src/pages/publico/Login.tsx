@@ -4,6 +4,9 @@ import { Aviso, Campo, Icono, Logo } from "../../components/ui";
 import { useUsuario } from "../../components/useUsuario";
 import { APP_URL, mensajeError, supabase } from "../../lib/supabase";
 
+/** El botón de Google aparece cuando el proveedor está activo en Supabase (VITE_LOGIN_GOOGLE=1). */
+const CON_GOOGLE = import.meta.env.VITE_LOGIN_GOOGLE === "1";
+
 /**
  * Ingreso de anfitriones. Por defecto con enlace mágico por email.
  * Quien ya definió una contraseña (por ejemplo, el administrador) puede entrar con ella.
@@ -27,6 +30,17 @@ export default function Login() {
   useEffect(() => {
     if (usuario && !nueva) nav(volver, { replace: true });
   }, [usuario, nueva, volver, nav]);
+
+  /** Ingreso con la cuenta de Google: sin contraseña y sin mails de por medio. */
+  async function conGoogle() {
+    setError("");
+    setEnviando(true);
+    const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: APP_URL + volver } });
+    if (error) {
+      setEnviando(false);
+      setError(mensajeError(error));
+    }
+  }
 
   async function olvide() {
     setError("");
@@ -112,6 +126,20 @@ export default function Login() {
                   {conClave ? "Con el email y la contraseña de tu cuenta." : "Para crear y administrar tus eventos. Sin contraseña: te mandamos un enlace."}
                 </p>
               </div>
+              {CON_GOOGLE && !conClave && (
+                <>
+                  <button type="button" className="btn-secundario w-full rounded-full py-3" onClick={conGoogle} disabled={enviando}>
+                    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden>
+                      <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.7v3h3.9c2.3-2.1 3.5-5.2 3.5-8.9z" />
+                      <path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24z" />
+                      <path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.3a12 12 0 0 0 0 10.8l4-3.1z" />
+                      <path fill="#EA4335" d="M12 4.8c1.8 0 3.4.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1c.9-2.9 3.6-4.9 6.7-4.9z" />
+                    </svg>
+                    Continuar con Google
+                  </button>
+                  <p className="flex items-center gap-3 text-[11px] uppercase tracking-[.2em] text-slate-400"><span className="h-px flex-1 bg-slate-200" />o con tu email<span className="h-px flex-1 bg-slate-200" /></p>
+                </>
+              )}
               <Campo label="Email">
                 <input className="input" type="email" required autoFocus autoComplete="email" placeholder="tu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
               </Campo>

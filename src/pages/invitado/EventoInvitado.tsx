@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useInstalar, usarManifestDelEvento } from "../../lib/pwa";
 import { Aviso, Cargando, ConTema, Modal } from "../../components/ui";
 import { IconoDuo, Medalla } from "../../components/Iconos";
 import { Portada } from "../../components/Portada";
@@ -56,6 +57,7 @@ export default function EventoInvitado() {
   }, [iniciar]);
 
   const estilo = useMemo(() => estiloTematica(evento?.tematica, evento?.personalizacion), [evento]);
+  usarManifestDelEvento(codigo, evento ? evento.personalizacion?.titulo || evento.nombre : undefined);
 
   if (estado === "cargando") return <Cargando />;
   if (estado === "noexiste" || !evento)
@@ -72,9 +74,35 @@ export default function EventoInvitado() {
       {estado === "unirse" ? (
         <Unirse evento={evento} codigo={codigo} error={error} previo={invitado} onListo={iniciar} />
       ) : (
-        <App evento={evento} invitado={invitado!} setInvitado={setInvitado} premiosActivos={premiosActivos} />
+        <>
+          <App evento={evento} invitado={invitado!} setInvitado={setInvitado} premiosActivos={premiosActivos} />
+          <AvisoInstalar />
+        </>
       )}
     </ConTema>
+  );
+}
+
+/** Invita a instalar la app del evento: queda un ícono en el teléfono que abre directo esta fiesta. */
+function AvisoInstalar() {
+  const { puede, ios, instalar } = useInstalar();
+  const [cerrado, setCerrado] = useState(() => {
+    try { return sessionStorage.getItem("sin-aviso-instalar") === "1"; } catch { return false; }
+  });
+  if (cerrado || (!puede && !ios)) return null;
+  const cerrar = () => {
+    setCerrado(true);
+    try { sessionStorage.setItem("sin-aviso-instalar", "1"); } catch { /* sin almacenamiento */ }
+  };
+  return (
+    <div className="fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-noche/95 p-3 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur">
+      <img src="/icono-192.png" alt="" className="h-10 w-10 shrink-0 rounded-xl" />
+      <p className="flex-1 text-xs leading-snug text-white/85">
+        {ios ? <>Para tenerla a mano: tocá <b>Compartir</b> y después <b>Agregar a inicio</b>.</> : <>Instalá la app del evento y volvé a la fiesta con un toque.</>}
+      </p>
+      {puede && <button className="btn-primario btn-chico" onClick={instalar}>Instalar</button>}
+      <button className="px-1 text-lg leading-none text-white/50 hover:text-white" onClick={cerrar} aria-label="Cerrar">×</button>
+    </div>
   );
 }
 
