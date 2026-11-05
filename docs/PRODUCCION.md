@@ -4,7 +4,10 @@ Proyecto Supabase: `ryxgalarjcrlwecxishb`. Las casillas marcadas ya están hecha
 
 ## 1. Base de datos
 
-- [x] Migraciones `0001` a `0016` aplicadas. La `0016` suma códigos de descuento, tarjetas de regalo y fotolibro compartido.
+- [x] Migraciones `0001` a `0018` aplicadas.
+  - `0016`: códigos de descuento, tarjetas de regalo y fotolibro compartido.
+  - `0017`: horario de cada evento (`inicio_at`, `fin_at`, máximo 24 h) y consentimiento de novedades de los invitados.
+  - `0018`: tabla `ajustes` con los márgenes de habilitación: por defecto 3 h antes del inicio y 24 h después del fin. Se cambian desde `/admin → Horarios`.
 - [x] RLS activo en todas las tablas; advisors de seguridad sin errores.
   - Las advertencias de funciones `security definer` ejecutables son intencionales: validan permisos adentro.
   - Las de "anonymous access" son intencionales: los invitados usan sesión anónima.
@@ -13,13 +16,14 @@ Proyecto Supabase: `ryxgalarjcrlwecxishb`. Las casillas marcadas ya están hecha
 
 ## 2. Auth (Supabase → Authentication)
 
-- [ ] **SMTP propio** (Settings → SMTP; por ejemplo, el de Resend). **Imprescindible.** El servidor de correo que trae Supabase manda muy pocos mails por hora y solo a direcciones del equipo: sin SMTP propio los anfitriones no reciben el enlace para entrar.
-- [ ] **Ingreso con Google** (para que los anfitriones no reciban ningún mail ni tengan que crear contraseña):
+- [x] **Sin mails de Supabase.** Los anfitriones crean su cuenta con email y contraseña desde `/ingresar?registro=1`. La función `cuentas` (verify_jwt = false; valida permisos adentro) la crea ya confirmada, sin mandar ningún mail. Desplegada el 5/11/2026.
+  - Si alguien olvida la contraseña, escribe a skystudio.ar y un admin le pone una nueva desde `/admin → Usuarios → Nueva contraseña`. Después la cambia desde su panel ("Mi contraseña").
+  - Cualquiera puede crear una cuenta con cualquier email (no hay verificación). Es el costo de no mandar mails; la cuenta no ve nada hasta que contrata un evento.
+- [ ] **Ingreso con Google** (opcional):
   1. En Google Cloud Console → APIs y servicios → Credenciales: crear un ID de cliente OAuth (aplicación web).
      URI de redirección autorizada: `https://ryxgalarjcrlwecxishb.supabase.co/auth/v1/callback`.
   2. En Supabase → Authentication → Sign In / Providers → Google: activar y pegar el Client ID y el Client Secret.
   3. Agregar `VITE_LOGIN_GOOGLE=1` en `.env.production` y hacer push: aparece el botón "Continuar con Google" en `/ingresar`.
-- [ ] Personalizar la plantilla "Magic Link" (Emails → Templates) con la marca, en español.
 - [ ] **Anonymous sign-ins** activado (ya lo usan invitados y pantallas).
 - [ ] **Rate limits → anonymous users:** subirlo. Viene en 30 por hora por IP, y en un salón todos los invitados comparten el wifi: a partir del invitado 31 en esa hora no se puede entrar. Un valor razonable es 500 o más por hora.
 - [ ] **URL Configuration:**
@@ -122,8 +126,15 @@ Es una SPA estática: `npm run build` genera `dist/`.
 
 ## 7. Contenido y legales
 
+- [x] Emails de invitados: obligatorios para entrar. La casilla "Quiero recibir novedades y promociones" es opcional y queda registrada con fecha. En `/admin → Contactos` se descarga el CSV (por defecto, solo quienes aceptaron). Cada envío de publicidad tiene que llevar el link de baja `https://eventos.skystudio.ar/baja`.
 - [ ] Política de privacidad y términos, con link en la landing y en el registro del invitado. Ahora se juntan **emails** de invitados (Ley 25.326 de Protección de Datos Personales): indicar para qué se usan y cómo pedir la baja. El registro ya pide aceptar que los anfitriones reciban nombre y email.
 - [ ] Revisar el evento de demostración `DEMO26`. Tiene datos de prueba ocultos (fotos de prueba y un invitado "Prueba Votación").
+
+## 7 bis. Instalación como app (invitados)
+
+- **Android:** PWA con botón "Instalar la app" (aviso fijo, guía y botón en "Yo"). Para Google Play, ver `docs/GOOGLE_PLAY.md`.
+- **iPhone:** no hay versión en App Store. Una app que solo envuelve la web suele rechazarse (guía 4.2 de Apple) y requiere la cuenta de desarrollador (USD 99 por año). Los invitados la instalan desde Safari con Compartir → **Agregar a inicio**. La app muestra los pasos según el navegador y avisa si el link se abrió dentro de Instagram o Facebook, que no dejan instalar. El ícono abre directo el evento, con su nombre.
+- Después de registrarse, en el celular se abre sola la guía de instalación. El anfitrión tiene en la pestaña QR un mensaje listo para mandar por WhatsApp antes del evento.
 
 ## 8. Pendientes conocidos (no bloquean el lanzamiento)
 

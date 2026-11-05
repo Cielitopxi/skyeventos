@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Aviso, Campo, Icono, Logo } from "../../components/ui";
 import { VistaPrevia } from "../../components/VistaPrevia";
+import { CamposHorario } from "../../components/EditorHorario";
+import { armarHorario, textoHorario } from "../../lib/horario";
 import { pesos, TIPOS_EVENTO } from "../../lib/formato";
 import { mensajeError, supabase } from "../../lib/supabase";
 import { TEMATICAS } from "../../lib/tematicas";
@@ -16,6 +18,8 @@ export default function Contratar() {
   const [tipo, setTipo] = useState("boda");
   const [nombre, setNombre] = useState("");
   const [fecha, setFecha] = useState("");
+  const [desde, setDesde] = useState("");
+  const [hasta, setHasta] = useState("");
   const [tematicaId, setTematicaId] = useState("elegante");
   const [planId, setPlanId] = useState(params.get("plan") || "fiesta");
   const [error, setError] = useState("");
@@ -73,6 +77,11 @@ export default function Contratar() {
         if (error) throw error;
         ev = data as Evento;
         setCreado(ev);
+        const h = armarHorario(fecha, desde, hasta);
+        if (h) {
+          const r = await supabase.rpc("definir_horario", { p_evento: ev.id, p_inicio: h.inicio.toISOString(), p_fin: h.fin.toISOString() });
+          if (r.error) throw r.error;
+        }
       }
       if (cupon && !cuponAplicado) {
         const { data, error } = await supabase.rpc("aplicar_cupon", { p_evento: ev.id, p_codigo: cupon.codigo });
@@ -96,7 +105,9 @@ export default function Contratar() {
   }
 
   const gratis = !!cupon && Number(cupon.total) <= 0;
-  const puedeSeguir = paso === 1 ? nombre.trim().length >= 2 : true;
+  const horario = armarHorario(fecha, desde, hasta);
+  const horarioOk = !!horario && horario.fin.getTime() - horario.inicio.getTime() <= 24 * 3600e3 && horario.inicio.getTime() > Date.now();
+  const puedeSeguir = paso === 1 ? nombre.trim().length >= 2 && horarioOk : true;
 
   return (
     <div className="marca min-h-screen bg-marfil">
@@ -151,9 +162,16 @@ export default function Contratar() {
                 <Campo label="Nombre del evento" ayuda="Así aparece en la página, la pantalla y el fotolibro. Ej: Ana & Juan, Los 15 de Sofi.">
                   <input className="input" value={nombre} maxLength={60} onChange={(e) => setNombre(e.target.value)} placeholder="Ana & Juan" />
                 </Campo>
-                <Campo label="Fecha">
-                  <input className="input" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
-                </Campo>
+                <CamposHorario
+                  fecha={fecha}
+                  desde={desde}
+                  hasta={hasta}
+                  onChange={(v) => {
+                    setFecha(v.fecha);
+                    setDesde(v.desde);
+                    setHasta(v.hasta);
+                  }}
+                />
               </>
             )}
 
@@ -215,7 +233,7 @@ export default function Contratar() {
                   {[
                     ["Evento", nombre],
                     ["Tipo", TIPOS_EVENTO.find((t) => t.id === tipo)?.nombre],
-                    ["Fecha", fecha || "Sin definir"],
+                    ["Fecha y horario", horario ? textoHorario(horario.inicio.toISOString(), horario.fin.toISOString()) : "Sin definir"],
                     ["Temática", TEMATICAS.find((t) => t.id === tematicaId)?.nombre],
                     ["Plan", plan?.nombre],
                   ].map(([k, v]) => (

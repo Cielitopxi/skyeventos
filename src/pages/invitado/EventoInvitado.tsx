@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useInstalar, usarManifestDelEvento } from "../../lib/pwa";
+import { usarManifestDelEvento } from "../../lib/pwa";
+import { AvisoInstalar, BotonInstalar, GuiaInstalar, PasosInstalar, plataforma } from "../../components/InstalarApp";
+import { falta, momentoEvento, textoHorario, useAjustes } from "../../lib/horario";
 import { Aviso, Cargando, ConTema, Modal } from "../../components/ui";
 import { IconoDuo, Medalla } from "../../components/Iconos";
 import { Portada } from "../../components/Portada";
@@ -26,6 +28,7 @@ export default function EventoInvitado() {
   const [invitado, setInvitado] = useState<Invitado | null>(null);
   const [estado, setEstado] = useState<"cargando" | "noexiste" | "unirse" | "listo">("cargando");
   const [error, setError] = useState("");
+  const [guiaInstalar, setGuiaInstalar] = useState(false);
 
   const iniciar = useCallback(async () => {
     try {
@@ -72,36 +75,50 @@ export default function EventoInvitado() {
   return (
     <ConTema estilo={estilo} className="min-h-screen">
       {estado === "unirse" ? (
-        <Unirse evento={evento} codigo={codigo} error={error} previo={invitado} onListo={iniciar} />
+        <Unirse
+          evento={evento}
+          codigo={codigo}
+          error={error}
+          previo={invitado}
+          onListo={async () => {
+            await iniciar();
+            // Recién registrado en el celular: el mejor momento para ofrecer instalar la app.
+            if (plataforma().movil && !window.matchMedia("(display-mode: standalone)").matches) setGuiaInstalar(true);
+          }}
+        />
       ) : (
         <>
           <App evento={evento} invitado={invitado!} setInvitado={setInvitado} premiosActivos={premiosActivos} />
-          <AvisoInstalar />
+          <AvisoInstalar nombre={evento.personalizacion?.titulo || evento.nombre} />
         </>
       )}
+      <GuiaInstalar abierta={guiaInstalar} onCerrar={() => setGuiaInstalar(false)} nombre={evento.personalizacion?.titulo || evento.nombre} />
     </ConTema>
   );
 }
 
-/** Invita a instalar la app del evento: queda un ícono en el teléfono que abre directo este evento. */
-function AvisoInstalar() {
-  const { puede, ios, instalar } = useInstalar();
-  const [cerrado, setCerrado] = useState(() => {
-    try { return sessionStorage.getItem("sin-aviso-instalar") === "1"; } catch { return false; }
-  });
-  if (cerrado || (!puede && !ios)) return null;
-  const cerrar = () => {
-    setCerrado(true);
-    try { sessionStorage.setItem("sin-aviso-instalar", "1"); } catch { /* sin almacenamiento */ }
-  };
+/** Antes del horario: cuenta regresiva y cómo instalar la app. Después: aviso de fin. */
+function EsperaOFin({ evento }: { evento: EventoPublico }) {
+  const ajustes = useAjustes();
+  const m = momentoEvento(evento.inicio_at, evento.fin_at, ajustes);
+  const nombre = evento.personalizacion?.titulo || evento.nombre;
+  if (m.momento !== "antes")
+    return <div className="px-4 pt-3"><Aviso>El evento finalizó: ya no se pueden subir fotos ni mensajes.</Aviso></div>;
   return (
-    <div className="fixed inset-x-3 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-noche/95 p-3 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur">
-      <img src="/icono-192.png" alt="" className="h-10 w-10 shrink-0 rounded-xl" />
-      <p className="flex-1 text-xs leading-snug text-white/85">
-        {ios ? <>Para tenerla a mano: tocá <b>Compartir</b> y después <b>Agregar a inicio</b>.</> : <>Instalá la app del evento y volvé al evento con un toque.</>}
-      </p>
-      {puede && <button className="btn-primario btn-chico" onClick={instalar}>Instalar</button>}
-      <button className="px-1 text-lg leading-none text-white/50 hover:text-white" onClick={cerrar} aria-label="Cerrar">×</button>
+    <div className="mx-4 mt-3 space-y-4 rounded-2xl bg-tema-superficie p-5 shadow">
+      <div className="text-center">
+        <p className="text-xs font-semibold uppercase tracking-[.2em] text-tema-acento">¡Ya estás registrado!</p>
+        <p className="mt-2 text-lg font-semibold leading-snug">El evento es el {textoHorario(evento.inicio_at, evento.fin_at)}</p>
+        <p className="mt-1 text-sm text-tema-suave">
+          Las fotos y los juegos se habilitan {falta(m.habilita!)} ({m.habilita!.toLocaleString("es-AR", { weekday: "long", hour: "2-digit", minute: "2-digit" })}).
+        </p>
+      </div>
+      {!window.matchMedia("(display-mode: standalone)").matches && plataforma().movil && (
+        <div className="border-t border-black/10 pt-4 text-sm">
+          <p className="mb-3 font-semibold">Mientras tanto, instalá la app del evento:</p>
+          <PasosInstalar nombre={nombre} />
+        </div>
+      )}
     </div>
   );
 }
@@ -125,7 +142,11 @@ function Unirse({ evento, codigo, error: errorInicial, previo, onListo }: { even
   const [email, setEmail] = useState("");
   const [mesa, setMesa] = useState(previo?.mesa ?? "");
   const [acepto, setAcepto] = useState(false);
+  const [novedades, setNovedades] = useState(false);
   const [error, setError] = useState(errorInicial);
+  const ajustes = useAjustes();
+  const m = momentoEvento(evento.inicio_at, evento.fin_at, ajustes);
+  const terminado = !evento.abierto && m.momento !== "antes";
   const [enviando, setEnviando] = useState(false);
 
   async function unirse(e: React.FormEvent) {
@@ -135,7 +156,7 @@ function Unirse({ evento, codigo, error: errorInicial, previo, onListo }: { even
     try {
       await asegurarSesion();
       // La sesión es anónima: el email queda como contacto para los anfitriones, sin mail de confirmación.
-      const { error } = await supabase.rpc("registrar_invitado", { p_codigo: codigo, p_nombre: nombre, p_email: email, p_mesa: mesa || null });
+      const { error } = await supabase.rpc("registrar_invitado", { p_codigo: codigo, p_nombre: nombre, p_email: email, p_mesa: mesa || null, p_novedades: novedades });
       if (error) throw error;
       onListo();
     } catch (e) {
@@ -166,11 +187,21 @@ function Unirse({ evento, codigo, error: errorInicial, previo, onListo }: { even
           <input type="checkbox" checked={acepto} onChange={(e) => setAcepto(e.target.checked)} className="mt-0.5" />
           Acepto que mis fotos y mensajes se muestren en la pantalla del evento y se incluyan en el fotolibro, y que los anfitriones reciban mi nombre y email.
         </label>
+        <label className="flex gap-2 text-xs text-tema-suave">
+          <input type="checkbox" checked={novedades} onChange={(e) => setNovedades(e.target.checked)} className="mt-0.5" />
+          Quiero recibir novedades y promociones de SkyEventos por email. Me puedo dar de baja cuando quiera.
+        </label>
         {error && <Aviso tipo="error">{error}</Aviso>}
-        <button className="btn-primario w-full py-3.5 text-base" disabled={!nombre.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()) || !acepto || enviando || !evento.abierto}>
+        <button className="btn-primario w-full py-3.5 text-base" disabled={!nombre.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim()) || !acepto || enviando || terminado}>
           {enviando ? "Entrando…" : "Entrar al evento"}
         </button>
-        {!evento.abierto && <Aviso>El evento ya finalizó y no admite más contenido.</Aviso>}
+        {terminado && <Aviso>El evento ya finalizó y no admite más contenido.</Aviso>}
+        {m.momento === "antes" && (
+          <Aviso>
+            El evento es el {textoHorario(evento.inicio_at, evento.fin_at)}. Registrate ahora e instalá la app: vas a poder subir fotos desde{" "}
+            {m.habilita!.toLocaleString("es-AR", { weekday: "long", hour: "2-digit", minute: "2-digit" })}.
+          </Aviso>
+        )}
       </form>
     </div>
   );
@@ -311,7 +342,7 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
   return (
     <div className="mx-auto min-h-screen max-w-md pb-36">
       <Encabezado evento={evento} compacto />
-      {!evento.abierto && <div className="px-4 pt-3"><Aviso>El evento finalizó: ya no se pueden subir fotos ni mensajes.</Aviso></div>}
+      {!evento.abierto && <EsperaOFin evento={evento} />}
 
       {(activas.length > 0 || listas > 0) && (
         <div className="mx-4 mt-3 rounded-xl bg-tema-superficie p-3 text-sm shadow">
@@ -1134,6 +1165,7 @@ function Yo({ evento, invitado, setInvitado }: { evento: EventoPublico; invitado
         </div>
         <button className="btn-primario w-full" disabled={!nombre.trim()}>{ok ? "¡Guardado!" : "Guardar"}</button>
       </form>
+      <BotonInstalar nombre={evento.personalizacion?.titulo || evento.nombre} />
       <h3 className="font-semibold">Mis fotos</h3>
       <Galeria evento={evento} invitado={invitado} soloMias />
     </div>

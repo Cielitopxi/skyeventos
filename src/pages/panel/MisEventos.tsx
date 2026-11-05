@@ -6,6 +6,7 @@ import { useUsuario } from "../../components/useUsuario";
 import { fechaLarga, nombreTipo } from "../../lib/formato";
 import { mensajeError, supabase } from "../../lib/supabase";
 import { tematica } from "../../lib/tematicas";
+import { MiContrasena } from "../../components/MiContrasena";
 import type { EstadoCapsula, Evento } from "../../lib/tipos";
 
 export const ESTADOS: Record<string, { t: string; c: string }> = {
@@ -138,6 +139,9 @@ export default function MisEventos() {
             })}
           </div>
         )}
+        <div className="mt-10 max-w-2xl">
+          <MiContrasena />
+        </div>
       </main>
     </div>
   );

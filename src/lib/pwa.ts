@@ -34,9 +34,21 @@ export function usarManifestDelEvento(codigo: string, nombre: string | undefined
     };
     const url = URL.createObjectURL(new Blob([JSON.stringify(manifest)], { type: "application/manifest+json" }));
     link.href = url;
+    // En iPhone, "Agregar a inicio" usa el título de esta meta (y la dirección actual, que ya es /e/CODIGO).
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="apple-mobile-web-app-title"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = "apple-mobile-web-app-title";
+      document.head.appendChild(meta);
+    }
+    const tituloAnterior = document.title;
+    meta.content = manifest.short_name;
+    document.title = nombre;
     return () => {
       link.href = original;
       URL.revokeObjectURL(url);
+      meta!.content = "SkyEventos";
+      document.title = tituloAnterior;
     };
   }, [codigo, nombre]);
 }

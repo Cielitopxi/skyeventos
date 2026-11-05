@@ -13,6 +13,7 @@ const Login = lazy(() => import("./pages/publico/Login"));
 const ResultadoPago = lazy(() => import("./pages/publico/ResultadoPago"));
 const Clip = lazy(() => import("./pages/publico/Clip"));
 const Regalar = lazy(() => import("./pages/publico/Regalar"));
+const Baja = lazy(() => import("./pages/publico/Baja"));
 const LibroPublico = lazy(() => import("./pages/libro/LibroPublico"));
 const MisEventos = lazy(() => import("./pages/panel/MisEventos"));
 const EventoPanel = lazy(() => import("./pages/panel/EventoPanel"));
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/admin" element={<RequiereLogin><Admin /></RequiereLogin>} />
           <Route path="/c/:id" element={<Clip />} />
           <Route path="/regalar" element={<Regalar />} />
+          <Route path="/baja" element={<Baja />} />
           <Route path="/libro/:token" element={<LibroPublico />} />
           <Route path="/e" element={<Ingresar />} />
           <Route path="/e/:codigo" element={<EventoInvitado />} />

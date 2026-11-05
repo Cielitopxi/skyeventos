@@ -60,6 +60,8 @@ export interface Evento {
   expira_at: string | null; // hasta cuándo se guarda el contenido (fecha + retención del plan)
   contenido_borrado_at?: string | null; // lo marca limpiar-vencidos al borrar el contenido
   libro_token?: string | null; // link público del fotolibro (compartir_libro)
+  inicio_at?: string | null; // horario contratado (definir_horario)
+  fin_at?: string | null;
   created_at: string;
 }
 
@@ -73,6 +75,8 @@ export interface EventoPublico {
   estado: EstadoEvento;
   abierto: boolean;
   premios_activos: boolean;
+  inicio_at?: string | null;
+  fin_at?: string | null;
 }
 
 export interface Invitado {

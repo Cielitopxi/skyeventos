@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { IconoDuo } from "../../components/Iconos";
-import { Aviso, Cargando } from "../../components/ui";
+import { Aviso, Cargando, Modal } from "../../components/ui";
+import { EditorHorario } from "../../components/EditorHorario";
+import { textoHorario } from "../../lib/horario";
+import { SeccionContactos, SeccionHorarios } from "./SeccionesExtra";
+import { MiContrasena } from "../../components/MiContrasena";
 import { fechaLarga, nombreTipo, pesos } from "../../lib/formato";
 import { mensajeError, supabase } from "../../lib/supabase";
 import type { CodigoDescuento, Plan } from "../../lib/tipos";
@@ -70,12 +74,14 @@ interface FilaAviso {
   error: string | null;
 }
 
-type Seccion = "resumen" | "eventos" | "pagos" | "cupones" | "usuarios" | "planes" | "avisos";
+type Seccion = "resumen" | "eventos" | "horarios" | "pagos" | "cupones" | "contactos" | "usuarios" | "planes" | "avisos";
 const SECCIONES: { id: Seccion; t: string; i: string }[] = [
   { id: "resumen", t: "Resumen", i: "ranking" },
   { id: "eventos", t: "Eventos", i: "chispa" },
+  { id: "horarios", t: "Horarios", i: "reloj" },
   { id: "pagos", t: "Pagos", i: "regalo" },
   { id: "cupones", t: "Códigos", i: "rayo" },
+  { id: "contactos", t: "Contactos", i: "pluma" },
   { id: "usuarios", t: "Usuarios", i: "perfil" },
   { id: "planes", t: "Planes", i: "premio" },
   { id: "avisos", t: "Avisos", i: "mensajes" },
@@ -152,6 +158,8 @@ export default function Admin() {
         {seccion === "eventos" && <SeccionEventos eventos={eventos} recargar={cargar} setError={setError} />}
         {seccion === "pagos" && <SeccionPagos pedidos={pedidos} />}
         {seccion === "cupones" && <SeccionCupones planes={planes} />}
+        {seccion === "horarios" && <SeccionHorarios />}
+        {seccion === "contactos" && <SeccionContactos />}
         {seccion === "usuarios" && <SeccionUsuarios usuarios={usuarios} recargar={cargar} />}
         {seccion === "planes" && <SeccionPlanes planes={planes} recargar={cargar} />}
         {seccion === "avisos" && <SeccionAvisos avisos={avisos} />}
@@ -229,6 +237,15 @@ function EstadoPago({ e }: { e: string }) {
 function SeccionEventos({ eventos, recargar, setError }: { eventos: FilaEvento[]; recargar: () => void; setError: (s: string) => void }) {
   const [buscar, setBuscar] = useState("");
   const [estado, setEstado] = useState("");
+  const [horarios, setHorarios] = useState<Record<string, { inicio_at: string | null; fin_at: string | null }>>({});
+  const [editando, setEditando] = useState<FilaEvento | null>(null);
+  const cargarHorarios = useCallback(async () => {
+    const { data } = await supabase.rpc("admin_horarios");
+    setHorarios(Object.fromEntries(((data as { id: string; inicio_at: string | null; fin_at: string | null }[]) ?? []).map((h) => [h.id, h])));
+  }, []);
+  useEffect(() => {
+    cargarHorarios();
+  }, [cargarHorarios, eventos]);
   const lista = useMemo(() => {
     const q = buscar.trim().toLowerCase();
     return eventos.filter(
@@ -273,7 +290,10 @@ function SeccionEventos({ eventos, recargar, setError }: { eventos: FilaEvento[]
               <tr key={e.id} className="align-top">
                 <td className="px-4 py-3">
                   <p className="font-medium">{e.nombre} {e.es_demo && <span className="chip bg-sky-100 text-sky-700">demo</span>}</p>
-                  <p className="text-xs text-slate-500"><span className="font-mono font-bold">{e.codigo}</span> · {nombreTipo(e.tipo)} · {e.fecha ? fechaLarga(e.fecha) : "sin fecha"}</p>
+                  <p className="text-xs text-slate-500"><span className="font-mono font-bold">{e.codigo}</span> · {nombreTipo(e.tipo)}</p>
+                  <button className="mt-0.5 text-left text-xs text-sky-700 underline decoration-sky-300 underline-offset-2" onClick={() => setEditando(e)}>
+                    {horarios[e.id]?.inicio_at ? textoHorario(horarios[e.id].inicio_at, horarios[e.id].fin_at) : e.fecha ? `${fechaLarga(e.fecha)} · sin horario` : "Definir horario"}
+                  </button>
                 </td>
                 <td className="px-4 py-3 text-slate-600">{e.owner_email ?? "—"}</td>
                 <td className="px-4 py-3 capitalize">{e.plan_id}</td>
@@ -296,6 +316,18 @@ function SeccionEventos({ eventos, recargar, setError }: { eventos: FilaEvento[]
         </table>
         {!lista.length && <p className="p-8 text-center text-slate-500">No hay eventos con ese filtro.</p>}
       </div>
+      <Modal abierto={!!editando} onCerrar={() => setEditando(null)} titulo={editando ? `Horario de ${editando.nombre}` : ""}>
+        {editando && (
+          <EditorHorario
+            admin
+            evento={{ id: editando.id, ...horarios[editando.id] }}
+            onGuardado={() => {
+              setEditando(null);
+              recargar();
+            }}
+          />
+        )}
+      </Modal>
     </div>
   );
 }
@@ -350,6 +382,18 @@ function SeccionUsuarios({ usuarios, recargar }: { usuarios: FilaUsuario[]; reca
     recargar();
   }
 
+  /** Contraseña nueva para quien la olvidó (no hay mails de recuperación). */
+  async function nuevaClave(u: FilaUsuario) {
+    setError("");
+    setOk("");
+    const clave = prompt(`Contraseña nueva para ${u.email} (mínimo 8 caracteres). Pasásela por un medio seguro y pedile que la cambie.`);
+    if (!clave) return;
+    if (clave.length < 8) return setError("La contraseña tiene que tener al menos 8 caracteres.");
+    const { error } = await supabase.functions.invoke("cuentas", { body: { accion: "clave", user_id: u.user_id, clave } });
+    if (error) return setError("No se pudo cambiar la contraseña.");
+    setOk(`Listo: ${u.email} ya puede entrar con la contraseña nueva.`);
+  }
+
   return (
     <div className="space-y-4">
       <form
@@ -386,7 +430,8 @@ function SeccionUsuarios({ usuarios, recargar }: { usuarios: FilaUsuario[]; reca
                 <td className="px-4 py-3 text-right tabular-nums">{u.eventos}</td>
                 <td className="px-4 py-3 text-slate-600">{dia(u.creado_at)}</td>
                 <td className="px-4 py-3 text-slate-600">{dia(u.ultimo_ingreso)}</td>
-                <td className="px-4 py-3 text-right">
+                <td className="space-x-3 whitespace-nowrap px-4 py-3 text-right">
+                  <button className="text-sm text-slate-600 hover:underline" onClick={() => nuevaClave(u)}>Nueva contraseña</button>
                   {u.es_admin ? (
                     <button className="text-sm text-rose-600 hover:underline" onClick={() => setAdmin(u.email, false)}>Quitar admin</button>
                   ) : (
@@ -404,43 +449,6 @@ function SeccionUsuarios({ usuarios, recargar }: { usuarios: FilaUsuario[]; reca
 }
 
 /** Define o cambia la contraseña de la cuenta con la que se está usando el admin (para entrar sin enlace por email). */
-function MiContrasena() {
-  const [clave, setClave] = useState("");
-  const [repetir, setRepetir] = useState("");
-  const [msj, setMsj] = useState<{ tipo: "ok" | "error"; t: string } | null>(null);
-  const [guardando, setGuardando] = useState(false);
-
-  async function guardar(e: React.FormEvent) {
-    e.preventDefault();
-    setMsj(null);
-    if (clave.length < 8) return setMsj({ tipo: "error", t: "Usá al menos 8 caracteres." });
-    if (clave !== repetir) return setMsj({ tipo: "error", t: "Las contraseñas no coinciden." });
-    setGuardando(true);
-    const { error } = await supabase.auth.updateUser({ password: clave });
-    setGuardando(false);
-    if (error) return setMsj({ tipo: "error", t: mensajeError(error) });
-    setClave("");
-    setRepetir("");
-    setMsj({ tipo: "ok", t: "Contraseña guardada. Ya podés entrar con “Tengo contraseña”." });
-  }
-
-  return (
-    <form className="tarjeta flex flex-wrap items-end gap-3" onSubmit={guardar}>
-      <p className="w-full font-medium">Tu contraseña</p>
-      <label className="min-w-[200px] flex-1">
-        <span className="etiqueta">Nueva contraseña</span>
-        <input className="input" type="password" autoComplete="new-password" value={clave} onChange={(e) => setClave(e.target.value)} />
-      </label>
-      <label className="min-w-[200px] flex-1">
-        <span className="etiqueta">Repetila</span>
-        <input className="input" type="password" autoComplete="new-password" value={repetir} onChange={(e) => setRepetir(e.target.value)} />
-      </label>
-      <button className="btn-primario" disabled={guardando}>{guardando ? "Guardando…" : "Guardar"}</button>
-      {msj && <div className="w-full"><Aviso tipo={msj.tipo}>{msj.t}</Aviso></div>}
-    </form>
-  );
-}
-
 function SeccionPlanes({ planes, recargar }: { planes: Plan[]; recargar: () => void }) {
   const [edit, setEdit] = useState<Record<string, Partial<Plan>>>({});
   const [msj, setMsj] = useState("");

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Aviso } from "../../components/ui";
+import { Aviso, Modal } from "../../components/ui";
+import { EditorHorario } from "../../components/EditorHorario";
+import { momentoEvento, textoHorario, useAjustes } from "../../lib/horario";
 import { fechaLarga } from "../../lib/formato";
 import { APP_URL, mensajeError, supabase } from "../../lib/supabase";
 import type { PropsTab } from "./EventoPanel";
@@ -31,6 +33,9 @@ export default function TabResumen({ evento, plan, recargar }: PropsTab) {
   const [stats, setStats] = useState({ invitados: 0, fotos: 0, pendientes: 0, mensajes: 0 });
   const [anuncio, setAnuncio] = useState("");
   const [msg, setMsg] = useState<{ t: "ok" | "error"; m: string } | null>(null);
+  const [editarHorario, setEditarHorario] = useState(false);
+  const ajustes = useAjustes();
+  const m = momentoEvento(evento.inicio_at, evento.fin_at, ajustes);
 
   useEffect(() => {
     const c = (tabla: string, f?: (q: any) => any) => {
@@ -50,7 +55,7 @@ export default function TabResumen({ evento, plan, recargar }: PropsTab) {
   const linkPantalla = `${APP_URL}/pantalla/${evento.codigo}?k=${evento.token_pantalla}`;
 
   async function cambiarEstado(cerrar: boolean) {
-    if (cerrar && !confirm("¿Cerrar el evento? Los invitados tendrán 48 h más para subir fotos y después se podrá generar el fotolibro.")) return;
+    if (cerrar && !confirm(`¿Cerrar el evento? Los invitados tendrán ${ajustes.horas_despues} h más para subir fotos y después se podrá generar el fotolibro.`)) return;
     const { error } = await supabase.rpc("cerrar_evento", { p_evento: evento.id, p_cerrar: cerrar });
     if (error) setMsg({ t: "error", m: mensajeError(error) });
     await recargar();
@@ -100,7 +105,20 @@ export default function TabResumen({ evento, plan, recargar }: PropsTab) {
       <div className="space-y-6">
         <div className="tarjeta space-y-2 text-sm">
           <h2 className="font-bold">Datos</h2>
-          <p><span className="text-slate-500">Fecha:</span> {evento.fecha ? fechaLarga(evento.fecha) : "Sin definir"}</p>
+          <p>
+            <span className="text-slate-500">Horario:</span>{" "}
+            {evento.inicio_at ? textoHorario(evento.inicio_at, evento.fin_at) : evento.fecha ? `${fechaLarga(evento.fecha)} (sin horario)` : "Sin definir"}{" "}
+            <button className="text-sky-600 underline" onClick={() => setEditarHorario(true)}>{evento.inicio_at ? "Cambiar" : "Definir"}</button>
+          </p>
+          {m.habilita && (
+            <p className="rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-800">
+              {m.momento === "antes"
+                ? `Los invitados pueden registrarse e instalar la app desde ya. Subir fotos se habilita el ${m.habilita.toLocaleString("es-AR", { weekday: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })} (${ajustes.horas_antes} h antes). Vos podés probar en cualquier momento.`
+                : m.momento === "en_curso"
+                  ? `Habilitado para los invitados hasta el ${m.cierra!.toLocaleString("es-AR", { weekday: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}.`
+                  : "El horario del evento terminó: los invitados ya no pueden subir contenido."}
+            </p>
+          )}
           <p><span className="text-slate-500">Plan:</span> {plan?.nombre}</p>
           <p><span className="text-slate-500">Moderación:</span> {evento.moderacion === "previa" ? "Previa (apruebo antes de mostrar)" : "Posterior (se muestra y puedo ocultar)"}</p>
           {evento.expira_at && <p><span className="text-slate-500">Disponible hasta:</span> {fechaLarga(evento.expira_at)}</p>}
@@ -109,7 +127,7 @@ export default function TabResumen({ evento, plan, recargar }: PropsTab) {
           <h2 className="font-bold">Estado del evento</h2>
           {evento.estado === "activo" && (
             <>
-              <p className="text-sm text-slate-600">Cuando termine el evento, cerralo. Los invitados podrán subir fotos 48 h más.</p>
+              <p className="text-sm text-slate-600">Cuando termine el evento, cerralo. Los invitados podrán subir fotos {ajustes.horas_despues} h más.</p>
               <button className="btn-peligro w-full" onClick={() => cambiarEstado(true)}>Cerrar evento</button>
             </>
           )}
@@ -122,6 +140,15 @@ export default function TabResumen({ evento, plan, recargar }: PropsTab) {
           {evento.estado === "pendiente_pago" && <p className="text-sm text-slate-600">Se activa al acreditarse el pago.</p>}
         </div>
       </div>
+      <Modal abierto={editarHorario} onCerrar={() => setEditarHorario(false)} titulo="Horario del evento">
+        <EditorHorario
+          evento={evento}
+          onGuardado={async () => {
+            await recargar();
+            setEditarHorario(false);
+          }}
+        />
+      </Modal>
     </div>
   );
 }

@@ -316,4 +316,38 @@ await como(host, false, `update eventos set libro_token = gen_random_uuid() wher
 console.log("✓ el anfitrión no puede elegir el token:", (await db.query(`select libro_token from eventos where id='${ev.id}'`)).rows[0].libro_token === tokL);
 await como(host, false, `select compartir_libro('${ev.id}', false)`);
 console.log("✓ al dejar de compartir, el link no muestra nada:", (await como(intruso, true, `select libro_compartido('${tokL}') l`)).rows[0].l === null);
+// Horario contratado
+const evh = (await como(host, false, `select * from crear_evento('Bautismo Juli','religioso','elegante','basico','2026-12-20')`)).rows[0];
+await como(host, false, `select activar_evento('${evh.id}','pago-h')`, "service_role");
+await espera_error(como(host, false, `select definir_horario('${evh.id}', now() + interval '2 days', now() + interval '2 days' + interval '30 hours')`), "evento de más de 24 h");
+await espera_error(como(intruso, true, `select definir_horario('${evh.id}', now() + interval '2 days', now() + interval '2 days 4 hours')`), "horario de evento ajeno");
+await como(host, false, `select definir_horario('${evh.id}', now() + interval '2 days', now() + interval '2 days 4 hours')`);
+const ih = (await como(g1, true, `select * from registrar_invitado('${evh.codigo}','Pepe','PEPE@mail.com',null,true)`)).rows[0];
+console.log("✓ el invitado se registra antes del inicio (para instalar la app):", !!ih.id);
+const eh = (await como(g1, true, `select abierto, inicio_at is not null h from evento_por_codigo('${evh.codigo}')`)).rows[0];
+console.log("✓ antes del horario no está abierto para invitados:", eh.abierto === false && eh.h);
+await espera_error(como(g1, true, `insert into mensajes (evento_id,invitado_id,texto) values ('${evh.id}','${ih.id}','temprano')`), "mensaje antes del horario");
+console.log("✓ el anfitrión puede probar antes:", (await como(host, false, `select evento_abierto('${evh.id}') a`)).rows[0].a);
+await espera_error(como(host, false, `update eventos set inicio_at = now() - interval '1 hour' where id='${evh.id}'`).then(async () => { if ((await db.query(`select inicio_at < now() x from eventos where id='${evh.id}'`)).rows[0].x) return; throw new Error("ignorado por el trigger"); }), "estirar el horario a mano");
+await como(adm, false, `select definir_horario('${evh.id}', now() - interval '30 minutes', now() + interval '3 hours')`);
+console.log("✓ en horario está abierto:", (await como(g1, true, `select abierto from evento_por_codigo('${evh.codigo}')`)).rows[0].abierto);
+await como(g1, true, `insert into mensajes (evento_id,invitado_id,texto) values ('${evh.id}','${ih.id}','¡Qué lindo día!')`);
+await espera_error(como(host, false, `select definir_horario('${evh.id}', now() + interval '1 day', now() + interval '1 day 3 hours')`), "cambiar el horario con el evento en curso");
+await como(adm, false, `select definir_horario('${evh.id}', now() - interval '3 days', now() - interval '3 days' + interval '5 hours')`);
+console.log("✓ terminado hace más de 24 h, cerrado:", (await como(g1, true, `select abierto from evento_por_codigo('${evh.codigo}')`)).rows[0].abierto === false);
+
+// Márgenes configurables
+await como(host, false, `update ajustes set horas_despues = 150`);
+console.log("✓ el anfitrión no cambia los márgenes:", (await db.query(`select horas_despues from ajustes`)).rows[0].horas_despues === 24);
+await como(adm, false, `update ajustes set horas_despues = 100`);
+console.log("✓ el admin estira el margen y el evento terminado se reabre:", (await como(g1, true, `select abierto from evento_por_codigo('${evh.codigo}')`)).rows[0].abierto);
+await como(adm, false, `update ajustes set horas_despues = 24`);
+console.log("✓ el admin ve los horarios:", (await como(adm, false, `select count(*)::int n from admin_horarios() where inicio_at is not null`)).rows[0].n >= 1);
+
+// Contactos para novedades
+const ct = (await como(adm, false, `select * from admin_contactos() where email='pepe@mail.com'`)).rows[0];
+console.log("✓ contacto con consentimiento:", ct.email, ct.acepta_novedades, ct.evento);
+await espera_error(como(host, false, `select * from admin_contactos()`), "solo el admin exporta contactos");
+await como(intruso, true, `select baja_novedades(' Pepe@Mail.com ')`);
+console.log("✓ baja de novedades:", (await db.query(`select bool_or(acepta_novedades) b from invitados_contacto where email='pepe@mail.com'`)).rows[0].b === false);
 console.log("FIN");

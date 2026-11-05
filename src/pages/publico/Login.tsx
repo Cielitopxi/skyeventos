@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Aviso, Campo, Icono, Logo } from "../../components/ui";
+import { Aviso, Campo, Logo } from "../../components/ui";
 import { useUsuario } from "../../components/useUsuario";
 import { APP_URL, mensajeError, supabase } from "../../lib/supabase";
 
@@ -8,30 +8,28 @@ import { APP_URL, mensajeError, supabase } from "../../lib/supabase";
 const CON_GOOGLE = import.meta.env.VITE_LOGIN_GOOGLE === "1";
 
 /**
- * Ingreso de anfitriones. Por defecto con enlace mágico por email.
- * Quien ya definió una contraseña (por ejemplo, el administrador) puede entrar con ella.
+ * Ingreso de anfitriones con email y contraseña (o Google). No se manda ningún mail: la cuenta se crea
+ * ya confirmada desde la función `cuentas`, y si alguien olvida la contraseña, un admin le pone una nueva.
  */
 export default function Login() {
   const [params] = useSearchParams();
-  // Solo rutas internas: evita que un link armado mande el enlace mágico (y la sesión) a otro sitio.
+  // Solo rutas internas: evita que un link armado mande la sesión a otro sitio.
   const pedido = params.get("volver") ?? "";
   const volver = /^\/(?![/\\])/.test(pedido) ? pedido : "/panel";
-  // Llega con ?nueva=1 desde el mail de "olvidé mi contraseña": ya tiene sesión y elige una nueva.
-  const nueva = params.get("nueva") === "1";
   const { usuario } = useUsuario();
   const nav = useNavigate();
+  const [modo, setModo] = useState<"ingresar" | "crear" | "olvide">(params.get("registro") === "1" ? "crear" : "ingresar");
   const [email, setEmail] = useState("");
   const [clave, setClave] = useState("");
-  const [conClave, setConClave] = useState(false);
-  const [enviado, setEnviado] = useState(false);
+  const [repetir, setRepetir] = useState("");
+  const [ver, setVer] = useState(false);
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
-    if (usuario && !nueva) nav(volver, { replace: true });
-  }, [usuario, nueva, volver, nav]);
+    if (usuario) nav(volver, { replace: true });
+  }, [usuario, volver, nav]);
 
-  /** Ingreso con la cuenta de Google: sin contraseña y sin mails de por medio. */
   async function conGoogle() {
     setError("");
     setEnviando(true);
@@ -42,46 +40,41 @@ export default function Login() {
     }
   }
 
-  async function olvide() {
-    setError("");
-    if (!email.trim()) return setError("Escribí tu email y volvé a tocar “Olvidé mi contraseña”.");
-    setEnviando(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: APP_URL + "/ingresar?nueva=1" });
-    setEnviando(false);
-    if (error) setError(mensajeError(error));
-    else setEnviado(true);
-  }
-
-  async function guardarNueva(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    if (clave.length < 8) return setError("Usá al menos 8 caracteres.");
-    setEnviando(true);
-    const { error } = await supabase.auth.updateUser({ password: clave });
-    setEnviando(false);
-    if (error) setError(mensajeError(error));
-    else nav("/panel", { replace: true });
+  async function ingresar() {
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: clave });
+    // La redirección la hace el efecto de arriba cuando aparece la sesión.
+    if (error) throw new Error(error.message === "Invalid login credentials" ? "Email o contraseña incorrectos." : mensajeError(error));
   }
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    setEnviando(true);
-    if (conClave) {
-      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: clave });
-      setEnviando(false);
-      // La redirección la hace el efecto de arriba cuando aparece la sesión.
-      if (error) setError(error.message === "Invalid login credentials" ? "Email o contraseña incorrectos." : mensajeError(error));
-      return;
+    if (modo === "crear") {
+      if (clave.length < 8) return setError("La contraseña tiene que tener al menos 8 caracteres.");
+      if (clave !== repetir) return setError("Las contraseñas no coinciden.");
     }
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: { emailRedirectTo: APP_URL + volver, shouldCreateUser: true },
-    });
-    setEnviando(false);
-    if (error) setError(mensajeError(error));
-    else setEnviado(true);
+    setEnviando(true);
+    try {
+      if (modo === "crear") {
+        const { data, error } = await supabase.functions.invoke("cuentas", { body: { accion: "registrar", email: email.trim(), clave } });
+        if (error) {
+          // El mensaje útil viene en el cuerpo de la respuesta (409: ya existe, 400: datos inválidos).
+          const cuerpo = await (error as { context?: Response }).context?.json?.().catch(() => null);
+          throw new Error(cuerpo?.error || "No se pudo crear la cuenta");
+        }
+        if (!(data as { ok?: boolean })?.ok) throw new Error("No se pudo crear la cuenta");
+      }
+      await ingresar();
+    } catch (e) {
+      setError(mensajeError(e));
+      setEnviando(false);
+    }
   }
+
+  const cambiar = (m: typeof modo) => {
+    setModo(m);
+    setError("");
+  };
 
   return (
     <div className="marca cielo tech relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
@@ -91,42 +84,43 @@ export default function Login() {
           <Logo claro />
         </div>
         <div className="rounded-3xl bg-marfil p-8 shadow-[0_40px_80px_-30px_rgba(0,0,0,.7)] ring-1 ring-oro/30">
-          {nueva && usuario ? (
-            <form onSubmit={guardarNueva} className="space-y-5">
+          {modo === "olvide" ? (
+            <div className="space-y-5">
               <div>
                 <p className="rotulo text-sky-500">Contraseña</p>
-                <h1 className="mt-3 text-[1.9rem] leading-tight">Elegí tu contraseña</h1>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">Para <b className="text-noche">{usuario.email}</b>. Al menos 8 caracteres.</p>
+                <h1 className="mt-3 text-[1.9rem] leading-tight">¿Olvidaste tu contraseña?</h1>
+                <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                  Escribinos desde{" "}
+                  <a href="https://skystudio.ar" target="_blank" rel="noopener" className="font-medium text-noche underline decoration-oro/50 underline-offset-4">
+                    skystudio.ar
+                  </a>{" "}
+                  con el email de tu cuenta y te damos una contraseña nueva. Después la podés cambiar desde tu panel.
+                </p>
               </div>
-              <Campo label="Nueva contraseña">
-                <input className="input" type="password" required autoFocus autoComplete="new-password" value={clave} onChange={(e) => setClave(e.target.value)} />
-              </Campo>
-              {error && <Aviso tipo="error">{error}</Aviso>}
-              <button className="btn w-full rounded-full bg-noche py-3 text-white hover:bg-slate-800" disabled={enviando}>
-                {enviando ? "Guardando…" : "Guardar y entrar"}
-              </button>
-            </form>
-          ) : enviado ? (
-            <div className="text-center">
-              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-sky-300 text-sky-500">
-                <Icono nombre="mensaje" className="h-6 w-6" />
-              </span>
-              <h1 className="mt-5 text-2xl">Revisá tu correo</h1>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                Te enviamos un enlace a <b className="text-noche">{email}</b>. Abrilo desde este dispositivo para ingresar.
-              </p>
-              <button className="btn-secundario mt-6 w-full" onClick={() => setEnviado(false)}>Usar otro email</button>
+              <button className="btn-secundario w-full" onClick={() => cambiar("ingresar")}>Volver</button>
             </div>
           ) : (
             <form onSubmit={enviar} className="space-y-5">
+              <div className="grid grid-cols-2 rounded-full bg-slate-200/70 p-1 text-sm font-semibold">
+                {(["ingresar", "crear"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => cambiar(m)}
+                    className={`rounded-full py-2 transition ${modo === m ? "bg-white text-noche shadow" : "text-slate-500 hover:text-noche"}`}
+                  >
+                    {m === "ingresar" ? "Ingresar" : "Crear cuenta"}
+                  </button>
+                ))}
+              </div>
               <div>
                 <p className="rotulo text-sky-500">Anfitriones</p>
-                <h1 className="mt-3 text-[1.9rem] leading-tight">Ingresá a tu cuenta</h1>
+                <h1 className="mt-3 text-[1.9rem] leading-tight">{modo === "crear" ? "Creá tu cuenta" : "Ingresá a tu cuenta"}</h1>
                 <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                  {conClave ? "Con el email y la contraseña de tu cuenta." : "Para crear y administrar tus eventos. Sin contraseña: te mandamos un enlace."}
+                  {modo === "crear" ? "Con tu email y una contraseña. Entrás al instante, sin confirmar nada por mail." : "Para crear y administrar tus eventos."}
                 </p>
               </div>
-              {CON_GOOGLE && !conClave && (
+              {CON_GOOGLE && (
                 <>
                   <button type="button" className="btn-secundario w-full rounded-full py-3" onClick={conGoogle} disabled={enviando}>
                     <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden>
@@ -143,24 +137,33 @@ export default function Login() {
               <Campo label="Email">
                 <input className="input" type="email" required autoFocus autoComplete="email" placeholder="tu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
               </Campo>
-              {conClave && (
-                <Campo label="Contraseña">
-                  <input className="input" type="password" required autoComplete="current-password" value={clave} onChange={(e) => setClave(e.target.value)} />
+              <Campo label="Contraseña" ayuda={modo === "crear" ? "Al menos 8 caracteres." : undefined}>
+                <div className="relative">
+                  <input
+                    className="input pr-16"
+                    type={ver ? "text" : "password"}
+                    required
+                    minLength={modo === "crear" ? 8 : undefined}
+                    autoComplete={modo === "crear" ? "new-password" : "current-password"}
+                    value={clave}
+                    onChange={(e) => setClave(e.target.value)}
+                  />
+                  <button type="button" className="absolute inset-y-0 right-3 text-xs font-semibold text-slate-500" onClick={() => setVer(!ver)}>
+                    {ver ? "Ocultar" : "Ver"}
+                  </button>
+                </div>
+              </Campo>
+              {modo === "crear" && (
+                <Campo label="Repetí la contraseña">
+                  <input className="input" type={ver ? "text" : "password"} required autoComplete="new-password" value={repetir} onChange={(e) => setRepetir(e.target.value)} />
                 </Campo>
               )}
               {error && <Aviso tipo="error">{error}</Aviso>}
               <button className="btn w-full rounded-full bg-noche py-3 text-white hover:bg-slate-800" disabled={enviando}>
-                {enviando ? (conClave ? "Ingresando…" : "Enviando…") : conClave ? "Ingresar" : "Enviarme el enlace"}
+                {enviando ? (modo === "crear" ? "Creando tu cuenta…" : "Ingresando…") : modo === "crear" ? "Crear cuenta" : "Ingresar"}
               </button>
-              <button
-                type="button"
-                className="w-full text-center text-sm text-slate-500 underline decoration-oro/50 underline-offset-4 hover:text-noche"
-                onClick={() => { setConClave(!conClave); setError(""); }}
-              >
-                {conClave ? "Prefiero recibir un enlace por email" : "Tengo contraseña"}
-              </button>
-              {conClave && (
-                <button type="button" className="w-full text-center text-sm text-slate-500 hover:text-noche" onClick={olvide} disabled={enviando}>
+              {modo === "ingresar" && (
+                <button type="button" className="w-full text-center text-sm text-slate-500 hover:text-noche" onClick={() => cambiar("olvide")}>
                   Olvidé mi contraseña
                 </button>
               )}

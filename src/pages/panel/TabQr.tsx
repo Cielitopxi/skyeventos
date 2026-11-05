@@ -13,6 +13,7 @@ export default function TabQr({ evento }: PropsTab) {
   const link = `${APP_URL}/e/${evento.codigo}`;
   const t = tematica(evento.tematica);
   const p = evento.personalizacion;
+  const mensajeWhatsapp = `¡Te esperamos en ${p.titulo || evento.nombre}! 📸 Registrate e instalá la app del evento para compartir tus fotos y mensajes: ${link}`;
 
   useEffect(() => {
     QRCode.toDataURL(link, { width: 800, margin: 1, errorCorrectionLevel: "M" }).then(setQr);
@@ -28,6 +29,7 @@ export default function TabQr({ evento }: PropsTab) {
       {qr && <img src={qr} alt="QR" className={grande ? "mt-10 w-[120mm]" : "mt-2 w-[42mm]"} />}
       <p className={`mt-2 text-tema-suave ${grande ? "text-xl" : "text-[9px]"}`}>Escaneá o entrá a <b>{APP_URL.replace(/^https?:\/\//, "")}/e</b> con el código</p>
       <p className={`font-mono font-bold tracking-[.3em] text-tema-texto ${grande ? "mt-2 text-5xl" : "text-lg"}`}>{evento.codigo}</p>
+      <p className={`text-tema-suave ${grande ? "mt-6 text-xl" : "mt-1 text-[9px]"}`}>📲 Y agregalo a tu celular como app</p>
     </div>
   );
 
@@ -48,6 +50,13 @@ export default function TabQr({ evento }: PropsTab) {
         </label>
         <button className="btn-primario" onClick={() => window.print()}>Imprimir / guardar PDF</button>
         {qr && <a className="btn-secundario" href={qr} download={`qr-${evento.codigo}.png`}>Descargar QR (PNG)</a>}
+      </div>
+      <div className="no-imprimir tarjeta mb-6 flex flex-wrap items-center gap-4">
+        <div className="min-w-[240px] flex-1">
+          <p className="font-semibold">Mandá el link antes del evento</p>
+          <p className="text-sm text-slate-600">Así los invitados se registran e instalan la app con tiempo, y el día del evento solo tienen que abrirla.</p>
+        </div>
+        <a className="btn-primario bg-[#25d366]" target="_blank" rel="noreferrer" href={`https://wa.me/?text=${encodeURIComponent(mensajeWhatsapp)}`}>Compartir por WhatsApp</a>
       </div>
       <div className="flex justify-center overflow-x-auto bg-white p-4 print:p-0">
         {formato === "tarjetas" ? (
