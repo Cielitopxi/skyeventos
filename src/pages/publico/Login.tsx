@@ -13,6 +13,8 @@ export default function Login() {
   // Solo rutas internas: evita que un link armado mande el enlace mágico (y la sesión) a otro sitio.
   const pedido = params.get("volver") ?? "";
   const volver = /^\/(?![/\\])/.test(pedido) ? pedido : "/panel";
+  // Llega con ?nueva=1 desde el mail de "olvidé mi contraseña": ya tiene sesión y elige una nueva.
+  const nueva = params.get("nueva") === "1";
   const { usuario } = useUsuario();
   const nav = useNavigate();
   const [email, setEmail] = useState("");
@@ -23,8 +25,29 @@ export default function Login() {
   const [enviando, setEnviando] = useState(false);
 
   useEffect(() => {
-    if (usuario) nav(volver, { replace: true });
-  }, [usuario, volver, nav]);
+    if (usuario && !nueva) nav(volver, { replace: true });
+  }, [usuario, nueva, volver, nav]);
+
+  async function olvide() {
+    setError("");
+    if (!email.trim()) return setError("Escribí tu email y volvé a tocar “Olvidé mi contraseña”.");
+    setEnviando(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: APP_URL + "/ingresar?nueva=1" });
+    setEnviando(false);
+    if (error) setError(mensajeError(error));
+    else setEnviado(true);
+  }
+
+  async function guardarNueva(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (clave.length < 8) return setError("Usá al menos 8 caracteres.");
+    setEnviando(true);
+    const { error } = await supabase.auth.updateUser({ password: clave });
+    setEnviando(false);
+    if (error) setError(mensajeError(error));
+    else nav("/panel", { replace: true });
+  }
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
@@ -54,7 +77,22 @@ export default function Login() {
           <Logo claro />
         </div>
         <div className="rounded-3xl bg-marfil p-8 shadow-[0_40px_80px_-30px_rgba(0,0,0,.7)] ring-1 ring-oro/30">
-          {enviado ? (
+          {nueva && usuario ? (
+            <form onSubmit={guardarNueva} className="space-y-5">
+              <div>
+                <p className="rotulo text-sky-500">Contraseña</p>
+                <h1 className="mt-3 text-[1.9rem] leading-tight">Elegí tu contraseña</h1>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">Para <b className="text-noche">{usuario.email}</b>. Al menos 8 caracteres.</p>
+              </div>
+              <Campo label="Nueva contraseña">
+                <input className="input" type="password" required autoFocus autoComplete="new-password" value={clave} onChange={(e) => setClave(e.target.value)} />
+              </Campo>
+              {error && <Aviso tipo="error">{error}</Aviso>}
+              <button className="btn w-full rounded-full bg-noche py-3 text-white hover:bg-slate-800" disabled={enviando}>
+                {enviando ? "Guardando…" : "Guardar y entrar"}
+              </button>
+            </form>
+          ) : enviado ? (
             <div className="text-center">
               <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-sky-300 text-sky-500">
                 <Icono nombre="mensaje" className="h-6 w-6" />
@@ -93,6 +131,11 @@ export default function Login() {
               >
                 {conClave ? "Prefiero recibir un enlace por email" : "Tengo contraseña"}
               </button>
+              {conClave && (
+                <button type="button" className="w-full text-center text-sm text-slate-500 hover:text-noche" onClick={olvide} disabled={enviando}>
+                  Olvidé mi contraseña
+                </button>
+              )}
             </form>
           )}
         </div>
