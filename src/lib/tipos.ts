@@ -11,6 +11,7 @@ export interface Personalizacion {
   portada?: DisenoPortada; // solo planes con portada personalizada
   juegos?: Partial<Record<JuegoId, boolean>>; // ausente = activo
   marco?: MarcoFoto | null; // marco instantánea de todas las fotos del evento, lo elige el anfitrión
+  libro?: { formato?: string; diseno?: string }; // fotolibro: ver lib/libro.ts (por defecto A4 horizontal, clásico)
 }
 
 export type MarcoFoto = "blanco" | "negro" | "crema" | "dorado" | "rosa" | "celeste" | "kraft";

@@ -20,7 +20,7 @@ const FUNCIONES: { i: string; t: string; d: string; pronto?: boolean; premium?: 
   { i: "diana", t: "Misiones fotográficas", d: "“Una foto con alguien que conociste hoy”, “El mejor paso de baile”, “Tres generaciones juntas”." },
   { i: "mesas", t: "Competencia por mesas", d: "Cada mesa es un equipo y suma los puntos de sus invitados. Ideal para que todos participen." },
   { i: "mensaje", t: "Muro de dedicatorias", d: "Mensajes en vivo que después quedan en el fotolibro junto a las fotos." },
-  { i: "libro", t: "Fotolibro 21 × 21", d: "Con la estética de tu evento, listo para imprimir o compartir." },
+  { i: "libro", t: "Fotolibro A4", d: "A4 horizontal, vertical o cuadrado, en diseño clásico, moderno o minimal. Listo para imprimir o compartir." },
   { i: "bingo", t: "Bingo de momentos", d: "Un cartón de 3x3 que se completa con fotos: brindis, abrazo, selfie grupal, baile y torta. Línea y cartón lleno suman puntos." },
   { i: "trivia", t: "Trivia personalizada", d: "Preguntas sobre los protagonistas que se responden desde el celular; la pantalla revela la respuesta y quién acertó." },
   { i: "premio", t: "Premios por votación", d: "“Mejor look”, “Alma de la fiesta”: cada invitado vota en secreto y el ganador se revela en la pantalla." },
@@ -47,7 +47,7 @@ export default function Inicio() {
   return (
     <div className="marca min-h-screen bg-marfil text-noche">
       {/* ───────────── Hero ───────────── */}
-      <section className="cielo relative overflow-hidden text-white">
+      <section className="cielo tech relative overflow-hidden text-white">
         <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
           <Logo claro />
           <nav className="flex items-center gap-1 text-sm sm:gap-2">
@@ -63,7 +63,7 @@ export default function Inicio() {
             </Link>
             <Link
               to={usuario ? "/panel" : "/ingresar?volver=/panel"}
-              className="whitespace-nowrap rounded-full border border-oro/50 px-4 py-2 font-semibold text-[#dbe5ee] transition hover:border-oro hover:bg-oro/10"
+              className="efecto whitespace-nowrap rounded-full border border-oro/50 px-4 py-2 font-semibold text-[#dbe5ee] transition hover:border-oro hover:bg-oro/10"
             >
               {usuario ? "Mis eventos" : "Ingresar"}
             </Link>
@@ -82,11 +82,11 @@ export default function Inicio() {
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <Link
                 to="/contratar"
-                className="rounded-full bg-gradient-to-b from-[#dbe5ee] to-[#8fa5b6] px-7 py-3.5 font-semibold text-noche shadow-[0_10px_30px_-10px_rgba(151,168,180,.8)] transition hover:brightness-105"
+                className="btn-luz rounded-full bg-gradient-to-b from-[#dbe5ee] to-[#8fa5b6] px-7 py-3.5 font-semibold text-noche shadow-[0_10px_30px_-10px_rgba(151,168,180,.8)] transition hover:brightness-105"
               >
                 Crear mi evento
               </Link>
-              <Link to="/demo" className="group flex items-center gap-2 rounded-full px-6 py-3.5 font-semibold text-white/85 ring-1 ring-white/20 transition hover:bg-white/5 hover:ring-white/40">
+              <Link to="/demo" className="efecto group flex items-center gap-2 rounded-full px-6 py-3.5 font-semibold text-white/85 ring-1 ring-white/20 transition hover:bg-white/5 hover:ring-white/40">
                 <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-oro opacity-70" /><span className="relative inline-flex h-2 w-2 rounded-full bg-oro" /></span>
                 Probar la demo
               </Link>
@@ -149,7 +149,7 @@ export default function Inicio() {
         <div className="mt-14 grid gap-10 md:grid-cols-4 md:gap-8">
           {PASOS.map((p) => (
             <div key={p.n} className="border-t border-slate-300/80 pt-6">
-              <p className="font-display text-3xl italic text-sky-500">{p.n}</p>
+              <p className="mono text-2xl font-semibold text-sky-500">{p.n}<span className="animate-pulse text-sky-300">_</span></p>
               <h3 className="mt-3 text-xl">{p.t}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">{p.d}</p>
             </div>
@@ -173,7 +173,7 @@ export default function Inicio() {
             {FUNCIONES.map((f) => (
               <div key={f.t} className={`group p-6 transition hover:bg-slate-50 ${f.pronto ? "bg-slate-50/60" : "bg-white"}`}>
                 <span className="flex items-center justify-between">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full border border-sky-300/70 text-sky-500 transition group-hover:border-sky-500">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full border border-sky-300/70 text-sky-500 transition duration-300 group-hover:border-sky-500 group-hover:shadow-[0_0_0_6px_rgba(106,136,158,.12),0_0_24px_rgba(106,136,158,.35)]">
                     <Icono nombre={f.i} className="h-5 w-5" />
                   </span>
                   {f.pronto && <span className="chip border border-slate-300 text-slate-500">Próximamente</span>}
@@ -213,9 +213,9 @@ export default function Inicio() {
       </section>
 
       {/* ───────────── Planes ───────────── */}
-      <section id="planes" className="cielo relative py-24 text-white">
+      <section id="planes" className="cielo tech relative overflow-hidden py-24 text-white">
         <div className="hilo-oro absolute inset-x-0 top-0" />
-        <div className="mx-auto max-w-6xl px-5">
+        <div className="relative z-10 mx-auto max-w-6xl px-5">
           <div className="mx-auto max-w-2xl text-center">
             <p className="rotulo justify-center text-oro">Planes</p>
             <h2 className="mt-4 text-4xl leading-tight md:text-5xl">Un pago único, <em className="texto-oro">sin sorpresas.</em></h2>
@@ -228,7 +228,7 @@ export default function Inicio() {
                   key={p.id}
                   className={`relative flex flex-col rounded-3xl p-8 ${
                     destacado
-                      ? "bg-marfil text-noche shadow-[0_30px_80px_-30px_rgba(151,168,180,.6)] ring-1 ring-oro md:-my-4 md:py-12"
+                      ? "borde-luz bg-marfil text-noche shadow-[0_30px_80px_-30px_rgba(151,168,180,.6)] ring-1 ring-oro md:-my-4 md:py-12"
                       : "border border-white/10 bg-white/[.04] backdrop-blur-sm"
                   }`}
                 >
@@ -264,7 +264,7 @@ export default function Inicio() {
                   </ul>
                   <Link
                     to={`/contratar?plan=${p.id}`}
-                    className={`mt-8 block rounded-full py-3.5 text-center text-sm font-semibold transition ${
+                    className={`efecto mt-8 block rounded-full py-3.5 text-center text-sm font-semibold transition ${
                       destacado ? "bg-noche text-white hover:bg-slate-800" : "text-white ring-1 ring-white/25 hover:bg-white/5 hover:ring-white/50"
                     }`}
                   >

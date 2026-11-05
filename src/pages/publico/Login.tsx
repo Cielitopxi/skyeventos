@@ -70,9 +70,9 @@ export default function Login() {
   }
 
   return (
-    <div className="marca cielo relative flex min-h-screen items-center justify-center px-4 py-12">
+    <div className="marca cielo tech relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
       <div className="hilo-oro absolute inset-x-0 top-0" />
-      <div className="w-full max-w-sm">
+      <div className="relative z-10 w-full max-w-sm">
         <div className="mb-8 flex justify-center">
           <Logo claro />
         </div>

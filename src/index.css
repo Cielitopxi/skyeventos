@@ -40,6 +40,48 @@ body {
     @apply btn bg-tema-acento text-white hover:brightness-110;
     box-shadow: inset 0 1px 0 rgb(255 255 255 / .22), 0 1px 2px rgb(0 0 0 / .08), 0 8px 20px -10px rgb(var(--t-acento) / .7);
   }
+  .btn-primario:hover:not(:disabled) {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .25), 0 0 0 1px rgb(var(--t-acento) / .25), 0 10px 28px -8px rgb(var(--t-acento) / .75);
+  }
+
+  /* Efecto de botón: se eleva un poco y lo cruza un brillo al pasar el mouse. */
+  .efecto, .btn, .btn-primario, .btn-secundario, .btn-peligro, .btn-luz { position: relative; overflow: hidden; isolation: isolate; }
+  .efecto::after, .btn::after, .btn-primario::after, .btn-secundario::after, .btn-peligro::after, .btn-luz::after {
+    content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: linear-gradient(110deg, transparent 25%, rgb(255 255 255 / .38) 50%, transparent 75%);
+    transform: translateX(-130%); transition: transform .75s cubic-bezier(.2,.7,.2,1);
+  }
+  .efecto:hover:not(:disabled)::after, .btn:hover:not(:disabled)::after, .btn-primario:hover:not(:disabled)::after, .btn-secundario:hover:not(:disabled)::after, .btn-peligro:hover:not(:disabled)::after, .btn-luz:hover:not(:disabled)::after { transform: translateX(130%); }
+  .efecto:hover:not(:disabled), .btn:hover:not(:disabled), .btn-primario:hover:not(:disabled), .btn-secundario:hover:not(:disabled), .btn-peligro:hover:not(:disabled), .btn-luz:hover:not(:disabled) { transform: translateY(-1px); }
+  .efecto:focus-visible, .btn:focus-visible, .btn-primario:focus-visible, .btn-secundario:focus-visible, .btn-peligro:focus-visible, .btn-luz:focus-visible { outline: none; box-shadow: 0 0 0 3px rgb(106 136 158 / .45); }
+
+  /* Botón principal de las páginas públicas: halo que respira. */
+  .btn-luz { animation: halo 3.2s ease-in-out infinite; }
+
+  /* Borde de luz que gira alrededor de una tarjeta (plan destacado). */
+  .borde-luz { position: relative; }
+  .borde-luz::before {
+    content: ""; position: absolute; inset: -1.5px; border-radius: inherit; padding: 1.5px; pointer-events: none;
+    background: conic-gradient(from var(--angulo), transparent 0 62%, #c5d3e0 78%, #6a889e 88%, transparent 100%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: girar 6s linear infinite;
+  }
+
+  /* Fondo técnico: grilla fina que se desplaza, desvanecida hacia los bordes. */
+  .tech::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image: linear-gradient(rgb(151 168 180 / .08) 1px, transparent 1px), linear-gradient(90deg, rgb(151 168 180 / .08) 1px, transparent 1px);
+    background-size: 44px 44px;
+    -webkit-mask-image: radial-gradient(ellipse 85% 75% at 50% 35%, #000 20%, transparent 75%);
+    mask-image: radial-gradient(ellipse 85% 75% at 50% 35%, #000 20%, transparent 75%);
+    animation: grilla 24s linear infinite;
+  }
+  .tech::after {
+    content: ""; position: absolute; inset-inline: 0; top: 0; height: 30%; pointer-events: none;
+    background: linear-gradient(180deg, transparent, rgb(151 168 180 / .07), transparent);
+    animation: barrido 9s ease-in-out infinite;
+  }
   .btn-secundario {
     @apply btn border border-tema-suave/25 bg-tema-superficie text-tema-texto hover:border-tema-suave/45 hover:bg-tema-suave/[.06];
     box-shadow: 0 1px 2px rgb(0 0 0 / .04);
@@ -59,7 +101,8 @@ body {
   .chip { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-wide; }
 
   /* Rótulo editorial: línea fina + texto espaciado */
-  .rotulo { @apply inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[.28em]; }
+  .rotulo { @apply inline-flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[.28em]; font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace; }
+  .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace; }
   .rotulo::before { content: ""; @apply h-px w-8 bg-current opacity-60; }
 
   /* Cielo nocturno: estrellas finas sobre medianoche */
@@ -91,8 +134,19 @@ body {
 @keyframes subir { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 .subir { animation: subir .6s ease both; }
 
+@property --angulo { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@keyframes girar { to { --angulo: 360deg; } }
+@keyframes grilla { to { background-position: 44px 44px; } }
+@keyframes barrido { 0%, 100% { transform: translateY(-40%); opacity: 0; } 50% { transform: translateY(260%); opacity: 1; } }
+@keyframes halo {
+  0%, 100% { box-shadow: 0 10px 30px -10px rgb(151 168 180 / .8), 0 0 0 0 rgb(197 211 224 / .0); }
+  50% { box-shadow: 0 10px 34px -8px rgb(151 168 180 / .95), 0 0 0 6px rgb(197 211 224 / .12); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .entrar, .subir { animation: none; }
+  .entrar, .subir, .btn-luz, .borde-luz::before, .tech::before, .tech::after { animation: none; }
+  .efecto::after, .btn::after, .btn-primario::after, .btn-secundario::after, .btn-peligro::after, .btn-luz::after { display: none; }
+  .efecto:hover:not(:disabled), .btn:hover:not(:disabled), .btn-primario:hover:not(:disabled), .btn-secundario:hover:not(:disabled), .btn-peligro:hover:not(:disabled), .btn-luz:hover:not(:disabled) { transform: none; }
 }
 
 /* Fotolibro */

@@ -24,7 +24,7 @@ Al final, el anfitrión descarga un **fotolibro** en PDF con la temática del ev
 | `/contratar` | Asistente de contratación y pago |
 | `/pago` | Retorno de Mercado Pago (espera la activación por webhook) |
 | `/panel`, `/panel/:id` | Panel del anfitrión: resumen, personalizar, moderar, juegos, invitados, QR, cápsula y fotolibro |
-| `/panel/:id/libro` | Fotolibro 21 × 21 cm → "Guardar como PDF" |
+| `/panel/:id/libro` | Fotolibro: formato A4 horizontal (por defecto), A4 vertical o cuadrado; diseño clásico, moderno o minimal → "Guardar como PDF" |
 | `/admin` | Panel de administración (solo usuarios en `admins`) |
 | `/e`, `/e/:codigo` | App del invitado: nombre + email, sin confirmación (sesión anónima) |
 | `/pantalla/:codigo?k=token` | Pantalla en vivo |

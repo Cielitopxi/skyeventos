@@ -39,6 +39,14 @@ export default function TabFotolibro({ evento, recargar }: PropsTab) {
     }
   }
 
+  async function todas(valor: boolean) {
+    setError("");
+    setFotos((xs) => xs.map((x) => ({ ...x, en_libro: valor })));
+    const { error } = await supabase.from("fotos").update({ en_libro: valor }).eq("evento_id", evento.id).eq("estado", "aprobada");
+    if (error) setError(mensajeError(error));
+    cargar();
+  }
+
   async function usarDePortada(f: Foto) {
     const { error } = await supabase
       .from("eventos")
@@ -98,7 +106,12 @@ export default function TabFotolibro({ evento, recargar }: PropsTab) {
         <Link to={`/panel/${evento.id}/libro`} className="btn-primario flex items-center gap-2"><IconoDuo nombre="libro" className="h-5 w-5" /> Ver y descargar PDF</Link>
       </div>
       {error && <Aviso tipo="error">{error}</Aviso>}
-      <p className="text-sm text-slate-600">Tocá una foto para sacarla o volverla a poner en el libro. ★ = destacada (va primero en su capítulo).</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="mr-auto text-sm text-slate-600">Tocá una foto para sacarla o volverla a poner en el libro. ★ = destacada (va primero en su capítulo). El formato (A4 horizontal, vertical o cuadrado) y el diseño se eligen en “Ver y descargar PDF”.</p>
+        <button className="btn-secundario btn-chico" onClick={() => todas(true)} disabled={!fotos.length}>Incluir todas</button>
+        <button className="btn-secundario btn-chico" onClick={() => todas(false)} disabled={!fotos.length}>Quitar todas</button>
+      </div>
+      {fotos.length > 0 && enLibro === 0 && <Aviso tipo="info">Ninguna foto está marcada para el libro: el PDF saldría sin fotos. Tocá “Incluir todas” o elegilas una por una.</Aviso>}
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-8">
         {fotos.map((f) => (
           <div key={f.id} className="group relative">
@@ -113,6 +126,7 @@ export default function TabFotolibro({ evento, recargar }: PropsTab) {
                     urls[f.thumb_path] && <img src={urls[f.thumb_path]} alt="" className="h-full w-full object-cover" loading="lazy" />
                   )}
               <MarcaClip foto={f} />
+              {f.en_libro && <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-sky-500 text-[11px] font-bold text-white shadow">✓</span>}
             </button>
             {f.destacada && <span className="absolute left-1 top-1 text-amber-400 drop-shadow">★</span>}
             {evento.personalizacion.portada_path === f.storage_path && <span className="absolute bottom-1 left-1 chip bg-sky-500 text-white">Portada</span>}
