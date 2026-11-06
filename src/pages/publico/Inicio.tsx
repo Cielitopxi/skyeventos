@@ -28,7 +28,14 @@ const FUNCIONES: { i: string; t: string; d: string; pronto?: boolean; premium?: 
 ];
 
 // Fotos de muestra (generadas para promoción, no son clientes reales)
-const FOTOS_DEMO = ["/landing/brindis.jpg", "/landing/baby-shower.jpg", "/landing/amigas.jpg", "/landing/infantil.jpg", "/landing/torta.jpg", "/landing/corporativo.jpg"];
+
+// Galería de la maqueta: 4 filas para llenar la pantalla; las fotos que se repiten van lejos y con otro encuadre.
+const GALERIA_TELEFONO: [string, string][] = [
+  ["/landing/novios.jpg", "50% 30%"], ["/landing/brindis.jpg", "50% 50%"], ["/landing/amigas.jpg", "50% 50%"],
+  ["/landing/infantil.jpg", "50% 50%"], ["/landing/torta.jpg", "50% 50%"], ["/landing/baby-shower.jpg", "50% 50%"],
+  ["/landing/corporativo.jpg", "50% 50%"], ["/landing/amigas.jpg", "15% 30%"], ["/landing/novios.jpg", "80% 70%"],
+  ["/landing/brindis.jpg", "20% 80%"], ["/landing/torta.jpg", "85% 20%"], ["/landing/infantil.jpg", "80% 80%"],
+];
 
 const OCASIONES: { t: string; d: string; foto?: string }[] = [
   { t: "Bodas", d: "Las fotos que el fotógrafo no llega a sacar, las dedicatorias y la competencia por mesas.", foto: "/landing/novios.jpg" },
@@ -128,35 +135,80 @@ export default function Inicio() {
             </ul>
           </div>
 
-          {/* Maqueta del celular */}
-          <div className="relative mx-auto w-full max-w-[19rem]">
+          {/* Maqueta del celular: proporción de un teléfono real (9 : 19,5), isla, botones laterales y barra de inicio */}
+          <div className="relative mx-auto w-[17.5rem] max-w-full">
             <div className="absolute -inset-10 rounded-full bg-oro/20 blur-3xl" aria-hidden />
-            <div className="relative rounded-[2.6rem] bg-gradient-to-b from-[#3a4650] to-[#1a242d] p-2 shadow-[0_40px_80px_-30px_rgba(0,0,0,.8)] ring-1 ring-white/10">
-              <div className="overflow-hidden rounded-[2.1rem]" style={{ background: "radial-gradient(circle at 20% 10%, rgba(151,168,180,.35), transparent 45%), radial-gradient(circle at 85% 90%, rgba(106,136,158,.25), transparent 40%), #f4f6f8" }}>
-                <div className="px-6 pb-4 pt-8 text-center">
+            {/* Botones laterales */}
+            <span className="absolute -left-[3px] top-[18%] h-8 w-[3px] rounded-l bg-[#2a343d]" aria-hidden />
+            <span className="absolute -left-[3px] top-[26%] h-12 w-[3px] rounded-l bg-[#2a343d]" aria-hidden />
+            <span className="absolute -left-[3px] top-[36%] h-12 w-[3px] rounded-l bg-[#2a343d]" aria-hidden />
+            <span className="absolute -right-[3px] top-[30%] h-16 w-[3px] rounded-r bg-[#2a343d]" aria-hidden />
+            <div className="relative aspect-[9/19.5] rounded-[3rem] bg-gradient-to-b from-[#4a5763] via-[#2a343d] to-[#1a242d] p-[9px] shadow-[0_50px_90px_-30px_rgba(0,0,0,.85)] ring-1 ring-white/15">
+              <div
+                className="relative flex h-full flex-col overflow-hidden rounded-[2.45rem] text-noche"
+                style={{ background: "radial-gradient(circle at 20% 8%, rgba(151,168,180,.35), transparent 45%), radial-gradient(circle at 85% 95%, rgba(106,136,158,.22), transparent 40%), #f4f6f8" }}
+              >
+                {/* Barra de estado e isla */}
+                <div className="flex items-center justify-between px-7 pt-[14px] text-[11px] font-semibold tabular-nums">
+                  <span>21:47</span>
+                  <span className="flex items-center gap-1" aria-hidden>
+                    <svg viewBox="0 0 18 12" className="h-2.5 w-[15px]" fill="currentColor">
+                      <rect x="0" y="8" width="3" height="4" rx="1" />
+                      <rect x="5" y="5.5" width="3" height="6.5" rx="1" />
+                      <rect x="10" y="3" width="3" height="9" rx="1" />
+                      <rect x="15" y="0" width="3" height="12" rx="1" />
+                    </svg>
+                    <svg viewBox="0 0 26 12" className="h-2.5 w-[22px]" fill="none" stroke="currentColor">
+                      <rect x="0.5" y="0.5" width="22" height="11" rx="3" opacity=".45" />
+                      <rect x="2.5" y="2.5" width="15" height="7" rx="1.5" fill="currentColor" stroke="none" />
+                      <path d="M24.5 4v4" strokeLinecap="round" opacity=".45" />
+                    </svg>
+                  </span>
+                </div>
+                <span className="absolute left-1/2 top-[10px] h-[26px] w-[88px] -translate-x-1/2 rounded-full bg-black" aria-hidden />
+
+                {/* Encabezado del evento */}
+                <div className="px-6 pb-3 pt-6 text-center">
                   <p className="text-[11px] font-semibold uppercase tracking-[.3em] text-[#4d6170]">12 · 12 · 2026</p>
-                  <p className="mt-2 text-[2.4rem] italic leading-none text-[#2f4a5a]" style={{ fontFamily: TEMATICAS[0].fuenteTitulo }}>
+                  <p className="mt-1.5 text-[2.1rem] italic leading-none text-[#2f4a5a]" style={{ fontFamily: TEMATICAS[0].fuenteTitulo }}>
                     Ana & Juan
                   </p>
-                  <p className="mt-2 text-[#6a889e]">❦</p>
+                  <p className="mt-1 text-[#4d6170]">❦</p>
                 </div>
-                <div className="grid grid-cols-3 gap-1 px-2">
-                  {FOTOS_DEMO.map((g, i) => (
-                    <img key={i} src={g} alt="" loading="lazy" className="aspect-square w-full rounded-[6px] object-cover" />
-                  ))}
+
+                {/* Pestañas */}
+                <div className="mx-4 mb-3 grid grid-cols-3 rounded-full bg-white/70 p-1 text-center text-[11px] font-semibold text-[#4d6170] shadow-sm">
+                  <span className="rounded-full bg-[#2f4a5a] py-1 text-white">Fotos</span>
+                  <span className="py-1">Juegos</span>
+                  <span className="py-1">Ranking</span>
                 </div>
-                <div className="m-3 mt-4 flex items-center justify-center gap-2 rounded-2xl bg-[#4d6170] py-3 text-sm font-semibold text-white">
-                  <Icono nombre="camara" className="h-4 w-4" /> Subir fotos
+
+                {/* Galería: sigue hacia abajo, como en la app */}
+                <div className="relative min-h-0 flex-1 overflow-hidden px-2">
+                  <div className="grid grid-cols-3 gap-1">
+                    {GALERIA_TELEFONO.map(([g, foco], i) => (
+                      <img key={i} src={g} alt="" loading="lazy" className="aspect-square w-full rounded-[6px] object-cover" style={{ objectPosition: foco }} />
+                    ))}
+                  </div>
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#f4f6f8] to-transparent" />
+                </div>
+
+                {/* Acción principal y barra de inicio */}
+                <div className="px-3 pb-2 pt-2">
+                  <div className="flex items-center justify-center gap-2 rounded-2xl bg-[#2f4a5a] py-3 text-sm font-semibold text-white shadow-lg shadow-[#2f4a5a]/25">
+                    <Icono nombre="camara" className="h-4 w-4" /> Subir fotos
+                  </div>
+                  <span className="mx-auto mt-2.5 block h-[5px] w-28 rounded-full bg-noche/80" aria-hidden />
                 </div>
               </div>
             </div>
             {/* Tarjetas flotantes */}
-            <div className="absolute -left-14 top-24 hidden w-48 rounded-2xl border border-white/10 bg-white/10 p-3 text-xs text-white shadow-2xl backdrop-blur-md lg:block">
+            <div className="absolute -left-24 top-[42%] hidden w-48 rounded-2xl border border-white/10 bg-white/10 p-3 text-xs text-white shadow-2xl backdrop-blur-md lg:block">
               <p className="text-[11px] uppercase tracking-[.2em] text-oro">Mensaje en vivo</p>
               <p className="mt-1 leading-snug text-white/90">“¡Qué día hermoso! Gracias por hacernos parte.”</p>
               <p className="mt-1 text-white/65">— Lola, mesa 4</p>
             </div>
-            <div className="absolute -right-10 bottom-20 hidden items-center gap-2 rounded-full border border-white/10 bg-white/10 py-2 pl-2 pr-4 text-xs text-white shadow-2xl backdrop-blur-md lg:flex">
+            <div className="absolute -right-16 bottom-28 hidden items-center gap-2 rounded-full border border-white/10 bg-white/10 py-2 pl-2 pr-4 text-xs text-white shadow-2xl backdrop-blur-md lg:flex">
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-b from-[#dbe5ee] to-[#8fa5b6] font-display text-sm text-noche">1</span>
               Pepe · 34 pts
             </div>
