@@ -1,5 +1,5 @@
 // Crea la preferencia de Checkout Pro de Mercado Pago para el pedido pendiente de un evento o una compra de regalo.
-// Secretos: MP_ACCESS_TOKEN, APP_URL. (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY los inyecta Supabase.)
+// Secretos: MP_ACCESS_TOKEN, APP_URL y, solo mientras se prueba, MP_PRUEBA=1. (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY los inyecta Supabase.)
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const cors = {
@@ -89,7 +89,10 @@ Deno.serve(async (req) => {
   }
 
   await admin.from(tabla).update({ mp_preference_id: pref.id }).eq("id", p.id);
-  // En modo prueba (token TEST-...) se usa sandbox_init_point.
-  const init_point = token.startsWith("TEST-") ? pref.sandbox_init_point : pref.init_point;
+  // Con credenciales de prueba hay que abrir el checkout de prueba (sandbox_init_point); si no, MP responde
+  // "una de las partes es de prueba". Las credenciales de prueba nuevas empiezan con APP_USR- igual que las reales,
+  // así que el modo se indica con el secreto MP_PRUEBA=1 (se borra al pasar a producción).
+  const prueba = Deno.env.get("MP_PRUEBA") === "1" || token.startsWith("TEST-");
+  const init_point = prueba ? pref.sandbox_init_point : pref.init_point;
   return json({ init_point });
 });
