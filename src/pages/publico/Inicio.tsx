@@ -426,6 +426,10 @@ export default function Inicio() {
           © {new Date().getFullYear()} SkyEventos es un servicio de{" "}
           <a href="https://skystudio.ar" target="_blank" rel="noopener" className="font-medium text-noche underline decoration-oro/50 underline-offset-4 hover:decoration-oro">SkyStudio</a>
           {" "}· Hecho en Argentina
+          <span className="mt-1 block">
+            <Link to="/privacidad" className="hover:text-noche">Privacidad</Link> · <Link to="/terminos" className="hover:text-noche">Términos</Link> ·{" "}
+            <Link to="/terminos#arrepentimiento" className="hover:text-noche">Botón de arrepentimiento</Link>
+          </span>
         </span>
       </footer>
     </div>

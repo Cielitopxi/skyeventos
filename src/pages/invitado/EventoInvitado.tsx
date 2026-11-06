@@ -185,7 +185,10 @@ function Unirse({ evento, codigo, error: errorInicial, previo, onListo }: { even
         </div>
         <label className="flex gap-2 text-xs text-tema-suave">
           <input type="checkbox" checked={acepto} onChange={(e) => setAcepto(e.target.checked)} className="mt-0.5" />
-          Acepto que mis fotos y mensajes se muestren en la pantalla del evento y se incluyan en el fotolibro, y que los anfitriones reciban mi nombre y email.
+          <span>
+            Acepto que mis fotos y mensajes se muestren en la pantalla del evento y se incluyan en el fotolibro, y que los anfitriones reciban mi nombre y
+            email (<Link to="/terminos" target="_blank" className="underline underline-offset-2">términos</Link> y <Link to="/privacidad" target="_blank" className="underline underline-offset-2">privacidad</Link>).
+          </span>
         </label>
         <label className="flex gap-2 text-xs text-tema-suave">
           <input type="checkbox" checked={novedades} onChange={(e) => setNovedades(e.target.checked)} className="mt-0.5" />

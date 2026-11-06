@@ -128,7 +128,8 @@ Es una SPA estática: `npm run build` genera `dist/`.
 ## 7. Contenido y legales
 
 - [x] Emails de invitados: obligatorios para entrar. La casilla "Quiero recibir novedades y promociones" es opcional y queda registrada con fecha. En `/admin → Contactos` se descarga el CSV (por defecto, solo quienes aceptaron). Cada envío de publicidad tiene que llevar el link de baja `https://eventos.skystudio.ar/baja`.
-- [ ] Política de privacidad y términos, con link en la landing y en el registro del invitado. Ahora se juntan **emails** de invitados (Ley 25.326 de Protección de Datos Personales): indicar para qué se usan y cómo pedir la baja. El registro ya pide aceptar que los anfitriones reciban nombre y email.
+- [x] Borrador de **política de privacidad** (`/privacidad`) y **términos** (`/terminos`), con **botón de arrepentimiento** (`/terminos#arrepentimiento`, Res. 424/2020). Enlazados en el pie de la portada, el registro del invitado, crear cuenta y el pago.
+- [ ] **Revisarlos con un abogado** y completar en `src/pages/publico/Legal.tsx` (`RESPONSABLE`) la razón social, el CUIT y el domicilio. Confirmar que `eventos@skystudio.ar` recibe mails: es el contacto de los dos textos y del botón de arrepentimiento.
 - [ ] Revisar el evento de demostración `DEMO26`. Tiene datos de prueba ocultos (fotos de prueba y un invitado "Prueba Votación").
 
 ## 7 bis. Instalación como app (invitados)

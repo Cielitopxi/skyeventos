@@ -164,6 +164,12 @@ export default function Login() {
               <button className="btn w-full rounded-full bg-noche py-3 text-white hover:bg-slate-800" disabled={enviando}>
                 {enviando ? (modo === "crear" ? "Creando tu cuenta…" : "Ingresando…") : modo === "crear" ? "Crear cuenta" : "Ingresar"}
               </button>
+              {modo === "crear" && (
+                <p className="text-center text-xs text-slate-500">
+                  Al crear tu cuenta aceptás los <Link to="/terminos" target="_blank" className="underline underline-offset-2">términos</Link> y la{" "}
+                  <Link to="/privacidad" target="_blank" className="underline underline-offset-2">política de privacidad</Link>.
+                </p>
+              )}
               {modo === "ingresar" && (
                 <button type="button" className="w-full text-center text-sm text-slate-500 hover:text-noche" onClick={() => cambiar("olvide")}>
                   Olvidé mi contraseña

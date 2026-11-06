@@ -15,6 +15,8 @@ const ResultadoPago = lazy(() => import("./pages/publico/ResultadoPago"));
 const Clip = lazy(() => import("./pages/publico/Clip"));
 const Regalar = lazy(() => import("./pages/publico/Regalar"));
 const Baja = lazy(() => import("./pages/publico/Baja"));
+const Privacidad = lazy(() => import("./pages/publico/Legal").then((m) => ({ default: m.Privacidad })));
+const Terminos = lazy(() => import("./pages/publico/Legal").then((m) => ({ default: m.Terminos })));
 const LibroPublico = lazy(() => import("./pages/libro/LibroPublico"));
 const MisEventos = lazy(() => import("./pages/panel/MisEventos"));
 const EventoPanel = lazy(() => import("./pages/panel/EventoPanel"));
@@ -46,6 +48,8 @@ export default function App() {
           <Route path="/c/:id" element={<Clip />} />
           <Route path="/regalar" element={esAppPlay ? <Navigate to="/" replace /> : <Regalar />} />
           <Route path="/baja" element={<Baja />} />
+          <Route path="/privacidad" element={<Privacidad />} />
+          <Route path="/terminos" element={<Terminos />} />
           <Route path="/libro/:token" element={<LibroPublico />} />
           <Route path="/e" element={<Ingresar />} />
           <Route path="/e/:codigo" element={<EventoInvitado />} />

@@ -285,6 +285,10 @@ export default function Contratar() {
                   {procesando ? (gratis ? "Activando tu evento…" : "Redirigiendo a Mercado Pago…") : gratis ? "Activar mi evento" : "Pagar con Mercado Pago"}
                 </button>
                 <p className="text-center text-xs text-slate-500">{gratis ? "Tu código cubre el total: no hace falta pagar." : "El evento se activa automáticamente cuando se acredita el pago."}</p>
+                <p className="text-center text-xs text-slate-500">
+                  Al continuar aceptás los <Link to="/terminos" target="_blank" className="underline underline-offset-2">términos</Link> y la{" "}
+                  <Link to="/privacidad" target="_blank" className="underline underline-offset-2">política de privacidad</Link>.
+                </p>
               </>
             )}
 
