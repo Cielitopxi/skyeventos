@@ -32,7 +32,7 @@ export default function Ingresar() {
           <h1 className="mt-4 text-3xl leading-tight">Ingresá el código <em className="texto-oro">del evento</em></h1>
         </div>
         <input
-          className="w-full rounded-2xl border border-oro/30 bg-white/[.06] px-4 py-5 text-center font-display text-4xl uppercase tracking-[.35em] text-[#dbe5ee] outline-none transition placeholder:text-white/20 focus:border-oro focus:bg-white/[.09] focus:ring-4 focus:ring-oro/15"
+          className="w-full rounded-2xl border border-oro/30 bg-white/[.06] px-4 py-5 text-center font-display text-4xl uppercase tracking-[.35em] text-[#dbe5ee] outline-none transition placeholder:text-white/40 focus:border-oro focus:bg-white/[.09] focus:ring-4 focus:ring-oro/15"
           maxLength={8}
           autoFocus
           placeholder="ABC123"
@@ -46,9 +46,9 @@ export default function Ingresar() {
         >
           {buscando ? "Buscando…" : "Entrar al evento"}
         </button>
-        <p className="text-xs leading-relaxed text-white/45">El código está en el QR de tu mesa o te lo pasaron los anfitriones.</p>
+        <p className="text-xs leading-relaxed text-white/65">El código está en el QR de tu mesa o te lo pasaron los anfitriones.</p>
       </form>
-      <p className="mt-10 text-xs text-white/45">
+      <p className="mt-10 text-xs text-white/65">
         ¿Organizás un evento?{" "}
         <Link to="/ingresar" className="text-[#dbe5ee] underline decoration-oro/50 underline-offset-4">Ingresá como anfitrión</Link>
       </p>

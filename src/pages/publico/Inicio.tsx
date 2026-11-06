@@ -118,7 +118,7 @@ export default function Inicio() {
             <span className="text-2xl text-oro transition group-hover:translate-x-1" aria-hidden>→</span>
           </Link>
             </div>
-            <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-xs tracking-wide text-white/50">
+            <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-xs tracking-wide text-white/65">
               {["Sin apps para los invitados", "Pago con Mercado Pago", "Listo en minutos"].map((t) => (
                 <li key={t} className="flex items-center gap-2">
                   <Icono nombre="check" className="h-3.5 w-3.5 text-oro" />
@@ -134,7 +134,7 @@ export default function Inicio() {
             <div className="relative rounded-[2.6rem] bg-gradient-to-b from-[#3a4650] to-[#1a242d] p-2 shadow-[0_40px_80px_-30px_rgba(0,0,0,.8)] ring-1 ring-white/10">
               <div className="overflow-hidden rounded-[2.1rem]" style={{ background: "radial-gradient(circle at 20% 10%, rgba(151,168,180,.35), transparent 45%), radial-gradient(circle at 85% 90%, rgba(106,136,158,.25), transparent 40%), #f4f6f8" }}>
                 <div className="px-6 pb-4 pt-8 text-center">
-                  <p className="text-[9px] font-semibold uppercase tracking-[.3em] text-[#6a889e]">12 · 12 · 2026</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[.3em] text-[#4d6170]">12 · 12 · 2026</p>
                   <p className="mt-2 text-[2.4rem] italic leading-none text-[#2f4a5a]" style={{ fontFamily: TEMATICAS[0].fuenteTitulo }}>
                     Ana & Juan
                   </p>
@@ -152,9 +152,9 @@ export default function Inicio() {
             </div>
             {/* Tarjetas flotantes */}
             <div className="absolute -left-14 top-24 hidden w-48 rounded-2xl border border-white/10 bg-white/10 p-3 text-xs text-white shadow-2xl backdrop-blur-md lg:block">
-              <p className="text-[10px] uppercase tracking-[.2em] text-oro">Mensaje en vivo</p>
+              <p className="text-[11px] uppercase tracking-[.2em] text-oro">Mensaje en vivo</p>
               <p className="mt-1 leading-snug text-white/90">“¡Qué día hermoso! Gracias por hacernos parte.”</p>
-              <p className="mt-1 text-white/50">— Lola, mesa 4</p>
+              <p className="mt-1 text-white/65">— Lola, mesa 4</p>
             </div>
             <div className="absolute -right-10 bottom-20 hidden items-center gap-2 rounded-full border border-white/10 bg-white/10 py-2 pl-2 pr-4 text-xs text-white shadow-2xl backdrop-blur-md lg:flex">
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-b from-[#dbe5ee] to-[#8fa5b6] font-display text-sm text-noche">1</span>
@@ -205,7 +205,7 @@ export default function Inicio() {
             </div>
           ))}
         </div>
-        <p className="mt-4 text-xs text-slate-400">Fotos ilustrativas.</p>
+        <p className="mt-4 text-xs text-slate-500">Fotos ilustrativas.</p>
       </section>
 
       {/* ───────────── Funciones ───────────── */}
@@ -284,13 +284,13 @@ export default function Inicio() {
                   }`}
                 >
                   {destacado && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-b from-[#dbe5ee] to-[#8fa5b6] px-3 py-1 text-[10px] font-bold uppercase tracking-[.2em] text-noche">
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-b from-[#dbe5ee] to-[#8fa5b6] px-3 py-1 text-[11px] font-bold uppercase tracking-[.2em] text-noche">
                       Más elegido
                     </span>
                   )}
                   <h3 className="text-2xl">{p.nombre}</h3>
                   <p className="mt-4 font-display text-4xl font-light tracking-tight">{pesos(p.precio_ars)}</p>
-                  <p className={`text-xs ${destacado ? "text-slate-500" : "text-white/45"}`}>pago único por evento</p>
+                  <p className={`text-xs ${destacado ? "text-slate-500" : "text-white/65"}`}>pago único por evento</p>
                   <div className={`my-6 h-px ${destacado ? "bg-slate-200" : "bg-white/10"}`} />
                   <ul className={`flex-1 space-y-3 text-sm ${destacado ? "text-slate-700" : "text-white/75"}`}>
                     {[
@@ -324,7 +324,7 @@ export default function Inicio() {
                 </div>
               );
             })}
-            {!planes.length && <p className="col-span-3 text-center text-white/40">Cargando planes…</p>}
+            {!planes.length && <p className="col-span-3 text-center text-white/65">Cargando planes…</p>}
           </div>
         </div>
       </section>

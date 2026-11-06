@@ -7,7 +7,7 @@
   --t-fondo: 244 246 248;
   --t-superficie: 255 255 255;
   --t-texto: 26 36 45;
-  --t-suave: 107 120 132;
+  --t-suave: 90 102 114;
   --t-acento: 77 97 112;
   --t-acento2: 151 168 180;
   --t-font-titulo: Fraunces, Georgia, serif;
@@ -90,7 +90,7 @@ body {
   .btn-chico { @apply rounded-lg px-3 py-1.5 text-xs; }
   .input {
     @apply w-full rounded-xl border border-tema-suave/25 bg-tema-superficie px-3.5 py-2.5 text-sm text-tema-texto outline-none transition
-      placeholder:text-tema-suave/60 focus:border-tema-acento/70 focus:ring-4 focus:ring-tema-acento/10;
+      placeholder:text-tema-suave/90 focus:border-tema-acento/70 focus:ring-4 focus:ring-tema-acento/10;
     box-shadow: inset 0 1px 2px rgb(0 0 0 / .03);
   }
   .etiqueta { @apply mb-1.5 block text-[11px] font-semibold uppercase tracking-[.14em] text-tema-suave; }

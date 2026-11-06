@@ -72,14 +72,14 @@ export default function Demo() {
                   <div className="rounded-[2.6rem] bg-gradient-to-b from-[#3a4650] to-[#1a242d] p-2 shadow-[0_40px_80px_-30px_rgba(0,0,0,.8)] ring-1 ring-white/10">
                     <iframe title="Invitado" src={urlInvitado} className="h-[640px] w-[330px] rounded-[2.1rem] bg-white" />
                   </div>
-                  <figcaption className="mt-4 text-center text-xs uppercase tracking-[.2em] text-white/45">Celular del invitado</figcaption>
+                  <figcaption className="mt-4 text-center text-xs uppercase tracking-[.2em] text-white/65">Celular del invitado</figcaption>
                 </figure>
                 <figure className="min-w-0 flex-1">
                   <div className="rounded-2xl bg-[#10171d] p-2.5 shadow-[0_40px_80px_-30px_rgba(0,0,0,.8)] ring-1 ring-white/10">
                     <iframe title="Pantalla en vivo" src={urlPantalla} className="aspect-video w-full rounded-lg bg-black" />
                   </div>
                   <div className="mx-auto h-6 w-24 bg-gradient-to-b from-[#26323c] to-transparent" />
-                  <figcaption className="text-center text-xs uppercase tracking-[.2em] text-white/45">Pantalla del salón</figcaption>
+                  <figcaption className="text-center text-xs uppercase tracking-[.2em] text-white/65">Pantalla del salón</figcaption>
                 </figure>
               </div>
 
@@ -96,10 +96,10 @@ export default function Demo() {
                   <span className="flex h-11 w-11 items-center justify-center rounded-full border border-oro/50 text-oro"><Icono nombre="pantalla" className="h-5 w-5" /></span>
                   <span className="flex-1">
                     <span className="block font-semibold">Abrir la pantalla en vivo</span>
-                    <span className="text-sm text-white/55">Ideal en una compu o un televisor</span>
+                    <span className="text-sm text-white/65">Ideal en una compu o un televisor</span>
                   </span>
                 </a>
-                <p className="mt-2 text-center text-xs text-white/45">
+                <p className="mt-2 text-center text-xs text-white/65">
                   Código del evento: <b className="font-display text-base tracking-[.25em] text-[#dbe5ee]">{info.codigo}</b>
                 </p>
               </div>
@@ -117,7 +117,7 @@ export default function Demo() {
                 <Icono nombre={p.i} className="h-5 w-5" />
                 <span className="font-display text-xl italic">0{i + 1}</span>
               </span>
-              <h3 className="mt-3 text-xl">{p.t}</h3>
+              <h2 className="mt-3 text-xl">{p.t}</h2>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">{p.d}</p>
             </div>
           ))}
