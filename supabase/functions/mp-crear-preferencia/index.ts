@@ -70,10 +70,11 @@ Deno.serve(async (req) => {
   const r = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
     // El monto va en la clave: si se aplica un código de descuento, MP no devuelve la preferencia vieja.
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "X-Idempotency-Key": `${p.id}-${p.monto}` },
+    // Sin "payer": el comprador es quien inicia sesión en Mercado Pago. Mandar el email de la cuenta de SkyEventos
+    // mezclaba una cuenta real con credenciales de prueba ("una de las partes es de prueba") y no aporta nada.
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", "X-Idempotency-Key": `${p.id}-${p.monto}-v3` },
     body: JSON.stringify({
       items: [{ id: p.plan_id, title: titulo, quantity: 1, unit_price: Number(p.monto), currency_id: "ARS" }],
-      payer: { email: u.user.email },
       external_reference: referencia,
       back_urls: { success: volver("ok"), pending: volver("pendiente"), failure: volver("error") },
       auto_return: "approved",
