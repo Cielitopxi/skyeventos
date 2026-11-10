@@ -71,6 +71,10 @@ export default function Regalar() {
       nav(`/ingresar?volver=${encodeURIComponent(`/regalar?plan=${planId}`)}`);
       return;
     }
+    if (para.trim().length < 2) {
+      setError("Escribí para quién es el regalo (por ejemplo, Sofi y Martín).");
+      return;
+    }
     setError("");
     setProcesando(true);
     try {
@@ -170,7 +174,7 @@ export default function Regalar() {
                 <textarea className="input min-h-[90px]" value={mensaje} maxLength={400} onChange={(e) => setMensaje(e.target.value)} placeholder="¡Para que no se pierdan ni una foto de su gran día!" />
               </Campo>
               {error && <Aviso tipo="error">{error}</Aviso>}
-              <button className="btn-primario btn-luz w-full py-3.5 text-base" onClick={regalar} disabled={procesando || !plan || (!!usuario && para.trim().length < 2) || cargando}>
+              <button className="btn-primario btn-luz w-full py-3.5 text-base" onClick={regalar} disabled={procesando || !plan || cargando}>
                 {procesando ? "Redirigiendo a Mercado Pago…" : usuario ? `Regalar ${plan ? pesos(plan.precio_ars) : ""}` : "Ingresá para regalar"}
               </button>
               <p className="text-center text-xs text-slate-500">El código se activa cuando se acredita el pago. Es de un solo uso y no vence.</p>
