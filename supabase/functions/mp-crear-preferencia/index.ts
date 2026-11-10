@@ -84,7 +84,8 @@ Deno.serve(async (req) => {
   });
   const pref = await r.json();
   if (!r.ok) {
-    console.error("MP preferencia", r.status, pref);
+    // El final del token es el ID de usuario de la cuenta de MP (no es secreto): sirve para ver qué cuenta se usó.
+    console.error("MP preferencia", r.status, pref, "cuenta", token.split("-").pop(), "prueba", Deno.env.get("MP_PRUEBA") ?? "no");
     return json({ error: "Mercado Pago rechazó la preferencia" }, 502);
   }
 
