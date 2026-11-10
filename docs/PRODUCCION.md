@@ -46,8 +46,8 @@ supabase secrets set --project-ref ryxgalarjcrlwecxishb \
   MP_ACCESS_TOKEN=APP_USR-... APP_URL=https://eventos.skystudio.ar MP_WEBHOOK_SECRET=...
 ```
 
-- [ ] Probar primero con las **credenciales de prueba** y el secreto `MP_PRUEBA=1` (abre el checkout de prueba; sin él MP responde "una de las partes es de prueba"). Pagar en incógnito con el **comprador de prueba**. Al pasar a producción: token de producción y **borrar `MP_PRUEBA`**.
-- [ ] En Mercado Pago → Tus integraciones → Webhooks: URL `https://ryxgalarjcrlwecxishb.supabase.co/functions/v1/mp-webhook`, evento **Pagos**. Copiar la clave secreta a `MP_WEBHOOK_SECRET`.
+- [x] **En producción desde el 10/11/2026**: token de producción cargado, `MP_PRUEBA` borrado. Pago real de $1.000 (código `PRUEBAMP`, evento Q4UH3D, pago 188828132998) aprobado y evento activado solo por el webhook. El sandbox con las credenciales de prueba de la cuenta daba "Algo anduvo mal": para probar, usar un código de descuento y pagar de verdad con una tarjeta que no sea la de la cuenta que cobra.
+- [x] En Mercado Pago → Tus integraciones → Webhooks: URL `https://ryxgalarjcrlwecxishb.supabase.co/functions/v1/mp-webhook`, evento **Pagos**. Copiar la clave secreta a `MP_WEBHOOK_SECRET`.
 - [ ] Hacer una compra real de punta a punta: el evento tiene que pasar a `activo` solo.
 - [ ] Probar una tarjeta de regalo (`/regalar`): al acreditarse el pago, el código aparece en "Mis regalos" y se canjea en el último paso de `/contratar`.
 - Códigos de descuento: se crean en `/admin → Códigos` (porcentaje o monto, por plan, con usos máximos y vencimiento). Si un código cubre el 100 %, el evento se activa sin pasar por Mercado Pago. Link directo para campañas: `https://eventos.skystudio.ar/contratar?cupon=CODIGO`.
