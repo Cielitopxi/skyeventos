@@ -63,6 +63,66 @@ En [`capturas/`](capturas/), sacadas del evento de demostración (sin datos de c
 
 ---
 
+## Guion desarrollado: versión para editar ya en CapCut (sin créditos de IA)
+
+Se arma solo con las capturas reales + 3 o 4 videos cortos de fiesta (tuyos, de un evento de SkyStudio, o de bancos gratuitos como Pexels/Pixabay buscando "wedding party night", "wedding toast", "dance floor"). **Duración: 21 s · 9:16 · música alegre a ~110–120 BPM** (cortes en cada tiempo fuerte).
+
+| Tiempo | Imagen | Movimiento / transición | Texto en pantalla | Voz en off (opcional) |
+|---|---|---|---|---|
+| 0,0–2,5 s | Video de pista llena, todos con el celular en alto | Zoom in lento; corte seco al primer golpe de música | **¿Dónde terminan todas las fotos de tu fiesta?** | "¿Dónde terminan todas las fotos de tu fiesta?" |
+| 2,5–4,0 s | Mismo video, congelado + 6 burbujas de WhatsApp que aparecen y desaparecen | Efecto "glitch" corto | **En 50 chats distintos 😩** | "En cincuenta chats distintos." |
+| 4,0–7,0 s | `celular-ingreso.png` dentro de un marco de celular sobre un video de mesa decorada | Desliza desde abajo | **Escanean el QR · sin apps · sin cuentas** | "Con SkyEventos, tus invitados entran con el código del evento…" |
+| 7,0–10,5 s | `pantalla-novios.jpg` a pantalla completa | Zoom lento hacia la polaroid (Ken Burns) | **Las fotos aparecen en vivo en la pantalla del salón** | "…y cada foto aparece en vivo en la pantalla del salón." |
+| 10,5–11,5 s | `celular-trivia.png` | Corte al ritmo | **Trivia de los novios** | "Juegan trivia…" |
+| 11,5–12,5 s | `celular-bingo.png` | Corte al ritmo | **Bingo de momentos** | "…bingo…" |
+| 12,5–13,5 s | `celular-misiones.png` | Corte al ritmo | **Misiones con puntos** | "…misiones…" |
+| 13,5–15,5 s | `celular-ranking.png` | Zoom a la medalla de oro | **Ranking con premios 🏆** | "…y compiten por premios." |
+| 15,5–18,0 s | `celular-galeria.png` sobre fondo marfil, girando suave | Disolvencia | **Al otro día, todas las fotos en un solo lugar** | "Al otro día, todas las fotos en un solo lugar." |
+| 18,0–21,0 s | Fondo azul noche con destellos dorados + logo | Aparece el logo con brillo | **SkyEventos · eventos.skystudio.ar** · *Bodas · 15 · Cumpleaños · Empresas* | "SkyEventos. Tu fiesta, desde todos los ángulos." |
+
+**Detalles de edición**
+- Tipografía de los textos: una serif elegante para las frases (en CapCut: "Playfair" o similar) y sans para los detalles. Color marfil `#f7f3ec` con sombra suave; acentos en dorado `#94702f`.
+- Los textos aparecen con animación "máquina de escribir" o "fundido hacia arriba", nunca más de 7 palabras por pantalla.
+- Subtítulos automáticos de CapCut si usás voz en off (la mayoría mira sin sonido).
+- Portada del reel (la imagen que queda fija en el perfil): el cuadro de `pantalla-novios.jpg` con el texto "Tu fiesta, en vivo en la pantalla".
+
+---
+
+## Posteo de carrusel (Instagram / Facebook)
+
+**Listo para publicar:** [`carrusel/`](carrusel/) tiene las 6 imágenes finales (1080×1440, formato 3:4), con las capturas ya colocadas. Se suben en orden, del 1 al 6.
+
+Diseño original editable en Canva: https://canva.link/h874qg47bbs3xfh (ahí los marcos están vacíos; las capturas están en **Canva → Subidos** por si querés rearmarlo). Qué va en cada página:
+
+| Página | Texto | Captura para colocar |
+|---|---|---|
+| 1 | ¿Dónde terminan todas las fotos de tu fiesta? · Deslizá → | (foto de fiesta o `pantalla-mesa.png` de fondo) |
+| 2 | Tus invitados entran con el código del evento | `celular-ingreso.png` |
+| 3 | Las fotos aparecen en vivo en la pantalla del salón | `pantalla-novios.jpg` |
+| 4 | Juegos que animan la fiesta | `celular-trivia.png` y `celular-ranking.png` |
+| 5 | Al otro día, todas las fotos en un solo lugar | `celular-galeria.png` |
+| 6 | SkyEventos · Bodas · 15 años · Cumpleaños · Empresas · También lo podés regalar · eventos.skystudio.ar | — |
+
+**Texto del carrusel:**
+
+> ¿Cuántas fotos de tu fiesta nunca llegaste a ver? 📸
+>
+> Con SkyEventos, tus invitados entran con el código del evento —sin descargar nada— y todo lo que sacan aparece en vivo en la pantalla del salón.
+>
+> 🎯 Misiones, bingo de momentos y trivia de los novios
+> 🏆 Ranking con premios para las mesas más fotógrafas
+> 📖 Y al otro día, todas las fotos en un fotolibro digital
+>
+> Para bodas, 15 años, cumpleaños y eventos de empresa. También lo podés regalar 🎁
+>
+> 👉 Probá la demo en vivo: eventos.skystudio.ar/demo
+>
+> #bodas2027 #casamiento #fiesta15 #quinceañera #fotosdeboda #eventosargentina #organizaciondeeventos #wedding #skyeventos
+
+**Historia para acompañar (24 h):** `pantalla-novios.jpg` con el sticker de enlace a `eventos.skystudio.ar/demo` y el texto "Probalo como si fueras un invitado 👀".
+
+---
+
 ## Prompts para Higgsfield
 
 ### Escena 1 — El gancho (Seedance 2.0 · 4 s)
