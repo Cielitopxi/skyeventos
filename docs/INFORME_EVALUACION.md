@@ -156,3 +156,17 @@ La identidad (azul noche, marfil, dorado, tipografías con serif) es coherente y
 - Programa de revendedores y marca blanca.
 - Recuperación de contraseña por mail (S4).
 - Fotolibro impreso.
+
+---
+
+## Avance (11/11/2026)
+
+Hecho y publicado (commit f50e30e):
+
+- **S3** — `react-router-dom` 6.30.6 y `supabase-js` 2.119.0. Quedan 2 avisos moderados de react-router que no aplican (uno es solo para sitios con render en servidor; el otro, redirecciones con barra invertida, ya está filtrado en el login). Se resuelven del todo migrando a la versión 7.
+- **S2 (parcial)** — Tope de 5 cuentas por hora y 20 por día por IP (migración `0021`). Falta el captcha: requiere crear un sitio en Cloudflare Turnstile.
+- **S7** — Cabeceras CSP y HSTS.
+- **B1** — Imagen de vista previa (`/compartir.jpg`) y título para WhatsApp y redes.
+- **B2** — Contención de errores con recarga automática.
+
+Pendiente de la dueña: **S1** (límite de ingresos anónimos), **S5** y **S6**. Pendiente de cuentas externas: monitoreo de errores (B3) y captcha.
