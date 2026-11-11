@@ -10,9 +10,9 @@ create table if not exists public.demo_fijos (
 alter table public.demo_fijos enable row level security;
 revoke all on public.demo_fijos from anon, authenticated;
 
--- Al aplicar: quedan fijos los invitados que ya están en la demo. Si alguno es de prueba,
--- se borra de esta tabla antes de que corra la limpieza.
+-- Invitados de muestra de la demo (11/2026): las fotos de Lucía, Tomás y Valentina y el mensaje de Lola.
+-- El resto (pruebas internas y visitantes) se borra en la próxima limpieza.
 insert into public.demo_fijos (invitado_id)
 select i.id from public.invitados i join public.eventos e on e.id = i.evento_id
-where e.es_demo
+where e.es_demo and i.nombre in ('Lucía', 'Tomás', 'Valentina', 'Lola')
 on conflict do nothing;
