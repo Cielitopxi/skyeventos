@@ -17,6 +17,25 @@
 
 ---
 
+## Capturas reales de la app
+
+En [`capturas/`](capturas/), sacadas del evento de demostración (sin datos de clientes):
+
+| Archivo | Qué muestra | Tamaño | Para qué escena |
+|---|---|---|---|
+| `celular-ingreso.png` | La entrada del invitado: "Sofía & Martín", nombre y email, "Entrar al evento" | 1170×2532 (vertical) | Escena 2: lo que ve la invitada al escanear el QR |
+| `celular-galeria.png` | Celular con la galería del evento, pestañas Fotos / Juegos / Ranking y "Subir fotos" | vertical, fondo transparente | Escenas 2 y 4, o para apoyar en el cierre |
+| `pantalla-novios.jpg` | La pantalla del salón mostrando una foto de los novios tipo polaroid, con el QR y el código del evento | 1920×1080 | Escena 3: la pantalla gigante |
+| `pantalla-mesa.png` | La pantalla del salón con una foto de la mesa con velas | 1920×1080 | Escena 3 (alternativa) |
+
+**Cómo usarlas en Higgsfield:** en Seedance 2.0, subí la captura como `start_image` (la escena arranca desde esa imagen) o como `image_references` (el modelo la toma de referencia). Para las pantallas, conviene `image_references` y pedir en el prompt "la pantalla del salón muestra esta imagen".
+
+**También sirven tal cual:** en CapCut, poné `celular-galeria.png` encima de un video de fiesta (como si alguien lo tuviera en la mano), o hacé un zoom lento sobre `pantalla-novios.jpg`. Es la forma más fiel de mostrar el producto.
+
+> La trivia y el ranking no están capturados porque requieren entrar como invitado al evento de demostración.
+
+---
+
 ## Guion
 
 | # | Tiempo | Qué se ve | Texto en pantalla |
