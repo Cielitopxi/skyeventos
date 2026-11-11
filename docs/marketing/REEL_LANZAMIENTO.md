@@ -27,12 +27,16 @@ En [`capturas/`](capturas/), sacadas del evento de demostración (sin datos de c
 | `celular-galeria.png` | Celular con la galería del evento, pestañas Fotos / Juegos / Ranking y "Subir fotos" | vertical, fondo transparente | Escenas 2 y 4, o para apoyar en el cierre |
 | `pantalla-novios.jpg` | La pantalla del salón mostrando una foto de los novios tipo polaroid, con el QR y el código del evento | 1920×1080 | Escena 3: la pantalla gigante |
 | `pantalla-mesa.png` | La pantalla del salón con una foto de la mesa con velas | 1920×1080 | Escena 3 (alternativa) |
+| `celular-trivia.png` | Trivia de los novios: "¿Dónde se conocieron Sofía y Martín?" con 4 opciones | 1170×2532 | Escena 4 |
+| `celular-misiones.png` | Misiones con puntos: selfie con alguien nuevo, paso de baile, tres generaciones, brindis | 1170×2532 | Escena 4 |
+| `celular-bingo.png` | Cartón de bingo de momentos (brindis, abrazo, la torta, la pista llena…) | 1170×2532 | Escena 4 |
+| `celular-ranking.png` | Ranking con premio ("Un abrazo de los novios") y los 4 primeros puestos con medallas | 1170×1479 (recorte) | Escena 4 |
 
 **Cómo usarlas en Higgsfield:** en Seedance 2.0, subí la captura como `start_image` (la escena arranca desde esa imagen) o como `image_references` (el modelo la toma de referencia). Para las pantallas, conviene `image_references` y pedir en el prompt "la pantalla del salón muestra esta imagen".
 
 **También sirven tal cual:** en CapCut, poné `celular-galeria.png` encima de un video de fiesta (como si alguien lo tuviera en la mano), o hacé un zoom lento sobre `pantalla-novios.jpg`. Es la forma más fiel de mostrar el producto.
 
-> La trivia y el ranking no están capturados porque requieren entrar como invitado al evento de demostración.
+> Para el reel, en la escena 4 conviene pasar rápido trivia → bingo → ranking (1 segundo cada una), como si alguien deslizara por la app.
 
 ---
 
