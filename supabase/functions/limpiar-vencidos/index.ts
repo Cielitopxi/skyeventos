@@ -6,7 +6,8 @@
 //   1. Archivos del bucket bajo {evento}/ (fotos, clips, miniaturas, cápsula, portada).
 //   2. Invitados; en cascada se van fotos, mensajes, votos, respuestas de trivia, cápsula y emails.
 //   3. El evento queda 'archivado' con contenido_borrado_at. Evento y pedido se conservan.
-// Nunca toca el evento demo ni los que no se activaron.
+// Nunca archiva el evento demo ni los que no se activaron. De la demo solo borra a los visitantes
+// de más de 24 h que no estén en demo_fijos (migración 0020).
 //
 // Cuerpo opcional: {"simular": true} devuelve qué se borraría sin borrar nada. {"limite": n} (máx. 50).
 // Con {"simular": true, "codigo": "ABC123"} inspecciona ese evento aunque no esté vencido (solo lectura).
@@ -34,6 +35,48 @@ async function listarArchivos(db: SupabaseClient, carpeta: string): Promise<stri
   return archivos;
 }
 
+/**
+ * Demo pública: borra a los visitantes que entraron hace más de 24 h, con sus archivos
+ * (carpeta {evento}/{invitado}/) y, en cascada, sus fotos, mensajes, juegos y email.
+ * Los invitados de muestra están en demo_fijos y no se tocan.
+ */
+async function limpiarDemo(db: SupabaseClient, simular: boolean) {
+  const hace24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const { data: demos, error } = await db.from("eventos").select("id, codigo").eq("es_demo", true);
+  if (error) return [{ codigo: "demo", archivos: 0, invitados: 0, ok: false, error: error.message }];
+  // Sin la lista de fijos (p. ej. falta la migración 0020) no se borra nada: se perderían las fotos de muestra.
+  const { data: fijos, error: eFijos } = await db.from("demo_fijos").select("invitado_id");
+  if (eFijos) return [{ codigo: "demo", archivos: 0, invitados: 0, ok: false, error: eFijos.message }];
+  const conservar = new Set((fijos ?? []).map((f) => f.invitado_id as string));
+
+  const salida = [];
+  for (const ev of demos ?? []) {
+    try {
+      const { data: invitados, error: e0 } = await db.from("invitados").select("id").eq("evento_id", ev.id).lt("created_at", hace24h);
+      if (e0) throw e0;
+      const borrar = (invitados ?? []).map((i) => i.id as string).filter((id) => !conservar.has(id));
+      let archivos = 0;
+      for (const id of borrar) {
+        const rutas = await listarArchivos(db, `${ev.id}/${id}`);
+        archivos += rutas.length;
+        if (!simular && rutas.length) {
+          const { error: e } = await db.storage.from(BUCKET).remove(rutas);
+          if (e) throw e;
+        }
+      }
+      if (!simular && borrar.length) {
+        const { error: e1 } = await db.from("invitados").delete().in("id", borrar);
+        if (e1) throw e1;
+      }
+      salida.push({ codigo: `${ev.codigo} (demo)`, archivos, invitados: borrar.length, ok: true });
+    } catch (e) {
+      console.error("limpiar demo", ev.codigo, e);
+      salida.push({ codigo: `${ev.codigo} (demo)`, archivos: 0, invitados: 0, ok: false, error: (e as Error).message ?? String(e) });
+    }
+  }
+  return salida;
+}
+
 Deno.serve(async (req) => {
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
@@ -58,6 +101,7 @@ Deno.serve(async (req) => {
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
   const resultado: { codigo: string; archivos: number; invitados: number; ok: boolean; error?: string }[] = [];
+  if (!inspeccionar) resultado.push(...(await limpiarDemo(db, simular)));
   for (const ev of eventos ?? []) {
     try {
       const archivos = await listarArchivos(db, ev.id);

@@ -363,4 +363,8 @@ console.log("✓ contacto con consentimiento:", ct.email, ct.acepta_novedades, c
 await espera_error(como(host, false, `select * from admin_contactos()`), "solo el admin exporta contactos");
 await como(intruso, true, `select baja_novedades(' Pepe@Mail.com ')`);
 console.log("✓ baja de novedades:", (await db.query(`select bool_or(acepta_novedades) b from invitados_contacto where email='pepe@mail.com'`)).rows[0].b === false);
+const unInvitado = (await db.query(`select id from invitados limit 1`)).rows[0].id;
+await espera_error(como(intruso, true, `insert into demo_fijos (invitado_id) values ('${unInvitado}')`), "un invitado no se marca como fijo de la demo");
+await db.exec(`insert into demo_fijos (invitado_id) values ('${unInvitado}')`);
+console.log("✓ demo_fijos no se ve desde la app:", (await como(host, false, `select count(*)::int n from demo_fijos`)).rows[0].n === 0);
 console.log("FIN");
