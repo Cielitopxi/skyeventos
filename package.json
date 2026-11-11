@@ -8,15 +8,15 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
     "preview": "vite preview",
-    "test:db": "node supabase/tests/esquema.test.mjs supabase/migrations/0001_esquema_inicial.sql supabase/migrations/0002_advisors.sql supabase/migrations/0003_demo.sql supabase/migrations/0004_unirse_idempotente.sql supabase/migrations/0005_bingo.sql supabase/migrations/0006_votacion.sql supabase/migrations/0007_trivia.sql supabase/migrations/0008_capsula_juegos_admin.sql supabase/migrations/0010_clips.sql supabase/migrations/0011_marcos.sql supabase/migrations/0012_email_invitados.sql supabase/migrations/0013_rendimiento_contacto.sql supabase/migrations/0014_limpieza_vencidos.sql supabase/migrations/0016_cupones_regalos_libro.sql supabase/migrations/0017_horarios_contactos.sql supabase/migrations/0018_ajustes_horario.sql supabase/migrations/0019_trivia_completa.sql supabase/migrations/0020_demo_limpieza.sql"
+    "test:db": "node supabase/tests/esquema.test.mjs supabase/migrations/0001_esquema_inicial.sql supabase/migrations/0002_advisors.sql supabase/migrations/0003_demo.sql supabase/migrations/0004_unirse_idempotente.sql supabase/migrations/0005_bingo.sql supabase/migrations/0006_votacion.sql supabase/migrations/0007_trivia.sql supabase/migrations/0008_capsula_juegos_admin.sql supabase/migrations/0010_clips.sql supabase/migrations/0011_marcos.sql supabase/migrations/0012_email_invitados.sql supabase/migrations/0013_rendimiento_contacto.sql supabase/migrations/0014_limpieza_vencidos.sql supabase/migrations/0016_cupones_regalos_libro.sql supabase/migrations/0017_horarios_contactos.sql supabase/migrations/0018_ajustes_horario.sql supabase/migrations/0019_trivia_completa.sql supabase/migrations/0020_demo_limpieza.sql supabase/migrations/0021_registro_limite.sql"
   },
   "dependencies": {
-    "@supabase/supabase-js": "2.45.4",
+    "@supabase/supabase-js": "2.119.0",
     "jszip": "^3.10.1",
     "qrcode": "1.5.4",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router-dom": "6.26.2"
+    "react-router-dom": "6.30.6"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.4.0",

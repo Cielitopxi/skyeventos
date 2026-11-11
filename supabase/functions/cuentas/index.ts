@@ -30,6 +30,11 @@ Deno.serve(async (req) => {
     const clave = String(b.clave ?? "");
     if (!EMAIL.test(email) || email.length > 254) return json({ error: "Ingresá un email válido" }, 400);
     if (!claveValida(clave)) return json({ error: "La contraseña tiene que tener entre 8 y 72 caracteres" }, 400);
+    // Tope por IP (migración 0021): frena altas masivas. Si la consulta falla, no se bloquea el registro.
+    const ip = (req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim();
+    const { data: permitido, error: eLimite } = await admin.rpc("registro_permitido", { p_ip: ip });
+    if (eLimite) console.error("registro_permitido", eLimite);
+    else if (permitido === false) return json({ error: "Se crearon demasiadas cuentas desde esta conexión. Probá de nuevo en una hora." }, 429);
     const { error } = await admin.auth.admin.createUser({ email, password: clave, email_confirm: true });
     if (error) {
       if (/already|registered|exists/i.test(error.message)) return json({ error: "Ya hay una cuenta con ese email. Ingresá con tu contraseña." }, 409);

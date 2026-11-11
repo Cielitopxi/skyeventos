@@ -367,4 +367,8 @@ const unInvitado = (await db.query(`select id from invitados limit 1`)).rows[0].
 await espera_error(como(intruso, true, `insert into demo_fijos (invitado_id) values ('${unInvitado}')`), "un invitado no se marca como fijo de la demo");
 await db.exec(`insert into demo_fijos (invitado_id) values ('${unInvitado}')`);
 console.log("✓ demo_fijos no se ve desde la app:", (await como(host, false, `select count(*)::int n from demo_fijos`)).rows[0].n === 0);
+let altas = 0;
+for (let i = 0; i < 7; i++) if ((await db.query("select registro_permitido('1.2.3.4') ok")).rows[0].ok) altas++;
+console.log("✓ registro: 5 altas por hora por IP:", altas === 5);
+await espera_error(como(intruso, true, "select registro_permitido('9.9.9.9')"), "solo el servidor consulta el límite de registro");
 console.log("FIN");
