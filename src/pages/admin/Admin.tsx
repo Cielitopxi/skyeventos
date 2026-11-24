@@ -485,7 +485,7 @@ function SeccionPlanes({ planes, recargar }: { planes: Plan[]; recargar: () => v
   return (
     <div className="space-y-4">
       {msj && <Aviso>{msj}</Aviso>}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {planes.map((p) => (
           <div key={p.id} className="tarjeta space-y-3">
             <div className="flex items-baseline justify-between">
@@ -505,6 +505,7 @@ function SeccionPlanes({ planes, recargar }: { planes: Plan[]; recargar: () => v
               {chk(p, "sin_marca", "Sin marca SkyEventos")}
               {chk(p, "capsula", "Cápsula del tiempo")}
               {chk(p, "portada_personalizada", "Portada personalizada")}
+              {chk(p, "solo_descartable", "Solo cámara descartable (sin pantalla)")}
             </div>
             <button className="btn-primario w-full" disabled={!Object.keys(edit[p.id] ?? {}).length} onClick={() => guardar(p)}>Guardar cambios</button>
           </div>

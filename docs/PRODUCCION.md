@@ -4,7 +4,7 @@ Proyecto Supabase: `ryxgalarjcrlwecxishb`. Las casillas marcadas ya están hecha
 
 ## 1. Base de datos
 
-- [x] Migraciones `0001` a `0022` aplicadas.
+- [x] Migraciones `0001` a `0023` aplicadas.
   - `0016`: códigos de descuento, tarjetas de regalo y fotolibro compartido.
   - `0017`: horario de cada evento (`inicio_at`, `fin_at`, máximo 24 h) y consentimiento de novedades de los invitados.
   - `0018`: tabla `ajustes` con los márgenes de habilitación: por defecto 3 h antes del inicio y 24 h después del fin. Se cambian desde `/admin → Horarios`.
@@ -12,6 +12,7 @@ Proyecto Supabase: `ryxgalarjcrlwecxishb`. Las casillas marcadas ya están hecha
   - `0020`: la demo pública se limpia sola: `limpiar-vencidos` borra cada noche a los visitantes de más de 24 h. Los invitados de muestra (Lucía, Tomás, Valentina y Lola) están en `demo_fijos` y no se borran.
   - `0021`: tope de altas de cuentas por IP (`registro_permitido`, 5 por hora y 20 por día).
   - `0022`: modo cámara descartable: rollo con fotos contadas por invitado, sin galería ni videos, sin borrar, y fotos ocultas para invitados y pantalla hasta el revelado (el mediodía siguiente al fin del evento, o la hora que elija el anfitrión). Se activa en Personalizar.
+  - `0023`: plan Descartable ($45.000, 80 invitados, sin pantalla, 30 días). Un evento con ese plan queda siempre en modo cámara descartable (`planes.solo_descartable`). Precio y topes se cambian en /admin → Planes.
 - [x] RLS activo en todas las tablas; advisors de seguridad sin errores.
   - Las advertencias de funciones `security definer` ejecutables son intencionales: validan permisos adentro.
   - Las de "anonymous access" son intencionales: los invitados usan sesión anónima.

@@ -221,7 +221,8 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
   const [porVenir, setPorVenir] = useState(0);
   const [capsula, setCapsula] = useState<EstadoCapsula | null>(null);
   const [tareas, setTareas] = useState<TareaSubida[]>([]);
-  const cola = useMemo(() => new ColaSubida(evento.id, invitado.id), [evento.id, invitado.id]);
+  const conRollo = !!evento.camara_descartable && evento.personalizacion.filtro_rollo !== false;
+  const cola = useMemo(() => new ColaSubida(evento.id, invitado.id, { rollo: conRollo }), [evento.id, invitado.id, conRollo]);
   const inputCamara = useRef<HTMLInputElement>(null);
   const inputGaleria = useRef<HTMLInputElement>(null);
   const [selector, setSelector] = useState(false);

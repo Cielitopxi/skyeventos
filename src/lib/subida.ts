@@ -28,7 +28,8 @@ export class ColaSubida {
 
   private alVolverConexion = () => this.procesar();
 
-  constructor(private eventoId: string, private invitadoId: string) {}
+  /** rollo: aplica el efecto de cámara descartable a las fotos. */
+  constructor(private eventoId: string, private invitadoId: string, private opciones: { rollo?: boolean } = {}) {}
 
   /** Mientras haya alguien mirando la cola, se reintenta sola al volver la conexión. */
   suscribir(fn: Oyente) {
@@ -99,7 +100,7 @@ export class ColaSubida {
       const medio = medioDe(t.archivo) ?? "foto";
       const m =
         medio === "foto"
-          ? await procesarImagen(t.archivo).then((img) => ({
+          ? await procesarImagen(t.archivo, 2048, { rollo: this.opciones.rollo }).then((img) => ({
               archivo: img.completa, contentType: "image/jpeg", extension: "jpg", miniatura: img.miniatura,
               ancho: img.ancho as number | null, alto: img.alto as number | null, duracion: null as number | null,
             }))

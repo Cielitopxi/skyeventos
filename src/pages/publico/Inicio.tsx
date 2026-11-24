@@ -323,7 +323,7 @@ export default function Inicio() {
             <p className="rotulo justify-center text-oro">Planes</p>
             <h2 className="mt-4 text-4xl leading-tight md:text-5xl">Un pago único, <em className="texto-oro">sin sorpresas.</em></h2>
           </div>
-          <div className="mt-14 grid items-stretch gap-5 md:grid-cols-3">
+          <div className={`mt-14 grid items-stretch gap-5 md:grid-cols-2 ${planes.length > 3 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
             {planes.map((p) => {
               const destacado = p.id === "fiesta";
               return (
@@ -345,18 +345,27 @@ export default function Inicio() {
                   <p className={`text-xs ${destacado ? "text-slate-500" : "text-white/65"}`}>pago único por evento</p>
                   <div className={`my-6 h-px ${destacado ? "bg-slate-200" : "bg-white/10"}`} />
                   <ul className={`flex-1 space-y-3 text-sm ${destacado ? "text-slate-700" : "text-white/75"}`}>
-                    {[
+                    {(p.solo_descartable ? [
+                      p.max_invitados ? `Hasta ${p.max_invitados} invitados` : "Invitados ilimitados",
+                      "Cámara descartable: cada invitado tiene su rollo de fotos",
+                      "Las fotos se revelan al día siguiente, todas juntas",
+                      "Efecto de rollo con la fecha estampada",
+                      "Trivia, votación y mensajes",
+                      "Fotolibro PDF",
+                      `Disponible ${p.retencion_dias < 60 ? `${p.retencion_dias} días` : `${Math.round(p.retencion_dias / 30)} meses`}`,
+                    ] : [
                       p.max_invitados ? `Hasta ${p.max_invitados} invitados` : "Invitados ilimitados",
                       p.max_fotos ? `${p.max_fotos.toLocaleString("es-AR")} fotos` : "Fotos ilimitadas",
                       `${p.pantallas} pantalla${p.pantallas > 1 ? "s" : ""} en vivo`,
+                      "Opción cámara descartable",
                       p.misiones ? "Juegos: misiones, bingo, trivia y votación" : null,
                       p.clips ? "Videos y audios de 10 segundos, con QR en el fotolibro" : null,
                       "Fotolibro PDF",
-                      `Disponible ${Math.round(p.retencion_dias / 30)} meses`,
+                      `Disponible ${p.retencion_dias < 60 ? `${p.retencion_dias} días` : `${Math.round(p.retencion_dias / 30)} meses`}`,
                       p.sin_marca ? "Sin marca SkyEventos" : null,
                       p.portada_personalizada ? "Portada con diseño personalizado" : null,
                       p.capsula ? "Cápsula del tiempo (guardada 1 año)" : null,
-                    ]
+                    ])
                       .filter(Boolean)
                       .map((t) => (
                         <li key={t} className="flex items-start gap-2.5">

@@ -11,7 +11,8 @@ export interface Personalizacion {
   portada?: DisenoPortada; // solo planes con portada personalizada
   juegos?: Partial<Record<JuegoId, boolean>>; // ausente = activo
   marco?: MarcoFoto | null; // marco instantánea de todas las fotos del evento, lo elige el anfitrión
-  libro?: { formato?: string; diseno?: string }; // fotolibro: ver lib/libro.ts (por defecto A4 horizontal, clásico)
+  libro?: { formato?: string; diseno?: string };
+  filtro_rollo?: boolean; // cámara descartable: efecto de rollo con fecha (ausente = activo) // fotolibro: ver lib/libro.ts (por defecto A4 horizontal, clásico)
 }
 
 export type MarcoFoto = "blanco" | "negro" | "crema" | "dorado" | "rosa" | "celeste" | "kraft";
@@ -39,6 +40,7 @@ export interface Plan {
   capsula: boolean;
   portada_personalizada: boolean;
   clips: boolean;
+  solo_descartable?: boolean; // plan Descartable: el evento queda siempre en modo cámara descartable
   orden: number;
 }
 

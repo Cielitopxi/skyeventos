@@ -159,7 +159,7 @@ export default function Regalar() {
                       <span>
                         <span className="block font-bold">{p.nombre}</span>
                         <span className="text-xs text-slate-600">
-                          {p.max_invitados ? `${p.max_invitados} invitados` : "Invitados ilimitados"} · {p.max_fotos ? `${p.max_fotos.toLocaleString("es-AR")} fotos` : "fotos ilimitadas"}
+                          {p.max_invitados ? `${p.max_invitados} invitados` : "Invitados ilimitados"} · {p.solo_descartable ? "cámara descartable, se revela al día siguiente" : p.max_fotos ? `${p.max_fotos.toLocaleString("es-AR")} fotos` : "fotos ilimitadas"}
                         </span>
                       </span>
                       <span className="text-lg font-bold">{pesos(p.precio_ars)}</span>

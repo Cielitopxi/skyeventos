@@ -406,4 +406,12 @@ const auto2 = (await db.query(`select revelado_de('${evd.id}') r`)).rows[0].r;
 console.log("✓ si termina antes de medianoche, al mediodía del día siguiente:", new Date(auto2).toISOString() === "2026-12-13T15:00:00.000Z");
 console.log("✓ en un evento normal las fotos se ven al instante:", (await como(g1, true, `select fotos_reveladas('${ev.id}') r`)).rows[0].r === true);
 
+// Plan Descartable (0023)
+const evp = (await como(host, false, `select * from crear_evento('Rollo','cumple','elegante','descartable',null)`)).rows[0];
+console.log("✓ el plan Descartable crea el evento en modo cámara descartable:", (await db.query(`select camara_descartable c from eventos where id='${evp.id}'`)).rows[0].c === true);
+await como(host, false, `update eventos set camara_descartable = false where id='${evp.id}'`);
+console.log("✓ con el plan Descartable el modo no se apaga:", (await db.query(`select camara_descartable c from eventos where id='${evp.id}'`)).rows[0].c === true);
+const evf = (await como(host, false, `select * from crear_evento('Normal','cumple','elegante','fiesta',null)`)).rows[0];
+console.log("✓ los otros planes arrancan sin el modo:", (await db.query(`select camara_descartable c from eventos where id='${evf.id}'`)).rows[0].c === false);
+
 console.log("FIN");

@@ -119,7 +119,7 @@ export default function TabPersonalizar({ evento, plan, recargar }: PropsTab) {
               </p>
             </div>
             <label className="flex shrink-0 items-center gap-2 text-sm font-semibold">
-              <input type="checkbox" checked={descartable} onChange={(e) => setDescartable(e.target.checked)} /> Activar
+              <input type="checkbox" checked={descartable} disabled={!!plan?.solo_descartable} onChange={(e) => setDescartable(e.target.checked)} /> {plan?.solo_descartable ? "Incluido en tu plan" : "Activar"}
             </label>
           </div>
           {descartable && (
@@ -140,6 +140,10 @@ export default function TabPersonalizar({ evento, plan, recargar }: PropsTab) {
                   <input className="input" type="datetime-local" value={revelado} onChange={(e) => setRevelado(e.target.value)} />
                 </Campo>
               )}
+              <label className="flex items-center gap-2 text-sm sm:col-span-2">
+                <input type="checkbox" checked={p.filtro_rollo !== false} onChange={(e) => setP((x) => ({ ...x, filtro_rollo: e.target.checked }))} />
+                Efecto de rollo: tono cálido, grano y la fecha estampada en naranja, como las descartables de antes
+              </label>
               <div className="sm:col-span-2">
                 <Aviso>Sin pantalla en vivo: la pantalla no muestra fotos hasta el revelado. Las misiones y el bingo siguen funcionando, y sus fotos también se revelan a esa hora.</Aviso>
               </div>

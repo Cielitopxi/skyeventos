@@ -215,8 +215,9 @@ export default function Contratar() {
                         <p className="font-bold">{p.nombre}</p>
                         <p className="text-xs text-slate-600">
                           {p.max_invitados ? `${p.max_invitados} invitados` : "Invitados ilimitados"} ·{" "}
-                          {p.max_fotos ? `${p.max_fotos.toLocaleString("es-AR")} fotos` : "fotos ilimitadas"} · {p.pantallas} pantalla(s)
-                          {p.misiones ? " · misiones y premios" : ""}
+                          {p.solo_descartable
+                            ? "cámara descartable · las fotos se revelan al día siguiente · sin pantalla"
+                            : <>{p.max_fotos ? `${p.max_fotos.toLocaleString("es-AR")} fotos` : "fotos ilimitadas"} · {p.pantallas} pantalla(s){p.misiones ? " · misiones y premios" : ""}</>}
                         </p>
                       </div>
                       <p className="text-lg font-bold">{pesos(p.precio_ars)}</p>
