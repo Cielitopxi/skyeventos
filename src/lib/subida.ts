@@ -108,10 +108,13 @@ export class ColaSubida {
       this.avisar();
       const base = `${this.eventoId}/${this.invitadoId}/${t.id}`;
       const st = supabase.storage.from(BUCKET);
-      const a = await st.upload(`${base}.${m.extension}`, m.archivo, { contentType: m.contentType, upsert: true });
-      if (a.error) throw a.error;
-      const b = await st.upload(`${base}_t.jpg`, m.miniatura, { contentType: "image/jpeg", upsert: true });
-      if (b.error) throw b.error;
+      // Sin upsert: sobrescribir exige poder leer el archivo, y en modo cámara descartable el invitado
+      // no puede leer sus fotos hasta el revelado. Si un reintento encuentra el archivo ya subido, sigue.
+      const yaEstaba = (e: { message?: string; statusCode?: string } | null) => !!e && (e.statusCode === "409" || /already exists|duplicate/i.test(e.message ?? ""));
+      const a = await st.upload(`${base}.${m.extension}`, m.archivo, { contentType: m.contentType });
+      if (a.error && !yaEstaba(a.error)) throw a.error;
+      const b = await st.upload(`${base}_t.jpg`, m.miniatura, { contentType: "image/jpeg" });
+      if (b.error && !yaEstaba(b.error)) throw b.error;
       const { error } = await supabase.from("fotos").insert({
         id: t.id,
         evento_id: this.eventoId,

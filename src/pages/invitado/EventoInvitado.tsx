@@ -11,7 +11,7 @@ import { MarcaClip } from "../../components/MarcaClip";
 import { giro, Instantanea, marcoDe, PROPORCION_MARCO } from "../../components/Instantanea";
 import { duracionArchivo, MAX_CLIP, medioDe, type MedioClip } from "../../lib/clip";
 import { procesarImagen } from "../../lib/imagen";
-import { hora, rankingPorMesa } from "../../lib/formato";
+import { hora, momentoRevelado, rankingPorMesa } from "../../lib/formato";
 import { asegurarSesion, BUCKET, mensajeError, supabase } from "../../lib/supabase";
 import { ColaSubida, type TareaSubida } from "../../lib/subida";
 import { estiloTematica, tematica } from "../../lib/tematicas";
@@ -231,6 +231,20 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
 
   useEffect(() => cola.suscribir(setTareas), [cola]);
 
+  // Cámara descartable: el rollo (usadas / total) lo cuenta el servidor.
+  const descartable = !!evento.camara_descartable;
+  const [rollo, setRollo] = useState<{ usadas: number; total: number } | null>(null);
+  const subidasListas = tareas.filter((t) => t.estado === "listo").length;
+  useEffect(() => {
+    if (!descartable) return;
+    supabase.rpc("mi_rollo", { p_evento: evento.id }).then(({ data }) => {
+      const r = (data as { usadas: number; total: number }[] | null)?.[0];
+      if (r) setRollo({ usadas: r.usadas, total: r.total });
+    });
+  }, [descartable, evento.id, subidasListas]);
+  const enCamino = tareas.filter((t) => t.estado !== "listo" && t.estado !== "error").length;
+  const quedan = rollo ? Math.max(0, rollo.total - rollo.usadas - enCamino) : (evento.fotos_por_invitado ?? 0);
+
   useEffect(() => {
     supabase.rpc("clips_habilitados", { p_evento: evento.id }).then(({ data }) => setClipsOk(Boolean(data)));
   }, [evento.id]);
@@ -311,6 +325,7 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
       else largos++;
     }
     setErrorClip(largos ? `${largos === 1 ? "Un video no se subió" : `${largos} videos no se subieron`}: pueden durar hasta ${MAX_CLIP} segundos. Grabalo desde acá con "Grabar video".` : "");
+    if (descartable) lista.splice(quedan);
     if (lista.length) cola.agregar(lista, { misionId: misionElegida?.id, bingoId: casillaElegida?.id });
     setMisionElegida(null);
     setCasillaElegida(null);
@@ -357,7 +372,9 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
           {activas.length > errores.length ? (
             <p className="flex items-center gap-2"><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-tema-acento border-t-transparent" /> Subiendo {activas.length - errores.length} archivo(s)… {!navigator.onLine && "(sin conexión, se reintenta sola)"}</p>
           ) : listas === 0 ? null : (
-            <p className="flex items-center gap-2"><IconoDuo nombre="check" className="h-4 w-4 text-emerald-600" trazo={2.2} /> {listas === 1 ? "1 archivo subido" : `${listas} archivos subidos`}</p>
+            <p className="flex items-center gap-2"><IconoDuo nombre="check" className="h-4 w-4 text-emerald-600" trazo={2.2} /> {descartable
+                ? `${listas === 1 ? "Foto guardada" : `${listas} fotos guardadas`} en el rollo${evento.revelado_at ? ` · se revela ${momentoRevelado(evento.revelado_at)}` : ""}`
+                : listas === 1 ? "1 archivo subido" : `${listas} archivos subidos`}</p>
           )}
           {errores.length > 0 && (
             <div className="mt-1 text-rose-600">
@@ -402,7 +419,17 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
         {pestana === "yo" && <Yo evento={evento} invitado={invitado} setInvitado={setInvitado} />}
       </div>
 
-      {evento.abierto && (
+      {evento.abierto && descartable && (
+        <button
+          onClick={() => quedan > 0 && inputCamara.current?.click()}
+          disabled={quedan === 0}
+          className="fixed bottom-20 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-tema-acento px-7 py-4 text-base font-bold text-white shadow-xl shadow-black/20 active:scale-95 disabled:opacity-60"
+        >
+          <IconoDuo nombre="camara" className="h-5 w-5" trazo={1.9} />
+          {quedan > 0 ? <>Sacar foto <span className="rounded-full bg-white/25 px-2 py-0.5 text-sm tabular-nums">{quedan}</span></> : "Rollo terminado"}
+        </button>
+      )}
+      {evento.abierto && !descartable && (
         <button
           onClick={() => elegir(null)}
           className="fixed bottom-20 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-tema-acento px-7 py-4 text-base font-bold text-white shadow-xl shadow-black/20 active:scale-95"
@@ -433,13 +460,17 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
         <div className="space-y-3">
           {misionElegida?.descripcion && <p className="text-sm text-tema-suave">{misionElegida.descripcion}</p>}
           {casillaElegida && <p className="text-sm text-tema-suave">Sacale una foto a este momento para marcar la casilla del bingo.</p>}
-          <button className="btn-primario flex w-full items-center justify-center gap-2 py-4 text-base" onClick={() => inputCamara.current?.click()}>
+          <button className="btn-primario flex w-full items-center justify-center gap-2 py-4 text-base" disabled={descartable && quedan === 0} onClick={() => inputCamara.current?.click()}>
             <IconoDuo nombre="camara" className="h-5 w-5" /> Sacar una foto
           </button>
-          <button className="btn-secundario flex w-full items-center justify-center gap-2 py-4 text-base" onClick={() => inputGaleria.current?.click()}>
-            <IconoDuo nombre="galeria" className="h-5 w-5" /> Elegir de la galería
-          </button>
-          {clipsOk && (
+          {descartable ? (
+            <p className="text-center text-sm text-tema-suave">{quedan > 0 ? `Te quedan ${quedan} fotos en el rollo.` : "Se terminó tu rollo."}</p>
+          ) : (
+            <button className="btn-secundario flex w-full items-center justify-center gap-2 py-4 text-base" onClick={() => inputGaleria.current?.click()}>
+              <IconoDuo nombre="galeria" className="h-5 w-5" /> Elegir de la galería
+            </button>
+          )}
+          {clipsOk && !descartable && (
             <div className="grid grid-cols-2 gap-3 pt-1">
               <button className="btn-secundario flex flex-col items-center gap-1 py-3.5" onClick={() => { setSelector(false); setGrabar("video"); }}>
                 <IconoDuo nombre="video" className="h-6 w-6 text-tema-acento" />
@@ -468,9 +499,25 @@ function App({ evento, invitado, setInvitado, premiosActivos }: { evento: Evento
   );
 }
 
-function useFotosEvento(eventoId: string) {
+/** true desde la hora del revelado (o siempre, si el evento no es descartable). Se actualiza sola al llegar la hora. */
+function useRevelado(evento: EventoPublico) {
+  const revela = evento.camara_descartable && evento.revelado_at ? Date.parse(evento.revelado_at) : 0;
+  const [ya, setYa] = useState(() => Date.now() >= revela);
+  useEffect(() => {
+    const falta = revela - Date.now();
+    if (falta <= 0) return setYa(true);
+    setYa(false);
+    if (falta > 864e5) return; // más de un día: alcanza con volver a abrir la app
+    const t = setTimeout(() => setYa(true), falta + 2000);
+    return () => clearTimeout(t);
+  }, [revela]);
+  return ya;
+}
+
+function useFotosEvento(eventoId: string, revelado = true) {
   const [fotos, setFotos] = useState<Foto[]>([]);
   useEffect(() => {
+    if (!revelado) return;
     supabase
       .from("fotos")
       .select("*")
@@ -490,12 +537,13 @@ function useFotosEvento(eventoId: string) {
     return () => {
       supabase.removeChannel(canal);
     };
-  }, [eventoId]);
+  }, [eventoId, revelado]);
   return [fotos, setFotos] as const;
 }
 
 function Galeria({ evento, invitado, soloMias = false }: { evento: EventoPublico; invitado: Invitado; soloMias?: boolean }) {
-  const [todas, setFotos] = useFotosEvento(evento.id);
+  const revelado = useRevelado(evento);
+  const [todas, setFotos] = useFotosEvento(evento.id, revelado);
   const fotos = soloMias ? todas.filter((f) => f.invitado_id === invitado.id) : todas;
   const [abierta, setAbierta] = useState<Foto | null>(null);
   const urls = useUrls(fotos.map((f) => f.thumb_path));
@@ -510,6 +558,17 @@ function Galeria({ evento, invitado, soloMias = false }: { evento: EventoPublico
     setFotos((xs) => xs.filter((x) => x.id !== f.id));
     setAbierta(null);
   }
+
+  if (!revelado)
+    return (
+      <div className="mx-auto mt-6 max-w-xs rounded-2xl bg-tema-superficie p-6 text-center shadow">
+        <p className="text-5xl">🎞️</p>
+        <p className="mt-3 text-lg font-bold">Las fotos se están revelando</p>
+        <p className="mt-2 text-sm text-tema-suave">
+          Como en una cámara descartable, nadie las ve hasta el revelado{soloMias ? ", ni siquiera vos" : ""}. Se revelan {momentoRevelado(evento.revelado_at!)}.
+        </p>
+      </div>
+    );
 
   if (!fotos.length)
     return <p className="py-16 text-center text-tema-suave">{soloMias ? "Todavía no subiste fotos." : "¡Sé el primero en subir una foto!"}</p>;
@@ -553,7 +612,7 @@ function Galeria({ evento, invitado, soloMias = false }: { evento: EventoPublico
           </div>
           <div className="flex items-center justify-between p-4 text-sm text-white" onClick={(e) => e.stopPropagation()}>
             <span>{hora(abierta.created_at)}</span>
-            {abierta.invitado_id === invitado.id && <button className="rounded-lg bg-rose-600 px-3 py-1.5 font-semibold" onClick={() => borrar(abierta)}>Borrar</button>}
+            {abierta.invitado_id === invitado.id && !evento.camara_descartable && <button className="rounded-lg bg-rose-600 px-3 py-1.5 font-semibold" onClick={() => borrar(abierta)}>Borrar</button>}
             <button className="rounded-lg bg-white/20 px-3 py-1.5" onClick={() => setAbierta(null)}>Cerrar</button>
           </div>
         </div>

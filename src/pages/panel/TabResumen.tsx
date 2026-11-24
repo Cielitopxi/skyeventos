@@ -90,16 +90,20 @@ export default function TabResumen({ evento, plan, recargar }: PropsTab) {
         <div className="tarjeta space-y-4">
           <h2 className="font-bold">Links del evento</h2>
           <Copiable label="Página de invitados" valor={linkInvitados} />
-          <Copiable label="Pantalla en vivo (no lo compartas: es para el TV o proyector)" valor={linkPantalla} />
+          {evento.camara_descartable ? (
+            <p className="text-sm text-slate-600">📷 Modo cámara descartable: sin pantalla en vivo. Las fotos se revelan para todos a la hora elegida en Personalizar.</p>
+          ) : (
+            <Copiable label="Pantalla en vivo (no lo compartas: es para el TV o proyector)" valor={linkPantalla} />
+          )}
         </div>
-        <form onSubmit={enviarAnuncio} className="tarjeta space-y-3">
+        {!evento.camara_descartable && <form onSubmit={enviarAnuncio} className="tarjeta space-y-3">
           <h2 className="font-bold">Anuncio en pantalla</h2>
           <p className="text-sm text-slate-600">Se muestra grande en la pantalla durante unos segundos. Ej: “¡Misión relámpago: foto con la torta!”</p>
           <div className="flex gap-2">
             <input className="input" maxLength={140} value={anuncio} onChange={(e) => setAnuncio(e.target.value)} placeholder="Escribí el anuncio…" />
             <button className="btn-primario shrink-0" disabled={evento.estado !== "activo"}>Enviar</button>
           </div>
-        </form>
+        </form>}
         {msg && <Aviso tipo={msg.t}>{msg.m}</Aviso>}
       </div>
       <div className="space-y-6">

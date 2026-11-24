@@ -20,7 +20,13 @@ const JUEGOS: { id: JuegoId; t: string; d: string; i: string; premium?: boolean 
   { id: "capsula", t: "Cápsula del tiempo", d: "Mensajes y fotos sellados que se abren a los 11 meses.", i: "capsula", premium: true },
 ];
 
-const rgbAHex = (rgb: string) =>
+/** ISO → valor de <input type="datetime-local"> en la hora del navegador. */
+const aLocal = (iso: string) => {
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
+};
+
+const rgbAHex =(rgb: string) =>
   "#" + rgb.split(" ").map((n) => Number(n).toString(16).padStart(2, "0")).join("");
 
 export default function TabPersonalizar({ evento, plan, recargar }: PropsTab) {
@@ -31,6 +37,9 @@ export default function TabPersonalizar({ evento, plan, recargar }: PropsTab) {
   const [moderacion, setModeracion] = useState(evento.moderacion);
   const [premios, setPremios] = useState(evento.premios_activos);
   const [p, setP] = useState<Personalizacion>(evento.personalizacion);
+  const [descartable, setDescartable] = useState(!!evento.camara_descartable);
+  const [porInvitado, setPorInvitado] = useState(evento.fotos_por_invitado ?? 24);
+  const [revelado, setRevelado] = useState(evento.revelado_at ? aLocal(evento.revelado_at) : "");
   const [guardando, setGuardando] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
   const [msg, setMsg] = useState<{ t: "ok" | "error"; m: string } | null>(null);
@@ -63,7 +72,10 @@ export default function TabPersonalizar({ evento, plan, recargar }: PropsTab) {
     setMsg(null);
     const { error } = await supabase
       .from("eventos")
-      .update({ nombre: nombre.trim(), fecha: fecha || null, tipo, tematica: tematicaId, moderacion, premios_activos: premios, personalizacion: p })
+      .update({
+        nombre: nombre.trim(), fecha: fecha || null, tipo, tematica: tematicaId, moderacion, premios_activos: premios, personalizacion: p,
+        camara_descartable: descartable, fotos_por_invitado: porInvitado, revelado_at: revelado ? new Date(revelado).toISOString() : null,
+      })
       .eq("id", evento.id);
     setGuardando(false);
     if (error) return setMsg({ t: "error", m: mensajeError(error) });
@@ -95,6 +107,44 @@ export default function TabPersonalizar({ evento, plan, recargar }: PropsTab) {
             <input type="checkbox" checked={premios} onChange={(e) => setPremios(e.target.checked)} />
             Mostrar ranking y premios a los invitados (si lo desactivás, las misiones siguen siendo solo por diversión)
           </label>
+        </div>
+
+        <div className="tarjeta space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-bold">📷 Cámara descartable</h2>
+              <p className="text-sm text-slate-600">
+                Cada invitado tiene un rollo con fotos contadas, las saca en el momento (sin galería ni videos) y no las puede borrar.
+                Nadie las ve, ni siquiera quien las sacó, hasta el revelado. Vos sí las ves en Moderar y podés ocultar las que no quieras que se revelen.
+              </p>
+            </div>
+            <label className="flex shrink-0 items-center gap-2 text-sm font-semibold">
+              <input type="checkbox" checked={descartable} onChange={(e) => setDescartable(e.target.checked)} /> Activar
+            </label>
+          </div>
+          {descartable && (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Campo label="Fotos por invitado">
+                <select className="input" value={porInvitado} onChange={(e) => setPorInvitado(Number(e.target.value))}>
+                  {[10, 15, 24, 36].map((n) => <option key={n} value={n}>{n} fotos{n === 24 ? " (rollo clásico)" : ""}</option>)}
+                </select>
+              </Campo>
+              <Campo label="Revelado">
+                <select className="input" value={revelado ? "elegido" : "auto"} onChange={(e) => setRevelado(e.target.value === "auto" ? "" : aLocal(new Date(Date.now() + 864e5).toISOString()))}>
+                  <option value="auto">Automático: al mediodía siguiente al fin del evento</option>
+                  <option value="elegido">Elijo día y hora</option>
+                </select>
+              </Campo>
+              {revelado && (
+                <Campo label="Día y hora del revelado">
+                  <input className="input" type="datetime-local" value={revelado} onChange={(e) => setRevelado(e.target.value)} />
+                </Campo>
+              )}
+              <div className="sm:col-span-2">
+                <Aviso>Sin pantalla en vivo: la pantalla no muestra fotos hasta el revelado. Las misiones y el bingo siguen funcionando, y sus fotos también se revelan a esa hora.</Aviso>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="tarjeta space-y-4">

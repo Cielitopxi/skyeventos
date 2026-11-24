@@ -10,6 +10,14 @@ export const fechaLarga = (iso: string | null | undefined) => {
 export const hora = (iso: string) =>
   new Date(iso).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
 
+/** "el sábado 13/12 a las 12:00" (para el revelado de la cámara descartable). */
+export const momentoRevelado = (iso: string) => {
+  const d = new Date(iso);
+  const dia = d.toLocaleDateString("es-AR", { weekday: "long" });
+  const hh = d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  return `el ${dia} ${d.getDate()}/${d.getMonth() + 1} a las ${hh}`;
+};
+
 export const TIPOS_EVENTO: { id: string; nombre: string }[] = [
   { id: "boda", nombre: "Boda" },
   { id: "quince", nombre: "15 años" },

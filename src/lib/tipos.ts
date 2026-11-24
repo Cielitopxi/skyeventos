@@ -62,6 +62,9 @@ export interface Evento {
   libro_token?: string | null; // link público del fotolibro (compartir_libro)
   inicio_at?: string | null; // horario contratado (definir_horario)
   fin_at?: string | null;
+  camara_descartable?: boolean; // modo cámara descartable (0022)
+  fotos_por_invitado?: number;
+  revelado_at?: string | null; // elegido por el anfitrión; null = automático
   created_at: string;
 }
 
@@ -77,6 +80,9 @@ export interface EventoPublico {
   premios_activos: boolean;
   inicio_at?: string | null;
   fin_at?: string | null;
+  camara_descartable?: boolean;
+  fotos_por_invitado?: number;
+  revelado_at?: string | null; // hora efectiva del revelado (automática o elegida)
 }
 
 export interface Invitado {
