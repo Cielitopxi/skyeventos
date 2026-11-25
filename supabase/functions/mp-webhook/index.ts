@@ -35,6 +35,10 @@ async function firmaValida(req: Request, dataId: string) {
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
+  // Mercado Pago avisa cada pago dos veces: como Webhook (?data.id=…&type=payment, firmado) y en el formato
+  // viejo IPN (?id=…&topic=payment, sin firma válida). Se procesa solo el Webhook; al IPN se le responde 200
+  // para que Mercado Pago no lo reintente.
+  if (url.searchParams.has("topic")) return new Response("ignorado (IPN)", { status: 200 });
   const cuerpo = await req.json().catch(() => ({} as Record<string, unknown>));
   // deno-lint-ignore no-explicit-any
   const b = cuerpo as any;
