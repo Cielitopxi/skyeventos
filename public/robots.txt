@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /panel
+Disallow: /admin
+Disallow: /contratar
+Disallow: /ingresar
+Disallow: /pago
+Disallow: /baja
+Disallow: /e/
+Disallow: /pantalla/
+Disallow: /libro/
+Disallow: /c/
+
+Sitemap: https://eventos.skystudio.ar/sitemap.xml
